@@ -4,7 +4,7 @@ We use a feature-oriented Expo Router structure. Keep routes thin, feature code 
 
 ```text
 budgetnest-mobile/
-├── app/                         # Expo Router routes and layouts
+├── app/                         # Expo Router routes and navigation layouts
 │   ├── (tabs)/                  # Main bottom-tab routes
 │   └── _layout.tsx
 ├── assets/
@@ -31,7 +31,7 @@ budgetnest-mobile/
 │   ├── services/
 │   │   ├── backup/              # Portable backup, validation, restore
 │   │   └── google-drive/        # Optional Drive integration
-│   ├── theme/                   # Colors, type, spacing, component tokens
+│   ├── theme/                   # Colors, typography, spacing, component tokens
 │   ├── lib/                     # Small shared utilities
 │   ├── hooks/                   # Cross-feature hooks only
 │   ├── constants/
@@ -40,12 +40,22 @@ budgetnest-mobile/
 │   ├── architecture/
 │   └── PROJECT_STRUCTURE.md
 ├── tests/
-├── app.config.ts
+├── app.json
 ├── package.json
 └── tsconfig.json
 ```
 
+## Current foundation
+
+- `app/_layout.tsx`: root navigation stack and status bar.
+- `app/(tabs)/_layout.tsx`: bottom-tab navigation.
+- `app/(tabs)/index.tsx`: initial dashboard shell.
+- `app/(tabs)/transactions.tsx`, `accounts.tsx`, `settings.tsx`: initial route placeholders.
+- `src/theme/colors.ts`: light/dark design tokens adapted from the web theme.
+- `src/components/ui/placeholder-screen.tsx`: shared placeholder layout.
+
 ## Conventions
+
 1. **Routes stay thin:** navigation and route composition only; no SQL or financial calculations.
 2. **Feature-first:** feature-specific screens, components, hooks, services, and types live together under `src/features/<feature>/`.
 3. **Shared UI:** promote components to `src/components` only when reused across features.
@@ -55,6 +65,7 @@ budgetnest-mobile/
 7. **Avoid empty abstractions:** create detailed feature subfolders when the feature is implemented, not just to fill the tree.
 
 Typical feature module (only add what it needs):
+
 ```text
 src/features/transactions/
 ├── components/
@@ -66,6 +77,7 @@ src/features/transactions/
 ```
 
 Data flow:
+
 ```text
 Expo Router screen → feature hook/service → domain rules → repository interface → SQLite
 ```
