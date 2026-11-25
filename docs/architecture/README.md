@@ -9,6 +9,9 @@
 - Implement snapshot backup/restore before considering automatic synchronization.
 - Keep the existing web app and Supabase infrastructure intact during the audit and mobile transition.
 
+## Database
+See [Local database architecture](database.md) for the initial SQLite schema, migration strategy, money representation, repository boundary, and known limitations.
+
 ## Audit required before finalizing
 - Existing web data model, Supabase schema, and migrations.
 - Financial calculations and validation rules.

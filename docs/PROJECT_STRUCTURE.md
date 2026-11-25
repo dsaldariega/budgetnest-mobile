@@ -27,13 +27,14 @@ budgetnest-mobile/
 │   ├── database/
 │   │   ├── migrations/          # Ordered SQLite migrations
 │   │   ├── repositories/        # SQLite data access
-│   │   └── schema/
+│   │   ├── provider.tsx         # Root SQLite provider
+│   │   └── types.ts             # Persistence/domain-facing types
 │   ├── services/
 │   │   ├── backup/              # Portable backup, validation, restore
 │   │   └── google-drive/        # Optional Drive integration
-│   ├── theme/                   # Colors, typography, spacing, component tokens
-│   ├── lib/                     # Small shared utilities
-│   ├── hooks/                   # Cross-feature hooks only
+│   ├── theme/
+│   ├── lib/
+│   ├── hooks/
 │   ├── constants/
 │   └── types/
 ├── docs/
@@ -45,15 +46,6 @@ budgetnest-mobile/
 └── tsconfig.json
 ```
 
-## Current foundation
-
-- `app/_layout.tsx`: root navigation stack and status bar.
-- `app/(tabs)/_layout.tsx`: bottom-tab navigation.
-- `app/(tabs)/index.tsx`: initial dashboard shell.
-- `app/(tabs)/transactions.tsx`, `accounts.tsx`, `settings.tsx`: initial route placeholders.
-- `src/theme/colors.ts`: light/dark design tokens adapted from the web theme.
-- `src/components/ui/placeholder-screen.tsx`: shared placeholder layout.
-
 ## Conventions
 
 1. **Routes stay thin:** navigation and route composition only; no SQL or financial calculations.
@@ -64,22 +56,10 @@ budgetnest-mobile/
 6. **Optional integrations:** core functionality must work without Google sign-in or Drive.
 7. **Avoid empty abstractions:** create detailed feature subfolders when the feature is implemented, not just to fill the tree.
 
-Typical feature module (only add what it needs):
+## Database flow
 
 ```text
-src/features/transactions/
-├── components/
-├── hooks/
-├── screens/
-├── services/
-├── types/
-└── index.ts
-```
-
-Data flow:
-
-```text
-Expo Router screen → feature hook/service → domain rules → repository interface → SQLite
+Expo Router screen → feature hook/service → domain rules → repository → SQLite
 ```
 
 The web app remains the reference for existing behavior and visual identity. Mobile layouts should be redesigned for touch: bottom navigation, cards/lists instead of dense tables, and mobile-friendly dialogs or sheets.
