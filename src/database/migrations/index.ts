@@ -63,7 +63,7 @@ export const migrations: DatabaseMigration[] = [
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL CHECK (length(trim(name)) > 0),
         amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
-        billing_cycle TEXT NOT NULL CHECK (billing_cycle IN ('weekly', 'monthly', 'yearly', 'custom')),
+        billing_cycle TEXT NOT NULL CHECK (billing_cycle IN ('weekly', 'monthly', 'quarterly', 'yearly', 'custom')),
         next_billing_date TEXT,
         account_id TEXT REFERENCES accounts(id) ON DELETE SET NULL,
         category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
@@ -86,7 +86,6 @@ export const migrations: DatabaseMigration[] = [
       ALTER TABLE accounts ADD COLUMN source_type TEXT;
       ALTER TABLE categories ADD COLUMN source_name TEXT;
       ALTER TABLE savings_goals ADD COLUMN legacy_current_amount_minor INTEGER;
-
       CREATE TABLE transactions_next (
         id TEXT PRIMARY KEY NOT NULL,
         account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
@@ -116,7 +115,6 @@ export const migrations: DatabaseMigration[] = [
       CREATE INDEX idx_transactions_account_date ON transactions(account_id, occurred_at DESC);
       CREATE INDEX idx_transactions_category_date ON transactions(category_id, occurred_at DESC);
       CREATE INDEX idx_transactions_transfer_group ON transactions(transfer_group_id);
-
       CREATE TABLE subscriptions_next (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL CHECK (length(trim(name)) > 0),
@@ -133,10 +131,8 @@ export const migrations: DatabaseMigration[] = [
       DROP TABLE subscriptions;
       ALTER TABLE subscriptions_next RENAME TO subscriptions;
       CREATE INDEX idx_subscriptions_active_date ON subscriptions(is_active, next_billing_date);
-
       CREATE TABLE loans (
-        id TEXT PRIMARY KEY NOT NULL,
-        name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+        id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL CHECK (length(trim(name)) > 0),
         principal_minor INTEGER NOT NULL CHECK (principal_minor > 0),
         monthly_interest_rate_bps INTEGER NOT NULL DEFAULT 0 CHECK (monthly_interest_rate_bps >= 0),
         interest_type TEXT NOT NULL CHECK (interest_type IN ('flat_rate', 'reducing_balance')),
@@ -147,8 +143,7 @@ export const migrations: DatabaseMigration[] = [
         notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
       );
       CREATE TABLE loan_payments (
-        id TEXT PRIMARY KEY NOT NULL,
-        loan_id TEXT NOT NULL REFERENCES loans(id) ON DELETE RESTRICT,
+        id TEXT PRIMARY KEY NOT NULL, loan_id TEXT NOT NULL REFERENCES loans(id) ON DELETE RESTRICT,
         amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
         interest_paid_minor INTEGER NOT NULL DEFAULT 0 CHECK (interest_paid_minor >= 0),
         principal_paid_minor INTEGER NOT NULL DEFAULT 0 CHECK (principal_paid_minor >= 0),
@@ -156,8 +151,7 @@ export const migrations: DatabaseMigration[] = [
         CHECK (interest_paid_minor + principal_paid_minor = amount_minor)
       );
       CREATE TABLE subscription_payments (
-        id TEXT PRIMARY KEY NOT NULL,
-        subscription_id TEXT NOT NULL REFERENCES subscriptions(id) ON DELETE RESTRICT,
+        id TEXT PRIMARY KEY NOT NULL, subscription_id TEXT NOT NULL REFERENCES subscriptions(id) ON DELETE RESTRICT,
         amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
         billing_date TEXT NOT NULL, paid_at TEXT NOT NULL, notes TEXT, created_at TEXT NOT NULL
       );
@@ -169,6 +163,24 @@ export const migrations: DatabaseMigration[] = [
       CREATE INDEX idx_loan_payments_loan_date ON loan_payments(loan_id, payment_date, created_at);
       CREATE INDEX idx_subscription_payments_subscription_date ON subscription_payments(subscription_id, billing_date DESC);
       CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
+    `,
+  },
+  {
+    version: 3,
+    description: "Seed default income and expense categories",
+    sql: `
+      INSERT OR IGNORE INTO categories (id, name, type, icon, is_system, created_at, updated_at) VALUES
+        ('cat-income-salary', 'Salary', 'income', 'wallet', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-income-business', 'Business', 'income', 'briefcase', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-income-investment', 'Investment', 'income', 'trending-up', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-income-other', 'Other income', 'income', 'plus-circle', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-expense-food', 'Food & drinks', 'expense', 'utensils', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-expense-transport', 'Transportation', 'expense', 'car', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-expense-bills', 'Bills & utilities', 'expense', 'receipt', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-expense-shopping', 'Shopping', 'expense', 'shopping-bag', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-expense-health', 'Health', 'expense', 'heart-pulse', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-expense-home', 'Home', 'expense', 'house', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
+        ('cat-expense-other', 'Other expense', 'expense', 'more-horizontal', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
     `,
   },
 ];
