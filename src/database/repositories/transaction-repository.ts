@@ -1,8 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import type {
-  CreateTransactionInput,
-  Transaction,
-  TransactionType,
+  CreateTransactionInput, Transaction, TransactionType, TransferDirection,
 } from "@/database/types";
 
 type TransactionRow = {
@@ -10,6 +8,7 @@ type TransactionRow = {
   account_id: string;
   category_id: string | null;
   transfer_group_id: string | null;
+  transfer_direction: TransferDirection | null;
   type: TransactionType;
   amount_minor: number;
   description: string;
@@ -21,16 +20,10 @@ type TransactionRow = {
 
 function mapTransaction(row: TransactionRow): Transaction {
   return {
-    id: row.id,
-    accountId: row.account_id,
-    categoryId: row.category_id,
-    transferGroupId: row.transfer_group_id,
-    type: row.type,
-    amountMinor: row.amount_minor,
-    description: row.description,
-    notes: row.notes,
-    occurredAt: row.occurred_at,
-    createdAt: row.created_at,
+    id: row.id, accountId: row.account_id, categoryId: row.category_id,
+    transferGroupId: row.transfer_group_id, transferDirection: row.transfer_direction,
+    type: row.type, amountMinor: row.amount_minor, description: row.description,
+    notes: row.notes, occurredAt: row.occurred_at, createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
@@ -50,30 +43,18 @@ export function createTransactionRepository(db: SQLiteDatabase) {
       const now = new Date().toISOString();
       await db.runAsync(
         `INSERT INTO transactions (
-          id, account_id, category_id, transfer_group_id, type,
-          amount_minor, description, notes, occurred_at,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        input.id,
-        input.accountId,
-        input.categoryId,
-        input.transferGroupId,
-        input.type,
-        input.amountMinor,
-        input.description.trim(),
-        input.notes,
-        input.occurredAt,
-        now,
-        now,
+          id, account_id, category_id, transfer_group_id, transfer_direction, type,
+          amount_minor, description, notes, occurred_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        input.id, input.accountId, input.categoryId, input.transferGroupId,
+        input.transferDirection, input.type, input.amountMinor,
+        input.description.trim(), input.notes, input.occurredAt, now, now,
       );
 
       const row = await db.getFirstAsync<TransactionRow>(
-        "SELECT * FROM transactions WHERE id = ?",
-        input.id,
+        "SELECT * FROM transactions WHERE id = ?", input.id,
       );
-      if (!row) {
-        throw new Error("Transaction was created but could not be retrieved.");
-      }
+      if (!row) throw new Error("Transaction was created but could not be retrieved.");
       return mapTransaction(row);
     },
   };
