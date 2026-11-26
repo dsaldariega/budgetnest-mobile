@@ -36,9 +36,10 @@ describe("repository transaction integrity", () => {
     assert.match(getMethodBody(transactionSource, "async updateTransfer(id: string"), /withTransactionAsync/);
   });
 
-  it("wraps loan payment, loan deletion, and loan updates in SQLite transactions", () => {
+  it("wraps loan creation, payment, deletion, and loan updates in SQLite transactions", () => {
     const source = readSource("../src/database/repositories/loan-repository.ts");
 
+    assert.match(getMethodBody(source, "async create(input: CreateLoanInput)"), /withTransactionAsync/);
     assert.match(getMethodBody(source, "async update(input: CreateLoanInput)"), /withTransactionAsync/);
     assert.match(getMethodBody(source, "async recordPayment(input: CreateLoanPaymentInput)"), /withTransactionAsync/);
     assert.match(getMethodBody(source, "async deletePayment(paymentId: string)"), /withTransactionAsync/);
@@ -58,4 +59,4 @@ describe("repository transaction integrity", () => {
 
     assert.match(getMethodBody(source, "async generateDue(throughDate: string)"), /withTransactionAsync/);
   });
-undefined});
+});
