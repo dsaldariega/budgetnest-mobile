@@ -5,7 +5,6 @@ import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createBackupRepository } from "@/services/backup/backup-repository";
 import { parseBackup } from "@/services/backup/backup-format";
-import { uploadBackupToGoogleDrive, downloadLatestBackupFromGoogleDrive } from "@/services/google/google-drive-service";
 import { useGoogleAuth } from "@/context/google-auth-context";
 import { createSettingsRepository, DEFAULT_CURRENCY_CODE, SUPPORTED_DEFAULT_CURRENCIES, type DefaultCurrencyCode } from "@/database/repositories/settings-repository";
 import { colors } from "@/theme/colors";
@@ -88,6 +87,7 @@ export default function SettingsScreen() {
     setBusy(true);
     try {
       const json = await createBackupRepository(db).exportJson();
+      const { uploadBackupToGoogleDrive } = await import("@/services/google/google-drive-service");
       await uploadBackupToGoogleDrive(json);
       Alert.alert("Backup complete", "Your BudgetNest backup was saved to your Google Drive app data.");
     } catch (e) {
@@ -101,6 +101,7 @@ export default function SettingsScreen() {
     setError("");
     setBusy(true);
     try {
+      const { downloadLatestBackupFromGoogleDrive } = await import("@/services/google/google-drive-service");
       const text = await downloadLatestBackupFromGoogleDrive();
       if (!text) {
         setError("No BudgetNest backup was found in this Google account.");
