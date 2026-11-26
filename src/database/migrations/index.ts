@@ -225,6 +225,15 @@ export const migrations: DatabaseMigration[] = [
   },
 
   {
+    version: 7,
+    description: "Add dedicated loan and savings transaction categories",
+    sql: `
+      INSERT OR IGNORE INTO categories (id, name, type, icon, is_system, created_at, updated_at) VALUES
+        ('cat-income-loan', 'Loans', 'income', 'bank', 1, '2026-11-26T00:00:00.000Z', '2026-11-26T00:00:00.000Z'),
+        ('cat-expense-savings', 'Savings', 'expense', 'piggy-bank', 1, '2026-11-26T00:00:00.000Z', '2026-11-26T00:00:00.000Z');
+    `,
+  },
+  {
     version: 6,
     description: "Capture key financial changes in the local activity log",
     sql: `
