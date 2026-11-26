@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { migrations } from "../src/database/migrations";
+import { migrations, migrateDatabase } from "../src/database/migrations";
 
 describe("database migration integrity", () => {
   it("keeps migration versions unique and strictly increasing", () => {
