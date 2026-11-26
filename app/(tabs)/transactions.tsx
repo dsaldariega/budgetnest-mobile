@@ -64,13 +64,13 @@ export default function TransactionsScreen() {
         </View>
         <Text style={[s.sub, { color: p.textMuted }]}>One place for transactions, loan payments, subscriptions, and savings.</Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filters}>
+        <View style={s.filters}>
           {(["all", "income", "expense", "transfer", "loan", "subscription", "savings"] as HistoryFilter[]).map(kind => (
             <Pressable key={kind} onPress={() => setFilter(kind)} style={[s.filter, { backgroundColor: filter === kind ? p.primary : p.surface, borderColor: filter === kind ? p.primary : p.border }]}>
-              <Text style={{ color: filter === kind ? "#fff" : p.text, fontWeight: "700", fontSize: 12 }}>{historyKindLabel(kind)}</Text>
+              <Text style={{ color: filter === kind ? "#fff" : p.text, fontWeight: "700", fontSize: 11 }}>{historyKindLabel(kind)}</Text>
             </Pressable>
           ))}
-        </ScrollView>
+        </View>
 
         <View style={[s.searchBox, { backgroundColor: p.surface, borderColor: p.border }]}>
           <TextInput value={search} onChangeText={setSearch} placeholder="Search activity" placeholderTextColor={p.textMuted} style={[s.searchInput, { color: p.text }]} />
@@ -163,8 +163,8 @@ const s = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   title: { fontSize: 29, fontWeight: "800", marginTop: 4 },
   sub: { fontSize: 14, lineHeight: 21, marginTop: 8, marginBottom: 15 },
-  filters: { gap: 7, paddingRight: 20, paddingBottom: 11 },
-  filter: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9 },
+  filters: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, paddingBottom: 10 },
+  filter: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 7 },
   searchBox: { minHeight: 46, borderWidth: 1, borderRadius: 13, flexDirection: "row", alignItems: "center", paddingHorizontal: 13 },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 13 },
   dateRow: { flexDirection: "row", gap: 8, marginTop: 8 },
