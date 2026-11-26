@@ -116,7 +116,7 @@ export default function DashboardScreen() {
 
   const quickLinks = [
     { label: "Activity", icon: "receipt-text-outline" as const, route: "/(tabs)/transactions" as const },
-    { label: "Accounts", icon: "wallet-outline" as const, route: "/(tabs)/accounts" as const },
+    { label: "Accounts", icon: "wallet-outline" as const, route: "/accounts" as const },
     { label: "Budgets", icon: "chart-donut" as const, route: "/(tabs)/budgets" as const },
     { label: "Savings", icon: "target" as const, route: "/(tabs)/goals" as const },
     { label: "Recurring", icon: "autorenew" as const, route: "/recurring" as const },
@@ -132,7 +132,7 @@ export default function DashboardScreen() {
             <Text style={[s.greeting, { color: p.text }]}>Your overview</Text>
             <Text style={[s.dateText, { color: p.textMuted }]}>{monthLabel}</Text>
           </View>
-          <Pressable onPress={() => router.push("/(tabs)/settings")} style={[s.headerButton, { backgroundColor: p.surface, borderColor: p.border }]}>
+          <Pressable onPress={() => router.push("/settings")} style={[s.headerButton, { backgroundColor: p.surface, borderColor: p.border }]}>
             <MaterialCommunityIcons name="cog-outline" size={22} color={p.text} />
           </Pressable>
         </View>
@@ -155,7 +155,7 @@ export default function DashboardScreen() {
             ))}
           <View style={s.heroFooter}>
             <Text style={s.heroFootText}>{totalAccounts} active {totalAccounts === 1 ? "account" : "accounts"}</Text>
-            <Pressable onPress={() => router.push("/(tabs)/accounts")} style={s.heroLink}>
+            <Pressable onPress={() => router.push("/accounts")} style={s.heroLink}>
               <Text style={s.heroLinkText}>View accounts</Text>
               <MaterialCommunityIcons name="arrow-right" size={15} color="#FFFFFF" />
             </Pressable>
@@ -227,7 +227,7 @@ export default function DashboardScreen() {
           </View>
         )) : <Text style={[s.emptyText, { color: p.textMuted }]}>No active savings goals to show.</Text>}
 
-        <SectionHeading title="Upcoming bills" action="See all" onPress={() => router.push("/(tabs)/subscriptions")} palette={p} />
+        <SectionHeading title="Upcoming bills" action="See all" onPress={() => router.push("/subscriptions")} palette={p} />
         {data.subscriptions.length ? data.subscriptions.map(item => {
           const overdue = item.nextBillingDate < today();
           return <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
@@ -237,7 +237,7 @@ export default function DashboardScreen() {
           </View>;
         }) : <Text style={[s.emptyText, { color: p.textMuted }]}>No upcoming subscription bills.</Text>}
 
-        <SectionHeading title="Loan obligations" action="See all" onPress={() => router.push("/(tabs)/loans")} palette={p} />
+        <SectionHeading title="Loan obligations" action="See all" onPress={() => router.push("/loans")} palette={p} />
         {data.loans.length ? data.loans.map(item => (
           <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={[s.smallIcon, { backgroundColor: dark ? "#2B3443" : "#EAF0FA" }]}><MaterialCommunityIcons name="bank-outline" size={19} color={p.secondary} /></View>
