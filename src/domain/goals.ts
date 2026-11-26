@@ -1,4 +1,4 @@
-import { compareDates } from "./dates";
+import { compareDates } from "./dates.js";
 
 export function validateGoalTargetDate(targetDate: string | null | undefined): void {
   if (targetDate) compareDates(targetDate, targetDate);

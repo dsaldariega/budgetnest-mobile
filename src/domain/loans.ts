@@ -1,4 +1,4 @@
-import { addDays, compareDates, daysInMonth } from "./dates";
+import { addDays, compareDates, daysInMonth } from "./dates.ts";
 
 export type LoanInterestType = "flat_rate" | "reducing_balance";
 
