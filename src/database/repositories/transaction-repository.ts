@@ -42,6 +42,11 @@ export function createTransactionRepository(db: SQLiteDatabase) {
     LEFT JOIN categories c ON c.id = t.category_id`;
 
   return {
+    async listBetween(fromDate: string, toDate: string, limit = 500): Promise<TransactionListItem[]> {
+      const safeLimit = Math.max(1, Math.min(Math.trunc(limit), 500));
+      const rows = await db.getAllAsync<TransactionRow>(`${selectSql} WHERE t.deleted_at IS NULL AND t.occurred_at >= ? AND t.occurred_at <= ? ORDER BY t.occurred_at DESC, t.created_at DESC LIMIT ?`, fromDate, toDate, safeLimit);
+      return rows.map(mapTransaction);
+    },
     async listRecent(limit = 100): Promise<TransactionListItem[]> {
       const safeLimit = Math.max(1, Math.min(Math.trunc(limit), 200));
       const rows = await db.getAllAsync<TransactionRow>(
