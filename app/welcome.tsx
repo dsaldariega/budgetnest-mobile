@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { colors } from "@/theme/colors";
 import { useThemePreference } from "@/context/theme-context";
 import { GoogleConnectModal } from "@/components/auth/google-connect-modal";
+import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 
 const slides = [
   {
@@ -67,12 +68,7 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
       <View style={styles.topBar}>
-        <View style={styles.brandRow}>
-          <View style={[styles.brandMark, { backgroundColor: palette.primary }]}>
-            <MaterialCommunityIcons name="sprout" size={21} color="#FFFFFF" />
-          </View>
-          <Text style={[styles.brand, { color: palette.text }]}>BudgetNest</Text>
-        </View>
+        <BudgetNestBrand color={palette.text} size={30} />
         <Pressable onPress={explore} hitSlop={12} accessibilityRole="button">
           <Text style={[styles.skipTop, { color: palette.textMuted }]}>Close</Text>
         </Pressable>
@@ -158,9 +154,6 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   topBar: { height: 58, paddingHorizontal: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 9 },
-  brandMark: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  brand: { fontSize: 17, fontWeight: "900", letterSpacing: -0.4 },
   skipTop: { fontSize: 13, fontWeight: "700" },
   slider: { flex: 1 },
   sliderContent: { alignItems: "stretch" },
