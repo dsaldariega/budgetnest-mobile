@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 import { DatabaseProvider } from "@/database/provider";
 import { GoogleAuthProvider } from "@/context/google-auth-context";
+import { ThemePreferenceProvider } from "@/context/theme-context";
 import { colors } from "@/theme/colors";
 
 const slideScreenOptions = {
@@ -17,8 +18,9 @@ export default function RootLayout() {
   const isDark = colorScheme === "dark";
 
   return (
-    <GoogleAuthProvider>
-      <DatabaseProvider>
+    <DatabaseProvider>
+      <ThemePreferenceProvider>
+        <GoogleAuthProvider>
         <StatusBar style={isDark ? "light" : "dark"} />
         <Stack
           screenOptions={{
@@ -36,7 +38,8 @@ export default function RootLayout() {
           <Stack.Screen name="recurring" options={slideScreenOptions} />
           <Stack.Screen name="reports" options={slideScreenOptions} />
         </Stack>
-      </DatabaseProvider>
-    </GoogleAuthProvider>
+        </GoogleAuthProvider>
+      </ThemePreferenceProvider>
+    </DatabaseProvider>
   );
 }

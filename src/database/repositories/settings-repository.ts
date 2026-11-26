@@ -14,12 +14,34 @@ export const SUPPORTED_DEFAULT_CURRENCIES = [
 
 export type DefaultCurrencyCode = (typeof SUPPORTED_DEFAULT_CURRENCIES)[number]["code"];
 
+export type ThemePreference = "system" | "light" | "dark";
+
+export function isThemePreference(value: string): value is ThemePreference {
+  return value === "system" || value === "light" || value === "dark";
+}
+
 export function isSupportedDefaultCurrency(value: string): value is DefaultCurrencyCode {
   return SUPPORTED_DEFAULT_CURRENCIES.some((currency) => currency.code === value);
 }
 
 export function createSettingsRepository(db: SQLiteDatabase) {
   return {
+    async getThemePreference(): Promise<ThemePreference> {
+      const row = await db.getFirstAsync<{ value: string }>(
+        "SELECT value FROM app_settings WHERE key = ?",
+        "theme_preference",
+      );
+      return row && isThemePreference(row.value) ? row.value : "system";
+    },
+    async setThemePreference(preference: ThemePreference): Promise<void> {
+      if (!isThemePreference(preference)) throw new Error("Choose a valid appearance preference.");
+      await db.runAsync(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        "theme_preference", preference, new Date().toISOString(),
+      );
+    },
     async getDefaultCurrency(): Promise<DefaultCurrencyCode> {
       const row = await db.getFirstAsync<{ value: string }>(
         "SELECT value FROM app_settings WHERE key = ?",

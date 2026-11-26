@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,13 +9,18 @@ import { uploadBackupToGoogleDrive, downloadLatestBackupFromGoogleDrive } from "
 import { useGoogleAuth } from "@/context/google-auth-context";
 import { createSettingsRepository, DEFAULT_CURRENCY_CODE, SUPPORTED_DEFAULT_CURRENCIES, type DefaultCurrencyCode } from "@/database/repositories/settings-repository";
 import { colors } from "@/theme/colors";
+import { useThemePreference } from "@/context/theme-context";
+import type { ThemePreference } from "@/database/repositories/settings-repository";
+import { TransactionDataTools } from "@/components/settings/transaction-data-tools";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const formatCount = (value: number) => new Intl.NumberFormat("en-PH").format(value);
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
+  const { preference, mode, setPreference } = useThemePreference();
+  const dark = mode === "dark";
   const palette = dark ? colors.dark : colors.light;
   const { user, loading: authLoading, signingIn, error: authError, signIn, signOut, clearError } = useGoogleAuth();
 
@@ -23,12 +28,26 @@ export default function SettingsScreen() {
   const [error, setError] = useState("");
   const [defaultCurrency, setDefaultCurrency] = useState<DefaultCurrencyCode>(DEFAULT_CURRENCY_CODE);
   const [savingCurrency, setSavingCurrency] = useState(false);
+  const [savingTheme, setSavingTheme] = useState(false);
   const [overview, setOverview] = useState<{ counts: Record<string, number>; schemaVersion: number } | null>(null);
   const [restoreText, setRestoreText] = useState<string | null>(null);
   const [restoreExportedAt, setRestoreExportedAt] = useState("");
   const [restoreAppVersion, setRestoreAppVersion] = useState("");
   const [restoreRecordCount, setRestoreRecordCount] = useState(0);
   const [confirmRestore, setConfirmRestore] = useState(false);
+
+  const changeThemePreference = async (next: ThemePreference) => {
+    if (next === preference) return;
+    setSavingTheme(true);
+    setError("");
+    try {
+      await setPreference(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to save your appearance preference.");
+    } finally {
+      setSavingTheme(false);
+    }
+  };
 
   const loadSettings = useCallback(async () => {
     try {
@@ -129,8 +148,38 @@ export default function SettingsScreen() {
         <Text style={[styles.eyebrow, { color: palette.primary }]}>PREFERENCES</Text>
         <Text style={[styles.title, { color: palette.text }]}>Settings</Text>
         <Text style={[styles.subtitle, { color: palette.textMuted }]}>
-          Manage your preferences and connect optional Google backup.
+          Manage appearance, currency, transaction files, and optional Google backup.
         </Text>
+
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.appearanceHeader}>
+            <View style={[styles.appearanceIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+              <MaterialCommunityIcons name="palette-outline" size={21} color={palette.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardTitle, { color: palette.text }]}>Appearance</Text>
+              <Text style={[styles.cardDescription, { color: palette.textMuted }]}>Choose how BudgetNest looks on this device.</Text>
+            </View>
+          </View>
+          <View style={styles.appearanceOptions}>
+            {([
+              { value: "system", label: "System", icon: "theme-light-dark" },
+              { value: "light", label: "Light", icon: "white-balance-sunny" },
+              { value: "dark", label: "Dark", icon: "moon-waning-crescent" },
+            ] as const).map((option) => {
+              const selected = preference === option.value;
+              return (
+                <Pressable key={option.value} disabled={savingTheme} onPress={() => void changeThemePreference(option.value)} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: savingTheme }} style={[styles.appearanceOption, { borderColor: selected ? palette.primary : palette.border, backgroundColor: selected ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface }]}>
+                  <MaterialCommunityIcons name={option.icon} size={19} color={selected ? palette.primary : palette.textMuted} />
+                  <Text style={{ color: selected ? palette.primary : palette.text, fontSize: 11, fontWeight: "800", marginTop: 5 }}>{option.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[styles.note, { color: palette.textMuted }]}>
+            {preference === "system" ? "Following your device appearance. Currently " + mode + "." : (mode === "dark" ? "Dark" : "Light") + " appearance is saved on this device."}
+          </Text>
+        </View>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>Default currency</Text>
@@ -236,6 +285,8 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
+        <TransactionDataTools onImported={() => void loadSettings()} />
+
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>Data on this device</Text>
           <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
@@ -297,6 +348,10 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 17, fontWeight: "800" },
   cardDescription: { fontSize: 13, lineHeight: 20, marginTop: 7 },
   googleHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  appearanceHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  appearanceIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  appearanceOptions: { flexDirection: "row", gap: 9, marginTop: 16 },
+  appearanceOption: { flex: 1, minHeight: 68, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   googleIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   currencyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 15 },
   currencyOption: { width: "48%", borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },

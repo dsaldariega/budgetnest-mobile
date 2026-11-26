@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DEFAULT_CURRENCY_CODE, isSupportedDefaultCurrency, SUPPORTED_DEFAULT_CURRENCIES } from "@/database/repositories/settings-repository";
+import { DEFAULT_CURRENCY_CODE, isSupportedDefaultCurrency, isThemePreference, SUPPORTED_DEFAULT_CURRENCIES } from "@/database/repositories/settings-repository";
 
 test("default currency is PHP", () => {
   assert.equal(DEFAULT_CURRENCY_CODE, "PHP");
@@ -17,4 +17,11 @@ test("currency preference rejects unsupported values", () => {
   assert.equal(isSupportedDefaultCurrency("USD"), true);
   assert.equal(isSupportedDefaultCurrency("BTC"), false);
   assert.equal(isSupportedDefaultCurrency(""), false);
+});
+
+test("theme preference accepts system, light, and dark only", () => {
+  assert.equal(isThemePreference("system"), true);
+  assert.equal(isThemePreference("light"), true);
+  assert.equal(isThemePreference("dark"), true);
+  assert.equal(isThemePreference("automatic"), false);
 });
