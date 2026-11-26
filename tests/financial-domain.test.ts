@@ -204,6 +204,56 @@ describe("recurring dates", () => {
     );
   });
 
+
+  it("supports interval schedules and stops at the configured end date", () => {
+    assert.deepEqual(
+      getDueRecurringDates({
+        nextOccurrenceDate: "2026-01-01",
+        frequency: "weekly",
+        intervalCount: 2,
+        throughDate: "2026-02-01",
+        endDate: "2026-01-29",
+      }),
+      ["2026-01-01", "2026-01-15", "2026-01-29"],
+    );
+  });
+
+  it("rejects an occurrence batch that exceeds its safety limit", () => {
+    assert.throws(
+      () => getDueRecurringDates({
+        nextOccurrenceDate: "2026-01-01",
+        frequency: "weekly",
+        intervalCount: 1,
+        throughDate: "2026-12-31",
+        maxOccurrences: 2,
+      }),
+      /Too many recurring entries/,
+    );
+  });
+
+  it("handles elapsed end dates and rejects invalid occurrence limits", () => {
+    assert.deepEqual(
+      getDueRecurringDates({
+        nextOccurrenceDate: "2026-03-01",
+        frequency: "monthly",
+        intervalCount: 1,
+        throughDate: "2026-04-01",
+        endDate: "2026-02-28",
+      }),
+      [],
+    );
+    assert.throws(
+      () => getDueRecurringDates({
+        nextOccurrenceDate: "2026-01-01",
+        frequency: "monthly",
+        intervalCount: 1,
+        throughDate: "2026-02-01",
+        maxOccurrences: 0,
+      }),
+      /Occurrence limit is invalid/,
+    );
+  });
+
   it("rejects invalid occurrence intervals", () => {
     assert.throws(
       () => advanceRecurringDate("2026-01-01", "monthly", 0),

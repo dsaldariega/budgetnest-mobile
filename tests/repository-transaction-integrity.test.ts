@@ -107,4 +107,27 @@ describe("repository transaction integrity", () => {
     assert.match(migrationSource, /activity_subscription_payments_deleted/);
   });
 
+  it("keeps loan and subscription payment validation inside their write transactions", () => {
+    const loanSource = readSource("../src/database/repositories/loan-repository.ts");
+    const subscriptionSource = readSource("../src/database/repositories/subscription-repository.ts");
+    const loanPayment = getMethodBody(loanSource, "async recordPayment(input: CreateLoanPaymentInput)");
+    const subscriptionPayment = getMethodBody(subscriptionSource, "async recordPayment(input: RecordSubscriptionPaymentInput)");
+
+    assert.ok(loanPayment.indexOf("withTransactionAsync") < loanPayment.indexOf("getLoanRow(input.loanId)"));
+    assert.ok(loanPayment.indexOf("withTransactionAsync") < loanPayment.indexOf("calculateRemaining(input.loanId)"));
+    assert.ok(subscriptionPayment.indexOf("withTransactionAsync") < subscriptionPayment.indexOf("getSubscriptionRow(db, input.subscriptionId)"));
+    assert.match(subscriptionPayment, /AND is_active = 1 AND next_billing_date = \?/);
+  });
+
+  it("protects recurring occurrences with a unique key and conflict-safe inserts", () => {
+    const recurringSource = readSource("../src/database/repositories/recurring-repository.ts");
+    const migrationSource = readSource("../src/database/migrations/index.ts");
+    const generation = getMethodBody(recurringSource, "async generateDue(throughDate:string)");
+
+    assert.match(migrationSource, /CREATE UNIQUE INDEX idx_transactions_recurring_occurrence/);
+    assert.match(migrationSource, /ON transactions\(recurring_rule_id, recurring_occurrence_date\)/);
+    assert.match(generation, /INSERT OR IGNORE INTO transactions/);
+    assert.match(generation, /UPDATE recurring_rules SET next_occurrence_date/);
+  });
+
 });

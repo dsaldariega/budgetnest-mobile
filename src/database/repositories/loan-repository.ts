@@ -233,40 +233,51 @@ export function createLoanRepository(db: SQLiteDatabase) {
     async recordPayment(input: CreateLoanPaymentInput): Promise<void> {
       assertPositiveMinorUnits(input.amountMinor);
       compareDates(input.paymentDate, input.paymentDate);
-      const loan = await getLoanRow(input.loanId);
-      if (!loan) throw new Error("Loan was not found.");
-      if (loan.status === "paid") throw new Error("This loan is already paid.");
-      const state = await calculateRemaining(input.loanId);
-      if (compareDates(input.paymentDate, loan.start_date) < 0) {
-        throw new Error("Payment date cannot be earlier than the loan start date.");
-      }
-      if (compareDates(input.paymentDate, state.previousPaymentDate) < 0) {
-        throw new Error("Payment date cannot be earlier than the previous payment.");
-      }
-      const allocation = allocateLoanPayment({
-        terms: {
-          principalMinor: loan.principal_minor,
-          monthlyRateBps: loan.monthly_interest_rate_bps,
-          termMonths: loan.term_months,
-          interestType: loan.interest_type,
-        },
-        previousPaymentDate: state.previousPaymentDate,
-        payment: { amountMinor: input.amountMinor, paymentDate: input.paymentDate },
-        remainingPrincipalMinor: state.remainingPrincipalMinor,
-        remainingInterestMinor: state.remainingInterestMinor,
-      });
-      const nextStatus = allocation.remainingPrincipalMinor === 0 && allocation.remainingInterestMinor === 0 ? "paid" : loan.status;
-      const now = new Date().toISOString();
+
       await db.withTransactionAsync(async () => {
+        const loan = await getLoanRow(input.loanId);
+        if (!loan) throw new Error("Loan was not found.");
+        if (loan.status === "paid") throw new Error("This loan is already paid.");
+
+        const state = await calculateRemaining(input.loanId);
+        if (compareDates(input.paymentDate, loan.start_date) < 0) {
+          throw new Error("Payment date cannot be earlier than the loan start date.");
+        }
+        if (compareDates(input.paymentDate, state.previousPaymentDate) < 0) {
+          throw new Error("Payment date cannot be earlier than the previous payment.");
+        }
+
+        const allocation = allocateLoanPayment({
+          terms: {
+            principalMinor: loan.principal_minor,
+            monthlyRateBps: loan.monthly_interest_rate_bps,
+            termMonths: loan.term_months,
+            interestType: loan.interest_type,
+          },
+          previousPaymentDate: state.previousPaymentDate,
+          payment: { amountMinor: input.amountMinor, paymentDate: input.paymentDate },
+          remainingPrincipalMinor: state.remainingPrincipalMinor,
+          remainingInterestMinor: state.remainingInterestMinor,
+        });
+        const nextStatus =
+          allocation.remainingPrincipalMinor === 0 && allocation.remainingInterestMinor === 0
+            ? "paid"
+            : loan.status;
+        const now = new Date().toISOString();
+
         await db.runAsync(
           "INSERT INTO loan_payments (id, loan_id, amount_minor, interest_paid_minor, principal_paid_minor, payment_date, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           input.id, input.loanId, input.amountMinor, allocation.interestPaidMinor,
           allocation.principalPaidMinor, input.paymentDate, input.notes?.trim() || null, now,
         );
-        await db.runAsync("UPDATE loans SET status = ?, updated_at = ? WHERE id = ?", nextStatus, now, input.loanId);
+        await db.runAsync(
+          "UPDATE loans SET status = ?, updated_at = ? WHERE id = ?",
+          nextStatus, now, input.loanId,
+        );
         await db.runAsync(
           "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-expense-loan-payment', NULL, NULL, 'expense', ?, ?, ?, ?, ?, ?)",
-          "loan-payment-" + input.id, loan.account_id, input.amountMinor, loan.name + " payment", input.notes?.trim() || null, input.paymentDate, now, now,
+          "loan-payment-" + input.id, loan.account_id, input.amountMinor,
+          loan.name + " payment", input.notes?.trim() || null, input.paymentDate, now, now,
         );
       });
     },

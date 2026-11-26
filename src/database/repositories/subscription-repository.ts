@@ -108,30 +108,36 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
     },
     async recordPayment(input: RecordSubscriptionPaymentInput): Promise<void> {
       assertPositiveMinorUnits(input.amountMinor);
-      const subscription = await getSubscriptionRow(db, input.subscriptionId);
-      if (!subscription) throw new Error("Subscription was not found.");
-      if (!subscription.is_active) throw new Error("Resume the subscription before recording a payment.");
-      if (!subscription.next_billing_date) throw new Error("This subscription has no next billing date.");
-
-      const nextBillingDate = advanceBillingDate(subscription.next_billing_date, subscription.billing_cycle);
-      const now = new Date().toISOString();
 
       await db.withTransactionAsync(async () => {
+        const subscription = await getSubscriptionRow(db, input.subscriptionId);
+        if (!subscription) throw new Error("Subscription was not found.");
+        if (!subscription.is_active) throw new Error("Resume the subscription before recording a payment.");
+        if (!subscription.next_billing_date) throw new Error("This subscription has no next billing date.");
+
+        const billingDate = subscription.next_billing_date;
+        const nextBillingDate = advanceBillingDate(billingDate, subscription.billing_cycle);
+        const now = new Date().toISOString();
+
         await db.runAsync(
           "INSERT INTO subscription_payments " +
           "(id, subscription_id, amount_minor, billing_date, paid_at, notes, created_at) " +
           "VALUES (?, ?, ?, ?, ?, ?, ?)",
-          input.id, input.subscriptionId, input.amountMinor, subscription.next_billing_date,
+          input.id, input.subscriptionId, input.amountMinor, billingDate,
           now, input.notes?.trim() || null, now,
         );
-        await db.runAsync(
-          "UPDATE subscriptions SET next_billing_date = ?, updated_at = ? WHERE id = ?",
-          nextBillingDate, now, input.subscriptionId,
+        const updated = await db.runAsync(
+          "UPDATE subscriptions SET next_billing_date = ?, updated_at = ? WHERE id = ? AND is_active = 1 AND next_billing_date = ?",
+          nextBillingDate, now, input.subscriptionId, billingDate,
         );
+        if (updated.changes !== 1) {
+          throw new Error("Subscription billing schedule changed. Please try again.");
+        }
         await db.runAsync(
           "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, ?, NULL, NULL, 'expense', ?, ?, ?, ?, ?, ?)",
-          "subscription-payment-" + input.id, subscription.account_id, subscription.category_id, input.amountMinor,
-          subscription.name + " payment", input.notes?.trim() || null, subscription.next_billing_date, now, now,
+          "subscription-payment-" + input.id, subscription.account_id, subscription.category_id,
+          input.amountMinor, subscription.name + " payment", input.notes?.trim() || null,
+          billingDate, now, now,
         );
       });
     },
