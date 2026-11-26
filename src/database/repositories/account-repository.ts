@@ -103,7 +103,10 @@ export function createAccountRepository(db: SQLiteDatabase) {
 
     async getDeleteImpact(id: string): Promise<AccountDeleteImpact> {
       const [transactions, budgets, goals, goalContributions, loans, loanPayments, subscriptions, subscriptionPayments, recurringRules] = await Promise.all([
-        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM transactions WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>(
+          "SELECT COUNT(*) AS count FROM transactions WHERE account_id = ? OR transfer_group_id IN (SELECT transfer_group_id FROM transactions WHERE account_id = ? AND transfer_group_id IS NOT NULL)",
+          id, id,
+        ),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM budgets WHERE account_id = ?", id),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM savings_goals WHERE account_id = ?", id),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM goal_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE account_id = ?)", id),
@@ -169,7 +172,10 @@ export function createAccountRepository(db: SQLiteDatabase) {
       if (!account) throw new Error("Account could not be found.");
 
       await db.withTransactionAsync(async () => {
-        await db.runAsync("DELETE FROM transactions WHERE account_id = ?", id);
+        await db.runAsync(
+          "DELETE FROM transactions WHERE account_id = ? OR transfer_group_id IN (SELECT transfer_group_id FROM transactions WHERE account_id = ? AND transfer_group_id IS NOT NULL)",
+          id, id,
+        );
         await db.runAsync("DELETE FROM budgets WHERE account_id = ?", id);
         await db.runAsync("DELETE FROM goal_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE account_id = ?)", id);
         await db.runAsync("DELETE FROM loan_payments WHERE loan_id IN (SELECT id FROM loans WHERE account_id = ?)", id);
