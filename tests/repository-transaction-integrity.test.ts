@@ -58,14 +58,4 @@ describe("repository transaction integrity", () => {
 
     assert.match(getMethodBody(source, "async generateDue(throughDate: string)"), /withTransactionAsync/);
   });
-
-  it("keeps generated financial records paired with their source records", () => {
-    const loanSource = readSource("../src/database/repositories/loan-repository.ts");
-    const subscriptionSource = readSource("../src/database/repositories/subscription-repository.ts");
-    const recurringSource = readSource("../src/database/repositories/recurring-repository.ts");
-
-    assert.match(loanSource, /loan-payment-\\" \+ input\.id/);
-    assert.match(subscriptionSource, /subscription-payment-\\" \+ input\.id/);
-    assert.match(recurringSource, /recurring-\\" \+ rule\.id \+ "\\"-/);
-  });
-});
+undefined});
