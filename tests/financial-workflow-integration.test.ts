@@ -10,7 +10,7 @@ import { createTransactionRepository } from "../src/database/repositories/transa
 import { createBackupRepository } from "../src/services/backup/backup-repository";
 
 class TestSQLiteDatabase {
-  constructor(private readonly native: DatabaseSync) {}
+  constructor(private readonly native: DatabaseSync) { }
 
   private bindings(parameters: unknown[]): never[] {
     const values = parameters.length === 1 && Array.isArray(parameters[0])
@@ -351,12 +351,9 @@ describe("financial workflow integration", () => {
     await withDatabase(async db => {
       const backups = createBackupRepository(db as never);
       await db.runAsync("UPDATE accounts SET name = ? WHERE id = ?", "Cash wallet before export", "cash");
-<<<<<<< HEAD
-=======
       const activityCountBeforeExport = await db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM activity_logs",
       );
->>>>>>> dbad473a975d00bfd232a4ac6515e06a6fb68f89
       const backup = await backups.exportJson();
 
       await db.runAsync("UPDATE accounts SET name = ? WHERE id = ?", "Changed after export", "cash");
@@ -369,11 +366,7 @@ describe("financial workflow integration", () => {
       const restoredLogCount = await db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM activity_logs",
       );
-<<<<<<< HEAD
-      assert.equal(restoredLogCount?.count, 1);
-=======
       assert.equal(restoredLogCount?.count, activityCountBeforeExport?.count);
->>>>>>> dbad473a975d00bfd232a4ac6515e06a6fb68f89
 
       await db.runAsync("UPDATE accounts SET name = ? WHERE id = ?", "Keep this value", "cash");
       const activityCountBeforeRejectedRestore = await db.getFirstAsync<{ count: number }>(
@@ -396,11 +389,7 @@ describe("financial workflow integration", () => {
       const logCountAfterRejectedRestore = await db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM activity_logs",
       );
-<<<<<<< HEAD
-      assert.equal(logCountAfterRejectedRestore?.count, 2);
-=======
       assert.equal(logCountAfterRejectedRestore?.count, activityCountBeforeRejectedRestore?.count);
->>>>>>> dbad473a975d00bfd232a4ac6515e06a6fb68f89
     });
   });
 });
