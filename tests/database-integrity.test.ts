@@ -89,6 +89,16 @@ describe("database migration integrity", () => {
     assert.match(sql, /OLD\.type <> 'transfer' OR OLD\.transfer_direction = 'out'/i);
   });
 
+  it("adds indexes for active transaction, activity log, and contribution timelines", () => {
+    const sql = migrations.find(migration => migration.version === 10)?.sql ?? "";
+
+    assert.ok(sql.includes("idx_transactions_active_occurred_at"));
+    assert.ok(sql.includes("ON transactions(occurred_at DESC, created_at DESC)"));
+    assert.ok(sql.includes("WHERE deleted_at IS NULL"));
+    assert.ok(sql.includes("idx_activity_logs_created_at_id"));
+    assert.ok(sql.includes("idx_goal_contributions_date"));
+  });
+
   it("keeps the migration runner transactional and enables SQLite integrity settings", () => {
     const runnerSource = migrateDatabase.toString();
 

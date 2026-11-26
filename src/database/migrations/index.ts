@@ -992,6 +992,20 @@ export const migrations: DatabaseMigration[] = [
     `,
   },
 
+  {
+    version: 10,
+    description: "Optimize active transaction and activity history ordering",
+    sql: `
+      CREATE INDEX IF NOT EXISTS idx_transactions_active_occurred_at
+        ON transactions(occurred_at DESC, created_at DESC)
+        WHERE deleted_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at_id
+        ON activity_logs(created_at DESC, id DESC);
+      CREATE INDEX IF NOT EXISTS idx_goal_contributions_date
+        ON goal_contributions(contributed_at DESC);
+    `,
+  },
+
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {

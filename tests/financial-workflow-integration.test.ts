@@ -393,3 +393,27 @@ describe("financial workflow integration", () => {
     });
   });
 });
+
+
+describe("database performance indexes", () => {
+  it("uses the active transaction ordering index for recent activity queries", async () => {
+    await withDatabase(async db => {
+      const indexes = await db.getAllAsync<{ name: string }>(
+        "SELECT name FROM sqlite_master WHERE type = 'index'",
+      );
+      const names = new Set(indexes.map(index => index.name));
+
+      assert.ok(names.has("idx_transactions_active_occurred_at"));
+      assert.ok(names.has("idx_activity_logs_created_at_id"));
+      assert.ok(names.has("idx_goal_contributions_date"));
+
+      const plan = await db.getAllAsync<{ detail: string }>(
+        "EXPLAIN QUERY PLAN SELECT id FROM transactions WHERE deleted_at IS NULL ORDER BY occurred_at DESC, created_at DESC LIMIT 200",
+      );
+      assert.ok(
+        plan.some(row => row.detail.includes("idx_transactions_active_occurred_at")),
+        "recent transaction query should use the active transaction ordering index",
+      );
+    });
+  });
+});

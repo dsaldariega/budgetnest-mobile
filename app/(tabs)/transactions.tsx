@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -62,6 +62,8 @@ export default function TransactionsScreen() {
   const [occurredAt, setOccurredAt] = useState(today());
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const historyRepo = useMemo(() => createHistoryRepository(db), [db]);
   const txRepo = useMemo(() => createTransactionRepository(db), [db]);
@@ -116,6 +118,10 @@ export default function TransactionsScreen() {
     if (!name.trim()) { setError("Enter a transaction name."); return; }
     if (!/^\d+(\.\d{1,2})?$/.test(amount.trim()) || Number(amount) <= 0) { setError("Enter a positive amount."); return; }
     if (!accountId) { setError("Choose an account."); return; }
+    if (savingRef.current) return;
+
+    savingRef.current = true;
+    setSaving(true);
     try {
       const amountMinor = toMinorUnits(Number(amount));
       if (formKind === "transfer") {
@@ -130,7 +136,12 @@ export default function TransactionsScreen() {
         else await txRepo.create({ id: makeId("transaction"), accountId, categoryId: actualCategory, type: actualType, amountMinor, description: name, notes: note, occurredAt });
       }
       setFormOpen(false); resetForm(); await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Unable to save transaction."); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to save transaction.");
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
   const remove = (item: TransactionListItem) => Alert.alert(
     item.transferGroupId ? "Delete transfer?" : "Delete transaction?",
@@ -189,7 +200,7 @@ export default function TransactionsScreen() {
             <Text style={[s.label, { color: p.text }]}>Note (optional)</Text>
             <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
             {error ? <Text style={s.errorText}>{error}</Text> : null}
-            <Pressable onPress={() => void save()} style={[s.primaryButton, { backgroundColor: p.primary }]}><Text style={s.primaryButtonText}>{editing ? "Save changes" : "Save transaction"}</Text></Pressable>
+            <Pressable disabled={saving} onPress={() => void save()} style={[s.primaryButton, { backgroundColor: p.primary, opacity: saving ? 0.65 : 1 }]}><Text style={s.primaryButtonText}>{saving ? "Saving…" : editing ? "Save changes" : "Save transaction"}</Text></Pressable>
           </ScrollView>
         </SafeAreaView>
       </Modal>
