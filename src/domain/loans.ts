@@ -95,6 +95,9 @@ export function allocateLoanPayment(input: {
   if (!Number.isSafeInteger(input.payment.amountMinor) || input.payment.amountMinor <= 0) throw new Error("Payment must be positive.");
   if (!Number.isSafeInteger(input.remainingPrincipalMinor) || input.remainingPrincipalMinor < 0) throw new Error("Remaining principal is invalid.");
   if (!Number.isSafeInteger(input.remainingInterestMinor) || input.remainingInterestMinor < 0) throw new Error("Remaining interest is invalid.");
+  if (compareDates(input.payment.paymentDate, input.previousPaymentDate) < 0) {
+    throw new Error("Payment date is earlier than the previous payment.");
+  }
   if (input.payment.amountMinor > input.remainingPrincipalMinor + input.remainingInterestMinor) {
     throw new Error("Payment exceeds the remaining loan obligation.");
   }
@@ -113,7 +116,15 @@ export function allocateLoanPayment(input: {
         input.payment.paymentDate,
       ),
     );
-  const interestPaidMinor = Math.min(input.payment.amountMinor, interestDue);
+  // For flat-rate loans, an amount that exceeds the current interest and
+  // remaining principal may also settle the remaining future interest.
+  const futureInterestSettlement = input.terms.interestType === "flat_rate"
+    ? Math.max(0, input.payment.amountMinor - interestDue - input.remainingPrincipalMinor)
+    : 0;
+  const interestPaidMinor = Math.min(
+    input.remainingInterestMinor,
+    Math.min(input.payment.amountMinor, interestDue + futureInterestSettlement),
+  );
   const principalPaidMinor = Math.min(
     input.remainingPrincipalMinor,
     input.payment.amountMinor - interestPaidMinor,
