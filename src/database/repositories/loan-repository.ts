@@ -121,6 +121,7 @@ export function createLoanRepository(db: SQLiteDatabase) {
     async create(input: CreateLoanInput): Promise<void> {
       assertPositiveMinorUnits(input.principalMinor);
       if (!input.name.trim()) throw new Error("Enter a loan name.");
+      if (input.interestType !== "flat_rate") throw new Error("Only Flat Rate Interest is supported.");
       if (!Number.isSafeInteger(input.monthlyInterestRateBps) || input.monthlyInterestRateBps < 0) throw new Error("Enter a valid interest rate.");
       if (!Number.isInteger(input.termMonths) || input.termMonths <= 0) throw new Error("Term must be a positive number of months.");
       compareDates(input.startDate, input.dueDate);
