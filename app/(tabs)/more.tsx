@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "@/theme/colors";
+import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 
 const MENU_GROUPS = [
   {
@@ -84,7 +85,7 @@ export default function MoreScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.eyebrow, { color: palette.primary }]}>BUDGETNEST</Text>
+        <BudgetNestBrand color={palette.text} size={38} />
         <Text style={[styles.title, { color: palette.text }]}>More</Text>
         <Text style={[styles.subtitle, { color: palette.textMuted }]}>
           Explore the rest of your financial workspace.

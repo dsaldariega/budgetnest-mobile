@@ -7,6 +7,7 @@ import { createAccountRepository, type AccountWithBalance } from "@/database/rep
 import { createLoanRepository, type LoanListItem, type LoanPaymentListItem } from "@/database/repositories/loan-repository";
 import { toMinorUnits } from "@/domain/money";
 import { colors } from "@/theme/colors";
+import { ScreenBackButton } from "@/components/ui/screen-back-button";
 
 const makeId = (prefix: string) => prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -102,7 +103,8 @@ export default function LoansScreen() {
   return <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
     <View style={s.page}>
       <View style={s.header}>
-        <View><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>BORROWING</Text><Text style={[s.title, { color: p.text }]}>Loans</Text></View>
+        <ScreenBackButton backgroundColor={p.surface} borderColor={p.border} color={p.text} />
+        <View style={{ flex: 1 }}><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>BORROWING</Text><Text style={[s.title, { color: p.text }]}>Loans</Text></View>
         <Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.add, { backgroundColor: p.primary }]}><Text style={s.addText}>+ Add</Text></Pressable>
       </View>
       <Text style={[s.sub, { color: p.textMuted }]}>Track principal, interest, repayments, and remaining obligation.</Text>

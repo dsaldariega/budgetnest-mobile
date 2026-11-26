@@ -24,6 +24,7 @@ import type { AccountType, CreateAccountInput } from "@/database/types";
 import { toMinorUnits } from "@/domain/money";
 import { createSettingsRepository } from "@/database/repositories/settings-repository";
 import { colors } from "@/theme/colors";
+import { ScreenBackButton } from "@/components/ui/screen-back-button";
 
 const TYPES: { value: AccountType; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
   { value: "cash", label: "Cash", icon: "cash-multiple" },
@@ -241,6 +242,7 @@ export default function AccountsScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]} edges={["top", "left", "right"]}>
       <View style={styles.page}>
         <View style={styles.header}>
+          <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.eyebrow, { color: palette.primary }]}>YOUR MONEY</Text>
             <Text style={[styles.title, { color: palette.text }]}>Accounts</Text>

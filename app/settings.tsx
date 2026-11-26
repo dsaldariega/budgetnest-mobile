@@ -13,6 +13,8 @@ import { useThemePreference } from "@/context/theme-context";
 import type { ThemePreference } from "@/database/repositories/settings-repository";
 import { TransactionDataTools } from "@/components/settings/transaction-data-tools";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ScreenBackButton } from "@/components/ui/screen-back-button";
+import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 
 const formatCount = (value: number) => new Intl.NumberFormat("en-PH").format(value);
 
@@ -145,8 +147,13 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.eyebrow, { color: palette.primary }]}>PREFERENCES</Text>
-        <Text style={[styles.title, { color: palette.text }]}>Settings</Text>
+        <View style={styles.pageHeader}>
+          <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: palette.primary }]}>PREFERENCES</Text>
+            <Text style={[styles.title, { color: palette.text }]}>Settings</Text>
+          </View>
+        </View>
         <Text style={[styles.subtitle, { color: palette.textMuted }]}>
           Manage appearance, currency, transaction files, and optional Google backup.
         </Text>
@@ -298,7 +305,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.cardTitle, { color: palette.text }]}>About BudgetNest</Text>
+          <BudgetNestBrand color={palette.text} size={38} />
           <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
             A private, local-first personal finance tracker. No account or cloud connection is required for normal use.
           </Text>
@@ -341,8 +348,9 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 40, gap: 14 },
+  pageHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
-  title: { fontSize: 29, fontWeight: "800", marginTop: -10 },
+  title: { fontSize: 29, fontWeight: "800", marginTop: 1 },
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: -8, marginBottom: 4 },
   card: { borderWidth: 1, borderRadius: 18, padding: 18 },
   cardTitle: { fontSize: 17, fontWeight: "800" },
