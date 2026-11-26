@@ -133,6 +133,11 @@ describe("financial workflow integration", () => {
         }),
         /UNIQUE constraint failed/,
       );
+      const rolledBackActivity = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs WHERE entity_type = 'loan' AND entity_id = ? AND action = 'loan.payment_recorded'",
+        "loan-1",
+      );
+      assert.equal(rolledBackActivity?.count, 0);
       const rolledBackPayment = await db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM loan_payments WHERE id = ?",
         "payment-rollback",
@@ -157,6 +162,11 @@ describe("financial workflow integration", () => {
       assert.equal(loan.status, "paid");
       assert.equal(loan.remainingMinor, 0);
       assert.equal(payments.length, 2);
+      const loanPaymentActivity = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs WHERE entity_type = 'loan' AND entity_id = ? AND action = 'loan.payment_recorded'",
+        "loan-1",
+      );
+      assert.equal(loanPaymentActivity?.count, 2);
       assert.equal(
         payments.reduce((total, payment) => total + payment.interestPaidMinor, 0),
         20_000,
@@ -204,6 +214,12 @@ describe("financial workflow integration", () => {
       subscription = (await subscriptions.list())[0];
       assert.equal(subscription.nextBillingDate, "2026-01-31");
       assert.equal((await subscriptions.listPayments("subscription-1")).length, 0);
+      const paymentActivity = await db.getFirstAsync<{ recorded: number; deleted: number }>(
+        "SELECT SUM(action = 'subscription.payment_recorded') AS recorded, SUM(action = 'subscription.payment_deleted') AS deleted FROM activity_logs WHERE entity_type = 'subscription' AND entity_id = ?",
+        "subscription-1",
+      );
+      assert.equal(paymentActivity?.recorded, 1);
+      assert.equal(paymentActivity?.deleted, 1);
 
       const deletedTransaction = await db.getFirstAsync<{ deleted_at: string | null }>(
         "SELECT deleted_at FROM transactions WHERE id = ?",
@@ -238,6 +254,11 @@ describe("financial workflow integration", () => {
         "recurring-1",
       );
       assert.equal(initialCount?.count, 3);
+      const generatedActivity = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs WHERE entity_type = 'transaction' AND action = 'transaction.created' AND entity_id IN (SELECT id FROM transactions WHERE recurring_rule_id = ?)",
+        "recurring-1",
+      );
+      assert.equal(generatedActivity?.count, 3);
 
       await db.runAsync(
         "UPDATE recurring_rules SET next_occurrence_date = ?, is_active = 1 WHERE id = ?",
@@ -272,6 +293,10 @@ describe("financial workflow integration", () => {
       let balances = await accounts.listAll();
       assert.equal(balances.find(account => account.id === "cash")?.balanceMinor, 7_500);
       assert.equal(balances.find(account => account.id === "bank")?.balanceMinor, 7_500);
+      const createdTransferActivity = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs WHERE action = 'transaction.created' AND entity_id IN ('transfer-1-out', 'transfer-1-in')",
+      );
+      assert.equal(createdTransferActivity?.count, 1);
 
       await transactions.updateTransfer("transfer-1-out", {
         sourceAccountId: "cash",
@@ -282,10 +307,27 @@ describe("financial workflow integration", () => {
       balances = await accounts.listAll();
       assert.equal(balances.find(account => account.id === "cash")?.balanceMinor, 7_000);
       assert.equal(balances.find(account => account.id === "bank")?.balanceMinor, 8_000);
+      const updatedTransferActivity = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs WHERE action = 'transaction.updated' AND entity_id IN ('transfer-1-out', 'transfer-1-in')",
+      );
+      assert.equal(updatedTransferActivity?.count, 1);
       assert.equal(
         balances.reduce((total, account) => total + account.balanceMinor, 0),
         15_000,
       );
+
+      await transactions.createTransfer({
+        groupId: "transfer-2",
+        sourceAccountId: "cash",
+        destinationAccountId: "bank",
+        amountMinor: 500,
+        occurredAt: "2026-01-12",
+      });
+      await transactions.delete("transfer-2-out");
+      const deletedTransferActivity = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs WHERE action = 'transaction.deleted' AND entity_id IN ('transfer-2-out', 'transfer-2-in')",
+      );
+      assert.equal(deletedTransferActivity?.count, 1);
 
       await db.runAsync("DELETE FROM transactions WHERE id = ?", "transfer-1-in");
       await assert.rejects(
@@ -308,6 +350,10 @@ describe("financial workflow integration", () => {
   it("restores a real database snapshot and rejects a modified backup without changing data", async () => {
     await withDatabase(async db => {
       const backups = createBackupRepository(db as never);
+      await db.runAsync("UPDATE accounts SET name = ? WHERE id = ?", "Cash wallet before export", "cash");
+      const activityCountBeforeExport = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs",
+      );
       const backup = await backups.exportJson();
 
       await db.runAsync("UPDATE accounts SET name = ? WHERE id = ?", "Changed after export", "cash");
@@ -316,9 +362,16 @@ describe("financial workflow integration", () => {
         "SELECT name FROM accounts WHERE id = ?",
         "cash",
       );
-      assert.equal(account?.name, "Cash wallet");
+      assert.equal(account?.name, "Cash wallet before export");
+      const restoredLogCount = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs",
+      );
+      assert.equal(restoredLogCount?.count, activityCountBeforeExport?.count);
 
       await db.runAsync("UPDATE accounts SET name = ? WHERE id = ?", "Keep this value", "cash");
+      const activityCountBeforeRejectedRestore = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs",
+      );
       const tampered = JSON.parse(backup) as {
         data: { accounts: Array<{ name: string }> };
       };
@@ -333,6 +386,10 @@ describe("financial workflow integration", () => {
         "cash",
       );
       assert.equal(account?.name, "Keep this value");
+      const logCountAfterRejectedRestore = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM activity_logs",
+      );
+      assert.equal(logCountAfterRejectedRestore?.count, activityCountBeforeRejectedRestore?.count);
     });
   });
 });
