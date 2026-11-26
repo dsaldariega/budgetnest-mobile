@@ -1,4 +1,4 @@
-import { addDays, compareDates, daysInMonth } from "./dates";
+import { addDays, addMonthsClamped, compareDates, daysInMonth } from "./dates";
 
 export type LoanInterestType = "flat_rate" | "reducing_balance";
 
@@ -21,10 +21,49 @@ export type LoanAllocation = {
   remainingPrincipalMinor: number;
 };
 
+export type LoanSummary = {
+  totalInterestMinor: number;
+  totalPayableMinor: number;
+  scheduledPaymentMinor: number;
+  dueDate: string;
+};
+
 function validateTerms(terms: LoanTerms): void {
   if (!Number.isSafeInteger(terms.principalMinor) || terms.principalMinor <= 0) throw new Error("Principal must be positive.");
   if (!Number.isSafeInteger(terms.monthlyRateBps) || terms.monthlyRateBps < 0) throw new Error("Interest rate must be non-negative basis points.");
   if (!Number.isInteger(terms.termMonths) || terms.termMonths <= 0) throw new Error("Term must be a positive number of months.");
+}
+
+function roundMinor(value: number): number {
+  return Math.max(0, Math.round(value));
+}
+
+export function calculateLoanSummary(terms: LoanTerms, startDate: string): LoanSummary {
+  validateTerms(terms);
+  compareDates(startDate, startDate);
+  const monthlyRate = terms.monthlyRateBps / 10_000;
+  let totalInterestMinor: number;
+  let scheduledPaymentMinor: number;
+
+  if (terms.interestType === "flat_rate") {
+    totalInterestMinor = roundMinor(terms.principalMinor * monthlyRate * terms.termMonths);
+    scheduledPaymentMinor = Math.ceil((terms.principalMinor + totalInterestMinor) / terms.termMonths);
+  } else if (monthlyRate === 0) {
+    totalInterestMinor = 0;
+    scheduledPaymentMinor = Math.ceil(terms.principalMinor / terms.termMonths);
+  } else {
+    const factor = Math.pow(1 + monthlyRate, terms.termMonths);
+    const payment = terms.principalMinor * (monthlyRate * factor) / (factor - 1);
+    scheduledPaymentMinor = roundMinor(payment);
+    totalInterestMinor = Math.max(0, scheduledPaymentMinor * terms.termMonths - terms.principalMinor);
+  }
+
+  return {
+    totalInterestMinor,
+    totalPayableMinor: terms.principalMinor + totalInterestMinor,
+    scheduledPaymentMinor,
+    dueDate: addMonthsClamped(startDate, terms.termMonths),
+  };
 }
 
 function accruedInterest(
@@ -42,7 +81,7 @@ function accruedInterest(
     interest += balanceMinor * dailyRate;
     cursor = nextDay;
   }
-  return Math.round(interest);
+  return roundMinor(interest);
 }
 
 export function allocateLoanPayment(input: {
@@ -50,11 +89,13 @@ export function allocateLoanPayment(input: {
   previousPaymentDate: string;
   payment: LoanPayment;
   remainingPrincipalMinor: number;
-  accruedFlatInterestMinor: number;
+  remainingInterestMinor: number;
 }): LoanAllocation {
   validateTerms(input.terms);
   if (!Number.isSafeInteger(input.payment.amountMinor) || input.payment.amountMinor <= 0) throw new Error("Payment must be positive.");
-  if (input.payment.amountMinor > input.remainingPrincipalMinor + input.accruedFlatInterestMinor) {
+  if (!Number.isSafeInteger(input.remainingPrincipalMinor) || input.remainingPrincipalMinor < 0) throw new Error("Remaining principal is invalid.");
+  if (!Number.isSafeInteger(input.remainingInterestMinor) || input.remainingInterestMinor < 0) throw new Error("Remaining interest is invalid.");
+  if (input.payment.amountMinor > input.remainingPrincipalMinor + input.remainingInterestMinor) {
     throw new Error("Payment exceeds the remaining loan obligation.");
   }
 
@@ -68,8 +109,8 @@ export function allocateLoanPayment(input: {
     input.payment.paymentDate,
   );
   const interestDue = input.terms.interestType === "flat_rate"
-    ? Math.min(input.accruedFlatInterestMinor, accrued)
-    : accrued;
+    ? Math.min(input.remainingInterestMinor, accrued)
+    : Math.min(input.remainingInterestMinor, accrued);
   const interestPaidMinor = Math.min(input.payment.amountMinor, interestDue);
   const principalPaidMinor = Math.min(
     input.remainingPrincipalMinor,
@@ -79,7 +120,7 @@ export function allocateLoanPayment(input: {
   return {
     interestPaidMinor,
     principalPaidMinor,
-    remainingInterestMinor: Math.max(0, input.accruedFlatInterestMinor - interestPaidMinor),
+    remainingInterestMinor: input.remainingInterestMinor - interestPaidMinor,
     remainingPrincipalMinor: input.remainingPrincipalMinor - principalPaidMinor,
   };
 }
