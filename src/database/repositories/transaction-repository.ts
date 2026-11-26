@@ -114,6 +114,64 @@ export function createTransactionRepository(db: SQLiteDatabase) {
         );
       });
     },
+    async updateTransfer(id: string, input: Omit<CreateTransferInput, "groupId">): Promise<void> {
+      const existing = await db.getFirstAsync<{ transfer_group_id: string | null }>(
+        "SELECT transfer_group_id FROM transactions WHERE id = ? AND deleted_at IS NULL",
+        id,
+      );
+      if (!existing?.transfer_group_id) throw new Error("Transfer was not found.");
+      assertPositiveMinorUnits(input.amountMinor);
+      const [source, destination] = await Promise.all([
+        db.getFirstAsync<{ currency_code: string; is_archived: number }>(
+          "SELECT currency_code, is_archived FROM accounts WHERE id = ?", input.sourceAccountId,
+        ),
+        db.getFirstAsync<{ currency_code: string; is_archived: number }>(
+          "SELECT currency_code, is_archived FROM accounts WHERE id = ?", input.destinationAccountId,
+        ),
+      ]);
+      if (!source || !destination) throw new Error("Choose two existing accounts.");
+      assertTransferAllowed({
+        sourceAccountId: input.sourceAccountId, destinationAccountId: input.destinationAccountId,
+        sourceCurrency: source.currency_code, destinationCurrency: destination.currency_code,
+        sourceArchived: source.is_archived === 1, destinationArchived: destination.is_archived === 1,
+      });
+      const now = new Date().toISOString();
+      await db.withTransactionAsync(async () => {
+        await db.runAsync(
+          "UPDATE transactions SET account_id=?, amount_minor=?, description=?, notes=?, occurred_at=?, updated_at=? WHERE transfer_group_id=? AND transfer_direction='out' AND deleted_at IS NULL",
+          input.sourceAccountId, input.amountMinor, input.description?.trim() || "Transfer", input.notes ?? null,
+          input.occurredAt, now, existing.transfer_group_id,
+        );
+        await db.runAsync(
+          "UPDATE transactions SET account_id=?, amount_minor=?, description=?, notes=?, occurred_at=?, updated_at=? WHERE transfer_group_id=? AND transfer_direction='in' AND deleted_at IS NULL",
+          input.destinationAccountId, input.amountMinor, input.description?.trim() || "Transfer", input.notes ?? null,
+          input.occurredAt, now, existing.transfer_group_id,
+        );
+      });
+    },
+    async update(id: string, input: Omit<CreateSimpleTransactionInput, "id">): Promise<void> {
+      assertPositiveMinorUnits(input.amountMinor);
+      const account = await db.getFirstAsync<{ is_archived: number }>(
+        "SELECT is_archived FROM accounts WHERE id = ?", input.accountId,
+      );
+      if (!account || account.is_archived) throw new Error("Choose an active account.");
+      const category = await db.getFirstAsync<{ type: string }>(
+        "SELECT type FROM categories WHERE id = ?", input.categoryId,
+      );
+      if (!category || category.type !== input.type) throw new Error("Choose a valid category.");
+      const existing = await db.getFirstAsync<{ transfer_group_id: string | null; type: TransactionType }>(
+        "SELECT transfer_group_id, type FROM transactions WHERE id = ? AND deleted_at IS NULL", id,
+      );
+      if (!existing) throw new Error("Transaction was not found.");
+      if (existing.transfer_group_id || existing.type === "transfer") throw new Error("Use transfer editing for transfer transactions.");
+      const now = new Date().toISOString();
+      const result = await db.runAsync(
+        "UPDATE transactions SET account_id=?, category_id=?, type=?, amount_minor=?, description=?, notes=?, occurred_at=?, updated_at=? WHERE id=? AND deleted_at IS NULL",
+        input.accountId, input.categoryId, input.type, input.amountMinor, input.description.trim(), input.notes ?? null,
+        input.occurredAt, now, id,
+      );
+      if (result.changes === 0) throw new Error("Transaction was not found.");
+    },
     async delete(id: string): Promise<void> {
       const row = await db.getFirstAsync<{ transfer_group_id: string | null }>(
         "SELECT transfer_group_id FROM transactions WHERE id = ? AND deleted_at IS NULL", id,

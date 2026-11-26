@@ -218,11 +218,11 @@ export function createLoanRepository(db: SQLiteDatabase) {
         const nextStatus = remainingPrincipalMinor === 0 && remainingInterestMinor === 0
           ? "paid"
           : loan.status === "paid" ? "active" : loan.status;
-        const now = new Date().toISOString();
+        const updatedAt = new Date().toISOString();
         await db.runAsync(
           "UPDATE loans SET status = ?, updated_at = ? WHERE id = ?",
           nextStatus,
-          now,
+          updatedAt,
           loan.id,
         );
         await db.runAsync(

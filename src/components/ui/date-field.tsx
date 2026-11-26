@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useState, useColorScheme } from "react";
+import { useState } from "react";
+import { useColorScheme } from "react-native";
 import { colors } from "@/theme/colors";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
