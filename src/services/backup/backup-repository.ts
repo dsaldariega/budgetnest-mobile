@@ -1,4 +1,4 @@
-import type { SQLiteDatabase } from "expo-sqlite";
+import type { SQLiteBindValue, SQLiteDatabase } from "expo-sqlite";
 import {
   BACKUP_TABLES,
   createBackupPayload,
@@ -50,7 +50,7 @@ export function createBackupRepository(db: SQLiteDatabase) {
             if (columns.length === 0) continue;
 
             const placeholders = columns.map(() => "?").join(", ");
-            const values = columns.map(column => row[column] ?? null);
+            const values = columns.map(column => row[column] ?? null) as SQLiteBindValue[];
             await db.runAsync(
               `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`,
               values,

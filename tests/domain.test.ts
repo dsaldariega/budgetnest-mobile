@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addMonthsClamped } from "@/domain/dates";
 import { allocateLoanPayment, calculateLoanSummary } from "@/domain/loans";
-import { calculateAccountBalance } from "@/domain/accounts";
-import { calculateBudgetProgress } from "@/domain/budgets";
-import { calculateGoalProgress } from "@/domain/goals";
+import { assertTransferAllowed, calculateAccountBalance } from "@/domain/accounts";
+import { getBudgetWindow } from "@/domain/budgets";
+import { getGoalProgress } from "@/domain/goals";
 
 test("money/date helpers preserve minor units and month-end dates", async () => {
   assert.equal(addMonthsClamped("2024-01-31", 1), "2024-02-29");
@@ -13,25 +13,54 @@ test("money/date helpers preserve minor units and month-end dates", async () => 
 
 test("account balance respects transaction direction and deleted rows", async () => {
   assert.equal(calculateAccountBalance(10000, [
-    { type: "income", amountMinor: 5000, deleted: false },
-    { type: "expense", amountMinor: 1500, deleted: false },
-    { type: "transfer", amountMinor: 2000, direction: "out", deleted: false },
-    { type: "transfer", amountMinor: 3000, direction: "in", deleted: false },
-    { type: "expense", amountMinor: 9000, deleted: true },
+    { type: "income", amountMinor: 5000 },
+    { type: "expense", amountMinor: 1500 },
+    { type: "transfer", amountMinor: 2000, transferDirection: "out" },
+    { type: "transfer", amountMinor: 3000, transferDirection: "in" },
+    { type: "expense", amountMinor: 9000, deletedAt: "2026-01-01T00:00:00.000Z" },
   ]), 14500);
 });
 
 test("same-account and cross-currency transfers are rejected", async () => {
-  assert.throws(() => { throw new Error("Transfer accounts must be different."); });
-  assert.throws(() => { throw new Error("Transfers require matching currencies."); });
+  assert.throws(() => assertTransferAllowed({
+    sourceAccountId: "account-1",
+    destinationAccountId: "account-1",
+    sourceCurrency: "PHP",
+    destinationCurrency: "PHP",
+  }), /Transfer accounts must be different/);
+
+  assert.throws(() => assertTransferAllowed({
+    sourceAccountId: "account-1",
+    destinationAccountId: "account-2",
+    sourceCurrency: "PHP",
+    destinationCurrency: "USD",
+  }), /different currencies/);
 });
 
-test("budget progress clamps to the budget amount", async () => {
-  assert.deepEqual(calculateBudgetProgress(3500, 3000), { progress: 1, remainingMinor: -500 });
+test("budget windows follow their configured period", async () => {
+  assert.deepEqual(getBudgetWindow({
+    period: "weekly",
+    startDate: "2026-01-05",
+    referenceDate: "2026-01-07",
+  }), { startDate: "2026-01-05", endDate: "2026-01-11" });
+
+  assert.deepEqual(getBudgetWindow({
+    period: "monthly",
+    startDate: "2026-01-31",
+    referenceDate: "2026-02-15",
+  }), { startDate: "2026-01-31", endDate: "2026-02-27" });
+
+  assert.throws(() => getBudgetWindow({
+    period: "custom",
+    startDate: "2026-01-10",
+    endDate: "2026-01-09",
+    referenceDate: "2026-01-10",
+  }), /valid end date/);
 });
 
 test("goal progress clamps to the target", async () => {
-  assert.deepEqual(calculateGoalProgress(12000, 10000), { progress: 1, remainingMinor: 0 });
+  assert.equal(getGoalProgress(12000, 10000), 1);
+  assert.equal(getGoalProgress(2500, 10000), 0.25);
 });
 
 test("loan summaries and payment allocation handle interest first", async () => {
