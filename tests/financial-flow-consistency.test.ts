@@ -3,9 +3,33 @@ import assert from "node:assert/strict";
 import {
   assertTransferPairIntegrity,
   calculateAccountBalance,
+  getTransferDestinationAccountId,
 } from "../src/domain/accounts";
 
 describe("financial flow consistency", () => {
+  it("selects a different default destination for a new transfer", () => {
+    assert.equal(
+      getTransferDestinationAccountId(["cash", "bank"], "cash"),
+      "bank",
+    );
+  });
+
+  it("keeps a valid destination but replaces one that matches the source", () => {
+    assert.equal(
+      getTransferDestinationAccountId(["cash", "bank", "wallet"], "cash", "wallet"),
+      "wallet",
+    );
+    assert.equal(
+      getTransferDestinationAccountId(["cash", "bank", "wallet"], "bank", "bank"),
+      "cash",
+    );
+  });
+
+  it("returns no destination when fewer than two active accounts exist", () => {
+    assert.equal(getTransferDestinationAccountId(["cash"], "cash"), "");
+    assert.equal(getTransferDestinationAccountId([], ""), "");
+  });
+
   const validPair = [
     { accountId: "cash", amountMinor: 2_500, transferDirection: "out" as const },
     { accountId: "bank", amountMinor: 2_500, transferDirection: "in" as const },

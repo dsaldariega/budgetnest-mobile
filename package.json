@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "check": "npm run typecheck && npm test",
+    "test:runtime": "expo export --platform android --output-dir .expo-runtime-test",
+    "check": "npm run typecheck && npm test && npm run test:runtime",
     "doctor": "npx expo-doctor"
   },
   "dependencies": {

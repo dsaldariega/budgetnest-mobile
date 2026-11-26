@@ -17,7 +17,8 @@ npm run doctor
 npx expo config --type public
 ```
 
-- `npm run check` runs TypeScript validation followed by the automated test suite.
+- `npm run check` runs TypeScript validation, the automated Node test suite, and a production Android bundle export through Expo/Metro. The export catches app-wide route, import, and bundling failures; it does not replace device interaction testing.
+- `npm run test:runtime` can be run separately when only the Expo/Metro bundle smoke test is needed.
 - `npm run doctor` runs Expo's project compatibility checks.
 - Review the resolved public Expo config before producing a build.
 
@@ -43,6 +44,38 @@ eas build --profile production --platform android
 ```
 
 The production profile is configuration only; it is not authorization to publish.
+
+## Application runtime and UI smoke test
+
+After `npm run check` passes, start the app with `npx expo start` and open it in Expo Go or a compatible development build. Use disposable test data for destructive flows.
+
+### Navigation and shared runtime
+- [ ] App opens to the welcome screen when signed out and reaches the main tabs after the configured sign-in flow.
+- [ ] Visit every bottom tab and every More/stack screen; confirm there are no red screens, stuck loading states, or missing route errors.
+- [ ] Switch light/dark appearance and verify the current screen updates without restarting.
+- [ ] Background and reopen the app; confirm SQLite data remains available.
+
+### Accounts and transaction UI
+- [ ] Create two active PHP accounts; verify both appear in account selectors.
+- [ ] Open Add transaction, choose Transfer, and confirm the default source and destination are different.
+- [ ] Change the source account; confirm the destination remains different or is automatically replaced.
+- [ ] Save a transfer and verify both account balances; edit it and confirm both sides update; delete it and confirm both sides reverse.
+- [ ] Try invalid amounts, missing required fields, and same-account transfers; confirm a clear validation message appears and no data is written.
+- [ ] Add/edit/delete income and expense entries; verify Activity and Dashboard refresh when returning to those screens.
+- [ ] Search and filter Activity; clear filters and verify the full list returns.
+
+### Connected features
+- [ ] Create a loan, open its details, record a payment, and verify the payment history and remaining balance.
+- [ ] Create a subscription, record a payment, verify its next billing date, then delete the payment and verify the date rolls back.
+- [ ] Create a recurring rule and generate due entries; run generation again and verify duplicates are skipped.
+- [ ] Create a budget and savings goal; add a goal contribution and verify progress.
+- [ ] Open Reports and switch month, 3-month, and year periods; confirm currencies remain separated.
+
+### Settings and backup
+- [ ] Change the default currency and confirm it affects new accounts only.
+- [ ] Export a backup to Google Drive using a connected test account.
+- [ ] Select a valid backup, cancel the restore confirmation, and confirm current data remains unchanged.
+- [ ] Restore a valid test backup and verify key records; do not use a backup containing the only copy of important data.
 
 ## Android device test checklist
 

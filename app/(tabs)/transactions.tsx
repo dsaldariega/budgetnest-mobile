@@ -8,6 +8,7 @@ import { createHistoryRepository, type HistoryFilter, type HistoryItem } from "@
 import { createTransactionRepository, type TransactionListItem } from "@/database/repositories/transaction-repository";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { historyAmountPrefix, historyKindLabel } from "@/domain/history";
+import { getTransferDestinationAccountId } from "@/domain/accounts";
 import { toMinorUnits } from "@/domain/money";
 import { colors } from "@/theme/colors";
 import { SelectField, type SelectOption } from "@/components/ui/select-field";
@@ -69,12 +70,22 @@ export default function TransactionsScreen() {
   const load = useCallback(async () => {
     try {
       const [history, tx, acc] = await Promise.all([historyRepo.list({ filter, search, fromDate: fromDate || undefined, toDate: toDate || undefined, accountName: accountName || undefined, categoryName: categoryName || undefined }), txRepo.listRecent(200), accountRepo.list()]);
-      setItems(history); setTransactions(tx); setAccounts(acc.filter(a => !a.isArchived));
-      setAccountId(v => acc.some(a => a.id === v) ? v : acc[0]?.id ?? "");
-      setDestinationAccountId(v => acc.some(a => a.id === v && a.id !== accountId) ? v : acc.find(a => a.id !== accountId)?.id ?? "");
+      const activeAccounts = acc.filter(a => !a.isArchived);
+      const activeAccountIds = activeAccounts.map(account => account.id);
+      const sourceAccountId = activeAccountIds.includes(accountId)
+        ? accountId
+        : activeAccountIds[0] ?? "";
+
+      setItems(history);
+      setTransactions(tx);
+      setAccounts(activeAccounts);
+      setAccountId(sourceAccountId);
+      setDestinationAccountId(current =>
+        getTransferDestinationAccountId(activeAccountIds, sourceAccountId, current),
+      );
       setError("");
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to load activity."); }
-  }, [historyRepo, txRepo, accountRepo, filter, search, fromDate, toDate, accountName, categoryName]);
+  }, [historyRepo, txRepo, accountRepo, filter, search, fromDate, toDate, accountName, categoryName, accountId]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -166,7 +177,7 @@ export default function TransactionsScreen() {
             <Text style={[s.label, { color: p.text }]}>Transaction type</Text>
             <KindSelector value={formKind} onChange={kind => { setFormKind(kind); setEditing(formKind === kind ? editing : editing && transactionKind(editing) === kind ? editing : null); void loadCategories(kind); }} palette={p} />
             {formKind === "transfer" ? <>
-              <SelectField label="From account" required value={accountId} options={accountOptions} onChange={setAccountId} placeholder="Select source account" />
+              <SelectField label="From account" required value={accountId} options={accountOptions} onChange={value => { setAccountId(value); setDestinationAccountId(current => getTransferDestinationAccountId(accounts.map(account => account.id), value, current)); }} placeholder="Select source account" />
               <SelectField label="To account" required value={destinationAccountId} options={accountOptions.filter(o => o.value !== accountId)} onChange={setDestinationAccountId} placeholder="Select destination account" />
             </> : <SelectField label="Account" required value={accountId} options={accountOptions} onChange={setAccountId} placeholder="Select account" />}
             {formKind !== "transfer" ? <SelectField label={formKind === "loan" ? "Loan category" : formKind === "savings" ? "Savings category" : "Category"} required value={categoryId} options={categoryOptions} onChange={setCategoryId} placeholder="Select category" /> : null}

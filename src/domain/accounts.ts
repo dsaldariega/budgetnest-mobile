@@ -73,3 +73,21 @@ export function assertTransferPairIntegrity(entries: TransferPairEntry[]): void 
     throw new Error("Transfer entries must have the same positive amount.");
   }
 }
+
+
+/** Keeps the transfer destination valid and different from the selected source account. */
+export function getTransferDestinationAccountId(
+  accountIds: string[],
+  sourceAccountId: string,
+  preferredDestinationId?: string,
+): string {
+  const availableDestinations = accountIds.filter(
+    accountId => accountId.length > 0 && accountId !== sourceAccountId,
+  );
+
+  if (preferredDestinationId && availableDestinations.includes(preferredDestinationId)) {
+    return preferredDestinationId;
+  }
+
+  return availableDestinations[0] ?? "";
+}
