@@ -81,6 +81,14 @@ describe("database migration integrity", () => {
     assert.match(sql, /backup_restore_in_progress/i);
   });
 
+  it("keeps paired transfer activity logs to one entry per operation", () => {
+    const sql = migrations.find(migration => migration.version === 9)?.sql ?? "";
+
+    assert.match(sql, /DROP TRIGGER IF EXISTS activity_transactions_updated/i);
+    assert.match(sql, /NEW\.type <> 'transfer' OR NEW\.transfer_direction = 'out'/i);
+    assert.match(sql, /OLD\.type <> 'transfer' OR OLD\.transfer_direction = 'out'/i);
+  });
+
   it("keeps the migration runner transactional and enables SQLite integrity settings", () => {
     const runnerSource = migrateDatabase.toString();
 

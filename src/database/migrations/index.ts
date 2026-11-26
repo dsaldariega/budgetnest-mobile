@@ -942,6 +942,56 @@ export const migrations: DatabaseMigration[] = [
     
     `,
   },
+
+  {
+    version: 9,
+    description: "Avoid duplicate activity entries for paired transfer transactions",
+    sql: `
+      DROP TRIGGER IF EXISTS activity_transactions_updated;
+      DROP TRIGGER IF EXISTS activity_transactions_soft_deleted;
+      DROP TRIGGER IF EXISTS activity_transactions_deleted;
+
+      CREATE TRIGGER activity_transactions_updated
+      AFTER UPDATE ON transactions
+      WHEN (OLD.account_id IS NOT NEW.account_id OR OLD.category_id IS NOT NEW.category_id
+        OR OLD.type IS NOT NEW.type OR OLD.amount_minor IS NOT NEW.amount_minor
+        OR OLD.description IS NOT NEW.description OR OLD.notes IS NOT NEW.notes
+        OR OLD.occurred_at IS NOT NEW.occurred_at)
+        AND OLD.deleted_at IS NEW.deleted_at
+        AND (NEW.type <> 'transfer' OR NEW.transfer_direction = 'out')
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'transaction', NEW.id, 'transaction.updated',
+          'Updated transaction: ' || COALESCE(NULLIF(NEW.description, ''), 'Transaction'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER activity_transactions_soft_deleted
+      AFTER UPDATE OF deleted_at ON transactions
+      WHEN OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL
+        AND (NEW.type <> 'transfer' OR NEW.transfer_direction = 'out')
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'transaction', NEW.id, 'transaction.deleted',
+          'Deleted transaction: ' || COALESCE(NULLIF(NEW.description, ''), 'Transaction'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER activity_transactions_deleted
+      AFTER DELETE ON transactions
+      WHEN (OLD.type <> 'transfer' OR OLD.transfer_direction = 'out')
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'transaction', OLD.id, 'transaction.deleted',
+          'Deleted transaction: ' || COALESCE(NULLIF(OLD.description, ''), 'Transaction'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+    `,
+  },
+
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
