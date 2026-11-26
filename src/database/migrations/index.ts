@@ -580,25 +580,6 @@ export const migrations: DatabaseMigration[] = [
       END;
     `,
   },
-];
-
-export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
-  await db.execAsync("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
-  const result = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
-  let currentVersion = result?.user_version ?? 0;
-  for (const migration of migrations) {
-    if (migration.version <= currentVersion) continue;
-    await db.execAsync("BEGIN IMMEDIATE");
-    try {
-      await db.execAsync(migration.sql);
-      await db.execAsync(`PRAGMA user_version = ${migration.version}`);
-      await db.execAsync("COMMIT");
-      currentVersion = migration.version;
-    } catch (error) {
-      await db.execAsync("ROLLBACK");
-      throw error;
-    }
-  }
   {
     version: 7,
     description: "Add dedicated loan and savings transaction categories",
