@@ -14,14 +14,29 @@ function getMethodBody(source: string, methodSignature: string): string {
   const parameterEnd = source.indexOf(")", start);
   assert.notEqual(parameterEnd, -1, `Could not find method parameters: ${methodSignature}`);
 
-  let bodyStart = source.indexOf("{", parameterEnd + 1);
-  assert.notEqual(bodyStart, -1, `Could not find method body: ${methodSignature}`);
+  let bodyStart = -1;
+  let angleDepth = 0;
 
-  const prefix = source.slice(parameterEnd + 1, bodyStart);
-  if (/^\s*:\s*[A-Za-z_$][\\w$]*(?:\.[A-Za-z_$][\\w$]*)*<[^>]*$/s.test(prefix)) {
-    bodyStart = source.indexOf("{", bodyStart + 1);
-    assert.notEqual(bodyStart, -1, `Could not find method body: ${methodSignature}`);
+  for (let index = parameterEnd + 1; index < source.length; index += 1) {
+    const character = source[index];
+
+    if (character === "<") {
+      angleDepth += 1;
+      continue;
+    }
+
+    if (character === ">") {
+      if (angleDepth > 0) angleDepth -= 1;
+      continue;
+    }
+
+    if (character === "{" && angleDepth === 0) {
+      bodyStart = index;
+      break;
+    }
   }
+
+  assert.notEqual(bodyStart, -1, `Could not find method body: ${methodSignature}`);
 
   let depth = 0;
   for (let index = bodyStart; index < source.length; index += 1) {
