@@ -8,7 +8,9 @@ function TabLabel({ label, focused, dark }: { label: string; focused: boolean; d
   return (
     <Text
       style={{
-        color: focused ? (dark ? colors.dark.primary : colors.light.primary) : (dark ? colors.dark.textMuted : colors.light.textMuted),
+        color: focused
+          ? dark ? colors.dark.primary : colors.light.primary
+          : dark ? colors.dark.textMuted : colors.light.textMuted,
         fontSize: 11,
         fontWeight: focused ? "700" : "500",
       }}
@@ -40,14 +42,81 @@ export default function TabLayout() {
         tabBarHideOnKeyboard: true,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Home", tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="home-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
-      <Tabs.Screen name="transactions" options={{ title: "Activity", tabBarLabel: ({ focused }) => <TabLabel label="Activity" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="receipt-text-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
-      <Tabs.Screen name="budgets" options={{ title: "Budgets", tabBarLabel: ({ focused }) => <TabLabel label="Budgets" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="chart-donut" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
-      <Tabs.Screen name="goals" options={{ title: "Goals", tabBarLabel: ({ focused }) => <TabLabel label="Goals" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bullseye-arrow" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
-      <Tabs.Screen name="loans" options={{ title: "Loans", tabBarLabel: ({ focused }) => <TabLabel label="Loans" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bank-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
-      <Tabs.Screen name="subscriptions" options={{ title: "Subscriptions", tabBarLabel: ({ focused }) => <TabLabel label="Subs" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="calendar-clock" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
-      <Tabs.Screen name="accounts" options={{ title: "Accounts", tabBarLabel: ({ focused }) => <TabLabel label="Accounts" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="wallet-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
-      <Tabs.Screen name="settings" options={{ title: "Settings", tabBarLabel: ({ focused }) => <TabLabel label="Settings" focused={focused} dark={isDark} />, tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="cog-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} /> }} />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Home",
+          tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} dark={isDark} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="home-outline"
+              size={size}
+              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          title: "Activity",
+          tabBarLabel: ({ focused }) => <TabLabel label="Activity" focused={focused} dark={isDark} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="receipt-text-outline"
+              size={size}
+              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="budgets"
+        options={{
+          title: "Budgets",
+          tabBarLabel: ({ focused }) => <TabLabel label="Budgets" focused={focused} dark={isDark} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="chart-donut"
+              size={size}
+              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="goals"
+        options={{
+          title: "Goals",
+          tabBarLabel: ({ focused }) => <TabLabel label="Goals" focused={focused} dark={isDark} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="bullseye-arrow"
+              size={size}
+              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: "More",
+          tabBarLabel: ({ focused }) => <TabLabel label="More" focused={focused} dark={isDark} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="menu"
+              size={size}
+              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen name="loans" options={{ href: null }} />
+      <Tabs.Screen name="subscriptions" options={{ href: null }} />
+      <Tabs.Screen name="accounts" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

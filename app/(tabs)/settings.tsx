@@ -5,7 +5,8 @@ import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createBackupRepository } from "@/services/backup/backup-repository";
 import { parseBackup } from "@/services/backup/backup-format";
-import { pickBackupFile, shareBackupFile, writeBackupFile } from "@/services/backup/backup-file-service";
+import { uploadBackupToGoogleDrive, downloadLatestBackupFromGoogleDrive } from "@/services/google/google-drive-service";
+import { useGoogleAuth } from "@/context/google-auth-context";
 import { createSettingsRepository, DEFAULT_CURRENCY_CODE, SUPPORTED_DEFAULT_CURRENCIES, type DefaultCurrencyCode } from "@/database/repositories/settings-repository";
 import { colors } from "@/theme/colors";
 
@@ -16,6 +17,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const dark = useColorScheme() === "dark";
   const palette = dark ? colors.dark : colors.light;
+  const { user, loading: authLoading, signingIn, error: authError, signIn, signOut, clearError } = useGoogleAuth();
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [defaultCurrency, setDefaultCurrency] = useState<DefaultCurrencyCode>(DEFAULT_CURRENCY_CODE);
@@ -57,27 +60,30 @@ export default function SettingsScreen() {
     }
   };
 
-  const exportBackup = async () => {
+  const exportBackupToGoogle = async () => {
     setError("");
     setBusy(true);
     try {
       const json = await createBackupRepository(db).exportJson();
-      const exportedAt = JSON.parse(json).metadata.exportedAt as string;
-      const uri = await writeBackupFile(json, exportedAt);
-      await shareBackupFile(uri);
+      await uploadBackupToGoogleDrive(json);
+      Alert.alert("Backup complete", "Your BudgetNest backup was saved to your Google Drive app data.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to export the backup.");
+      setError(e instanceof Error ? e.message : "Unable to save the backup to Google Drive.");
     } finally {
       setBusy(false);
     }
   };
 
-  const selectRestoreFile = async () => {
+  const selectGoogleRestore = async () => {
     setError("");
     setBusy(true);
     try {
-      const text = await pickBackupFile();
-      if (!text) return;
+      const text = await downloadLatestBackupFromGoogleDrive();
+      if (!text) {
+        setError("No BudgetNest backup was found in this Google account.");
+        return;
+      }
+
       const backup = parseBackup(text);
       setRestoreText(text);
       setRestoreExportedAt(backup.metadata.exportedAt);
@@ -85,7 +91,7 @@ export default function SettingsScreen() {
       setRestoreRecordCount(Object.values(backup.metadata.recordCounts).reduce((total, count) => total + count, 0));
       setConfirmRestore(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to read the selected backup.");
+      setError(e instanceof Error ? e.message : "Unable to read the Google Drive backup.");
     } finally {
       setBusy(false);
     }
@@ -103,11 +109,11 @@ export default function SettingsScreen() {
       setRestoreAppVersion("");
       setRestoreRecordCount(0);
       await loadSettings();
-      Alert.alert("Restore complete", "Your local BudgetNest data has been replaced with the selected backup.", [
+      Alert.alert("Restore complete", "Your local BudgetNest data has been replaced with the selected Google backup.", [
         { text: "Continue", onPress: () => router.replace("/") },
       ]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to restore the backup.");
+      setError(e instanceof Error ? e.message : "Unable to restore the Google backup.");
     } finally {
       setBusy(false);
     }
@@ -122,11 +128,15 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.eyebrow, { color: palette.primary }]}>PREFERENCES</Text>
         <Text style={[styles.title, { color: palette.text }]}>Settings</Text>
-        <Text style={[styles.subtitle, { color: palette.textMuted }]}>Manage your preferences and keep your financial data safe on this device.</Text>
+        <Text style={[styles.subtitle, { color: palette.textMuted }]}>
+          Manage your preferences and connect optional Google backup.
+        </Text>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>Default currency</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>Used as the starting currency when you create a new account. It won't change existing accounts or convert balances.</Text>
+          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
+            Used as the starting currency when you create a new account. Existing balances are not converted.
+          </Text>
           <View style={styles.currencyGrid}>
             {SUPPORTED_DEFAULT_CURRENCIES.map((currency) => {
               const selected = defaultCurrency === currency.code;
@@ -139,7 +149,10 @@ export default function SettingsScreen() {
                   onPress={() => void changeDefaultCurrency(currency.code)}
                   style={[
                     styles.currencyOption,
-                    { borderColor: selected ? palette.primary : palette.border, backgroundColor: selected ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface },
+                    {
+                      borderColor: selected ? palette.primary : palette.border,
+                      backgroundColor: selected ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface,
+                    },
                   ]}
                 >
                   <Text style={{ color: selected ? palette.primary : palette.text, fontSize: 13, fontWeight: "800" }}>{currency.code}</Text>
@@ -152,42 +165,120 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.cardTitle, { color: palette.text }]}>Backup & Restore</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>Create a portable copy of your data or restore a backup from your device.</Text>
-          <Pressable testID="settings-export-backup" disabled={busy} onPress={() => void exportBackup()} style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}>
-            <Text style={styles.primaryText}>{busy ? "Working…" : "Export backup"}</Text>
-          </Pressable>
-          <Pressable testID="settings-restore-backup" disabled={busy} onPress={() => void selectRestoreFile()} style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}>
-            <Text style={[styles.secondaryText, { color: palette.text }]}>Restore backup</Text>
-          </Pressable>
-          <Text style={[styles.note, { color: palette.textMuted }]}>Backups are JSON files containing sensitive financial information. Store them somewhere private. Restore replaces the current local data; it does not sync with the cloud.</Text>
+          <View style={styles.googleHeader}>
+            <View style={[styles.googleIcon, { backgroundColor: dark ? "#243447" : "#EEF5FF" }]}>
+              <Text style={{ color: "#4285F4", fontSize: 18, fontWeight: "900" }}>G</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardTitle, { color: palette.text }]}>Google account</Text>
+              <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
+                {user ? "Connected as " + (user.user.email ?? user.user.id) : "Optional. Sign in only when you want cloud backup."}
+              </Text>
+            </View>
+          </View>
+
+          {authError ? (
+            <View style={[styles.errorCard, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+              <Text style={[styles.errorTitle, { color: palette.primary }]}>Google sign-in failed</Text>
+              <Text style={[styles.errorText, { color: palette.text }]}>{authError}</Text>
+              <Pressable onPress={clearError} style={styles.dismissError}>
+                <Text style={{ color: palette.primary, fontWeight: "800" }}>Dismiss</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {!user ? (
+            <Pressable
+              disabled={authLoading || signingIn}
+              onPress={() => void signIn()}
+              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: authLoading || signingIn ? 0.6 : 1 }]}
+            >
+              <Text style={styles.primaryText}>{signingIn ? "Signing in…" : "Sign in with Google"}</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              disabled={busy}
+              onPress={() => void signOut()}
+              style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.secondaryText, { color: palette.text }]}>Sign out of Google</Text>
+            </Pressable>
+          )}
+
+          <Text style={[styles.note, { color: palette.textMuted }]}>
+            BudgetNest remains fully usable without a Google account. Google access is only used for the optional backup and restore feature.
+          </Text>
         </View>
+
+        {user ? (
+          <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.cardTitle, { color: palette.text }]}>Google Backup & Restore</Text>
+            <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
+              Store one private BudgetNest backup in your Google Drive app data and restore it on another signed-in device.
+            </Text>
+            <Pressable
+              disabled={busy}
+              onPress={() => void exportBackupToGoogle()}
+              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}
+            >
+              <Text style={styles.primaryText}>{busy ? "Working…" : "Back up to Google Drive"}</Text>
+            </Pressable>
+            <Pressable
+              disabled={busy}
+              onPress={() => void selectGoogleRestore()}
+              style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.secondaryText, { color: palette.text }]}>Restore from Google Drive</Text>
+            </Pressable>
+            <Text style={[styles.note, { color: palette.textMuted }]}>
+              Backup and restore use the existing integrity-checked JSON format. Restoring replaces the current local data.
+            </Text>
+          </View>
+        ) : null}
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>Data on this device</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>A quick overview of records currently stored in your local database.</Text>
+          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
+            A quick overview of records currently stored in your local database.
+          </Text>
           <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Total records</Text><Text style={[styles.overviewValue, { color: palette.text }]}>{overview ? formatCount(totalRecords) : "—"}</Text></View>
           <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Database version</Text><Text style={[styles.overviewValue, { color: palette.text }]}>{overview?.schemaVersion ?? "—"}</Text></View>
           <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Storage</Text><Text style={[styles.overviewValue, { color: palette.text }]}>This device only</Text></View>
-          <Text style={[styles.note, { color: palette.textMuted }]}>Your data stays in the app's local database. Export a backup before moving to another device or reinstalling the app.</Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>About BudgetNest</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>A private, local-first personal finance tracker. No account or cloud connection is required to use the app.</Text>
+          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
+            A private, local-first personal finance tracker. No account or cloud connection is required for normal use.
+          </Text>
         </View>
 
-        {error ? <View style={[styles.errorCard, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={[styles.errorTitle, { color: palette.primary }]}>Settings action failed</Text><Text style={[styles.errorText, { color: palette.text }]}>{error}</Text></View> : null}
+        {error ? (
+          <View style={[styles.errorCard, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+            <Text style={[styles.errorTitle, { color: palette.primary }]}>Settings action failed</Text>
+            <Text style={[styles.errorText, { color: palette.text }]}>{error}</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <Modal visible={confirmRestore} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmRestore(false); }}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.confirmCard, { backgroundColor: palette.surface }]}>
-            <Text style={[styles.confirmTitle, { color: palette.text }]}>Restore this backup?</Text>
-            <Text style={[styles.confirmText, { color: palette.textMuted }]}>This will delete the current local records and replace them with the selected backup.{"\n\n"}Backup date: {restoreExportedAt ? new Date(restoreExportedAt).toLocaleString() : "Unknown"}{"\n"}Backup app version: {restoreAppVersion || "Unknown"}{"\n"}Records included: {formatCount(restoreRecordCount)}{"\n\n"}The backup is integrity-checked before any data is changed. This action cannot be undone unless you have another backup.</Text>
+            <Text style={[styles.confirmTitle, { color: palette.text }]}>Restore this Google backup?</Text>
+            <Text style={[styles.confirmText, { color: palette.textMuted }]}>
+              This will replace the current local records with the selected Google backup.{"\n\n"}
+              Backup date: {restoreExportedAt ? new Date(restoreExportedAt).toLocaleString() : "Unknown"}{"\n"}
+              Backup app version: {restoreAppVersion || "Unknown"}{"\n"}
+              Records included: {formatCount(restoreRecordCount)}{"\n\n"}
+              The backup is integrity-checked before any data is changed.
+            </Text>
             <View style={styles.actions}>
-              <Pressable disabled={busy} onPress={() => setConfirmRestore(false)} style={[styles.cancelButton, { borderColor: palette.border }]}><Text style={[styles.secondaryText, { color: palette.text }]}>Cancel</Text></Pressable>
-              <Pressable testID="settings-confirm-restore" disabled={busy} onPress={() => void restoreBackup()} style={[styles.dangerButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}><Text style={styles.primaryText}>{busy ? "Restoring…" : "Restore data"}</Text></Pressable>
+              <Pressable disabled={busy} onPress={() => setConfirmRestore(false)} style={[styles.cancelButton, { borderColor: palette.border }]}>
+                <Text style={[styles.secondaryText, { color: palette.text }]}>Cancel</Text>
+              </Pressable>
+              <Pressable disabled={busy} onPress={() => void restoreBackup()} style={[styles.dangerButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}>
+                <Text style={styles.primaryText}>{busy ? "Restoring…" : "Restore data"}</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -205,24 +296,27 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 18, padding: 18 },
   cardTitle: { fontSize: 17, fontWeight: "800" },
   cardDescription: { fontSize: 13, lineHeight: 20, marginTop: 7 },
+  googleHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  googleIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   currencyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 15 },
-  currencyOption: { width: "48%", borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
-  primaryButton: { borderRadius: 13, paddingVertical: 14, alignItems: "center", marginTop: 18 },
-  primaryText: { color: "#fff", fontWeight: "800", fontSize: 14 },
-  secondaryButton: { borderWidth: 1, borderRadius: 13, paddingVertical: 14, alignItems: "center", marginTop: 10 },
-  secondaryText: { fontWeight: "700", fontSize: 14 },
-  note: { fontSize: 11, lineHeight: 17, marginTop: 13 },
-  overviewRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#8884" },
-  overviewLabel: { fontSize: 13 },
-  overviewValue: { fontSize: 13, fontWeight: "700" },
-  errorCard: { borderRadius: 15, padding: 15 },
-  errorTitle: { fontSize: 12, fontWeight: "800" },
-  errorText: { fontSize: 13, lineHeight: 19, marginTop: 4 },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.48)", justifyContent: "center", padding: 22 },
-  confirmCard: { borderRadius: 20, padding: 20 },
-  confirmTitle: { fontSize: 20, fontWeight: "800" },
+  currencyOption: { width: "48%", borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },
+  note: { fontSize: 11, lineHeight: 17, marginTop: 12 },
+  primaryButton: { padding: 15, borderRadius: 13, alignItems: "center", marginTop: 16 },
+  primaryText: { color: "#fff", fontWeight: "700" },
+  secondaryButton: { padding: 15, borderRadius: 13, borderWidth: 1, alignItems: "center", marginTop: 10 },
+  secondaryText: { fontWeight: "700" },
+  overviewRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(15, 23, 42, 0.08)" },
+  overviewLabel: { fontSize: 12 },
+  overviewValue: { fontSize: 13, fontWeight: "800" },
+  errorCard: { borderRadius: 14, padding: 14, marginTop: 12 },
+  errorTitle: { fontSize: 13, fontWeight: "800" },
+  errorText: { fontSize: 12, lineHeight: 18, marginTop: 4 },
+  dismissError: { marginTop: 8, alignSelf: "flex-start" },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center", padding: 20 },
+  confirmCard: { width: "100%", maxWidth: 420, borderRadius: 20, padding: 20 },
+  confirmTitle: { fontSize: 19, fontWeight: "800" },
   confirmText: { fontSize: 13, lineHeight: 20, marginTop: 10 },
-  actions: { flexDirection: "row", gap: 10, marginTop: 20 },
-  cancelButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
-  dangerButton: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: "center" },
+  actions: { flexDirection: "row", gap: 10, marginTop: 18 },
+  cancelButton: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: "center" },
+  dangerButton: { flex: 1, padding: 14, borderRadius: 12, alignItems: "center" },
 });
