@@ -36,7 +36,7 @@ describe("money domain", () => {
     assert.throws(() => toMinorUnits(Number.NaN), /finite number/);
     assert.throws(() => assertPositiveMinorUnits(0), /positive/);
     assert.throws(() => assertPositiveMinorUnits(-1), /positive/);
-    assert.throws(() => assertPositiveMinorUnits(1.5), /safe integer/);
+    assert.throws(() => assertPositiveMinorUnits(1.5), /positive whole number/);
   });
 });
 
