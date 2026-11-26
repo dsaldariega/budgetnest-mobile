@@ -8,6 +8,8 @@ import { createGoalRepository, type SavingsGoalListItem } from "@/database/repos
 import { toMinorUnits } from "@/domain/money";
 import { compareDates } from "@/domain/dates";
 import { colors } from "@/theme/colors";
+import { SelectField } from "@/components/ui/select-field";
+import { DateField } from "@/components/ui/date-field";
 
 const makeId = (p: string) => p + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -85,8 +87,8 @@ export default function GoalsScreen() {
       <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Add savings goal</Text><Pressable onPress={() => setOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
       <Text style={[s.label, { color: p.text }]}>Goal name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Emergency fund" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
       <Text style={[s.label, { color: p.text }]}>Target amount</Text><TextInput value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
-      <Text style={[s.label, { color: p.text }]}>Account</Text><View style={s.options}>{accounts.map(a => <Pressable key={a.id} onPress={() => setAccountId(a.id)} style={[s.option, { backgroundColor: accountId === a.id ? (dark ? "#3A2424" : "#FCE8E8") : p.surface, borderColor: accountId === a.id ? p.primary : p.border }]}><Text style={{ color: accountId === a.id ? p.primary : p.text, fontWeight: "600" }}>{a.name} · {a.currencyCode}</Text></Pressable>)}</View>
-      <Text style={[s.label, { color: p.text }]}>Target date (optional)</Text><TextInput value={targetDate} onChangeText={setTargetDate} placeholder="YYYY-MM-DD" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+      <SelectField label="Account" required value={accountId} options={accounts.filter(a=>!a.isArchived).map(a=>({value:a.id,label:a.name,description:a.currencyCode}))} onChange={setAccountId} placeholder="Select account" />
+      <DateField label="Target date (optional)" value={targetDate} onChange={setTargetDate} placeholder="No target date" />
       {error ? <Text style={s.error}>{error}</Text> : null}<Pressable disabled={saving} onPress={save} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={s.primaryText}>{saving ? "Saving…" : "Save goal"}</Text></Pressable>
     </ScrollView></SafeAreaView></Modal>
     <Modal visible={!!contributeGoal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setContributeGoal(null)}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">

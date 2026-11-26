@@ -17,7 +17,7 @@ export type SubscriptionPaymentListItem = {
 
 export type CreateSubscriptionInput = {
   id: string; name: string; amountMinor: number; billingCycle: BillingCycle;
-  nextBillingDate: string; accountId?: string | null; categoryId?: string | null;
+  nextBillingDate: string; accountId: string; categoryId: string;
 };
 
 export type RecordSubscriptionPaymentInput = {
@@ -73,18 +73,14 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
       if (!input.name.trim()) throw new Error("Enter a subscription name.");
       compareDates(input.nextBillingDate, input.nextBillingDate);
 
-      if (input.accountId) {
-        const account = await db.getFirstAsync<{ is_archived: number }>(
-          "SELECT is_archived FROM accounts WHERE id = ?", input.accountId,
-        );
-        if (!account || account.is_archived) throw new Error("Choose an active account.");
-      }
-      if (input.categoryId) {
-        const category = await db.getFirstAsync<{ type: string }>(
-          "SELECT type FROM categories WHERE id = ?", input.categoryId,
-        );
-        if (!category || category.type !== "expense") throw new Error("Choose an expense category.");
-      }
+      const account = await db.getFirstAsync<{ is_archived: number }>(
+        "SELECT is_archived FROM accounts WHERE id = ?", input.accountId,
+      );
+      if (!account || account.is_archived) throw new Error("Choose an active account.");
+      const category = await db.getFirstAsync<{ type: string }>(
+        "SELECT type FROM categories WHERE id = ?", input.categoryId,
+      );
+      if (!category || category.type !== "expense") throw new Error("Choose an expense category.");
 
       const now = new Date().toISOString();
       await db.runAsync(
@@ -92,10 +88,24 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
         "(id, name, amount_minor, billing_cycle, next_billing_date, account_id, category_id, is_active, created_at, updated_at) " +
         "VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
         input.id, input.name.trim(), input.amountMinor, input.billingCycle, input.nextBillingDate,
-        input.accountId ?? null, input.categoryId ?? null, now, now,
+        input.accountId, input.categoryId, now, now,
       );
     },
 
+    async update(input: CreateSubscriptionInput): Promise<void> {
+      assertPositiveMinorUnits(input.amountMinor);
+      if (!input.name.trim()) throw new Error("Enter a subscription name.");
+      compareDates(input.nextBillingDate, input.nextBillingDate);
+      const account = await db.getFirstAsync<{ is_archived: number }>("SELECT is_archived FROM accounts WHERE id = ?", input.accountId);
+      if (!account || account.is_archived) throw new Error("Choose an active account.");
+      const category = await db.getFirstAsync<{ type: string }>("SELECT type FROM categories WHERE id = ?", input.categoryId);
+      if (!category || category.type !== "expense") throw new Error("Choose an expense category.");
+      const result = await db.runAsync(
+        "UPDATE subscriptions SET name=?, amount_minor=?, billing_cycle=?, next_billing_date=?, account_id=?, category_id=?, updated_at=? WHERE id=?",
+        input.name.trim(), input.amountMinor, input.billingCycle, input.nextBillingDate, input.accountId, input.categoryId, new Date().toISOString(), input.id,
+      );
+      if (result.changes === 0) throw new Error("Subscription was not found.");
+    },
     async recordPayment(input: RecordSubscriptionPaymentInput): Promise<void> {
       assertPositiveMinorUnits(input.amountMinor);
       const subscription = await getSubscriptionRow(db, input.subscriptionId);
@@ -117,6 +127,11 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
         await db.runAsync(
           "UPDATE subscriptions SET next_billing_date = ?, updated_at = ? WHERE id = ?",
           nextBillingDate, now, input.subscriptionId,
+        );
+        await db.runAsync(
+          "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, ?, NULL, NULL, 'expense', ?, ?, ?, ?, ?, ?)",
+          "subscription-payment-" + input.id, subscription.account_id, subscription.category_id, input.amountMinor,
+          subscription.name + " payment", input.notes?.trim() || null, subscription.next_billing_date, now, now,
         );
         await db.runAsync(
           "INSERT INTO activity_logs " +
@@ -148,6 +163,8 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
       const now = new Date().toISOString();
 
       await db.withTransactionAsync(async () => {
+        const now = new Date().toISOString();
+        await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "subscription-payment-" + id);
         await db.runAsync("DELETE FROM subscription_payments WHERE id = ?", id);
         if (shouldRollback) {
           await db.runAsync(
@@ -178,6 +195,11 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
       const subscription = await getSubscriptionRow(db, id);
       if (!subscription) throw new Error("Subscription was not found.");
       await db.withTransactionAsync(async () => {
+        const now = new Date().toISOString();
+        const payments = await db.getAllAsync<{ id: string }>("SELECT id FROM subscription_payments WHERE subscription_id = ?", id);
+        for (const payment of payments) {
+          await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "subscription-payment-" + payment.id);
+        }
         await db.runAsync("DELETE FROM subscription_payments WHERE subscription_id = ?", id);
         const result = await db.runAsync("DELETE FROM subscriptions WHERE id = ?", id);
         if (result.changes === 0) throw new Error("Subscription was not found.");

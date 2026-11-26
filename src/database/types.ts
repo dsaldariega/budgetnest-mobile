@@ -16,7 +16,7 @@ export type CreateAccountInput = Pick<Account, "id" | "name" | "type" | "sourceT
 
 export type BudgetPeriod = "weekly" | "monthly" | "yearly" | "custom";
 export type Budget = {
-  id: string; categoryId: string; accountId: string; period: BudgetPeriod;
+  id: string; name: string; categoryId: string; accountId: string; period: BudgetPeriod;
   startDate: string; endDate: string | null; amountMinor: number; rolloverEnabled: boolean;
   createdAt: string; updatedAt: string;
 };

@@ -72,6 +72,20 @@ export function createBudgetRepository(db: SQLiteDatabase) {
         input.endDate ?? null, input.amountMinor, input.rolloverEnabled ? 1 : 0, now, now,
       );
     },
+    async update(input: CreateBudgetInput): Promise<void> {
+      assertPositiveMinorUnits(input.amountMinor);
+      const account = await db.getFirstAsync<{ is_archived: number }>("SELECT is_archived FROM accounts WHERE id = ?", input.accountId);
+      if (!account || account.is_archived) throw new Error("Choose an active account.");
+      const category = await db.getFirstAsync<{ type: string }>("SELECT type FROM categories WHERE id = ?", input.categoryId);
+      if (!category || category.type !== "expense") throw new Error("Choose an expense category.");
+      getBudgetWindow({ period: input.period, startDate: input.startDate, endDate: input.endDate, referenceDate: input.startDate });
+      const result = await db.runAsync(
+        "UPDATE budgets SET name=?, category_id=?, account_id=?, period=?, start_date=?, end_date=?, amount_minor=?, rollover_enabled=?, updated_at=? WHERE id=?",
+        input.name.trim(), input.categoryId, input.accountId, input.period, input.startDate, input.endDate ?? null,
+        input.amountMinor, input.rolloverEnabled ? 1 : 0, new Date().toISOString(), input.id,
+      );
+      if (result.changes === 0) throw new Error("Budget was not found.");
+    },
     async delete(id: string): Promise<void> {
       const result = await db.runAsync("DELETE FROM budgets WHERE id = ?", id);
       if (result.changes === 0) throw new Error("Budget was not found.");

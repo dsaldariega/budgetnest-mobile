@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { allocateLoanPayment, calculateLoanSummary, type LoanInterestType } from "@/domain/loans";
 import { assertPositiveMinorUnits } from "@/domain/money";
-import { addMonthsClamped, compareDates } from "@/domain/dates";
+import { compareDates } from "@/domain/dates";
 
 export type LoanListItem = {
   id: string; name: string; principalMinor: number; monthlyInterestRateBps: number;
