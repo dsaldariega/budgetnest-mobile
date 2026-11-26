@@ -142,7 +142,7 @@ describe("repository transaction integrity", () => {
     assert.ok(restore.indexOf("verifyBackupChecksum") < restore.indexOf("withTransactionAsync"));
     assert.match(restore, /withTransactionAsync/);
     assert.match(restore, /assertDatabaseIntegrity\(db\)/);
-    assert.ok(restore.indexOf("DELETE FROM ") < restore.indexOf("INSERT INTO "));
+    assert.ok(restore.indexOf("for (const table of restoreOrder)") < restore.indexOf("for (const table of insertOrder)"));
     assert.match(source, /backup_restore_in_progress/);
     assert.match(restore, /quoteIdentifier/);
     assert.match(source, /identifier\.replace\(\/"\/g, '""'\)/);
