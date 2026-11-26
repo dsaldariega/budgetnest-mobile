@@ -1,4 +1,4 @@
-import { addDays, addMonthsClamped, compareDates } from "./dates";
+import { addDays, addMonthsClamped, compareDates } from "./dates.ts";
 
 export type BudgetPeriod = "weekly" | "monthly" | "yearly" | "custom";
 

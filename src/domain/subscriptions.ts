@@ -1,4 +1,4 @@
-import { addDays, addMonthsClamped } from "./dates";
+import { addDays, addMonthsClamped } from "./dates.ts";
 
 export type BillingCycle = "weekly" | "monthly" | "quarterly" | "yearly";
 
