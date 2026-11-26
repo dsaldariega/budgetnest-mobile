@@ -26,7 +26,7 @@ The project uses the react-native-nitro-google-signin Expo config plugin.
 
 For development, configure a Google Cloud project with:
 
-1. Android OAuth client for com.dsaldariega.budgetnest and the development build SHA-1.
+1. Android OAuth client for com.budgetnest.app and the development build SHA-1.
 2. Web OAuth client ID used by Google Sign-In.
 3. Google Drive API enabled.
 4. OAuth consent screen configured for the requested Drive app-data scope.
@@ -38,7 +38,6 @@ The Web client ID may be supplied with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. When Go
 The app requests only the Drive app-data scope for BudgetNest backups. It does not request broad Drive access.
 
 Google access tokens are kept in the native authentication/session layer and are not written to SQLite or the portable backup file.
-
 
 ### Local native configuration
 

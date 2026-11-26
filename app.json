@@ -10,11 +10,11 @@
     "icon": "./assets/budgetnest-logo.png",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dsaldariega.budgetnest",
+      "bundleIdentifier": "com.budgetnest.app",
       "buildNumber": "1"
     },
     "android": {
-      "package": "com.dsaldariega.budgetnest",
+      "package": "com.budgetnest.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/budgetnest-logo.png",
