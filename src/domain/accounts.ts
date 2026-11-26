@@ -40,3 +40,36 @@ export function assertTransferAllowed(input: {
   }
   if (input.sourceArchived || input.destinationArchived) throw new Error("Archived accounts cannot be used for transfers.");
 }
+
+export type TransferPairEntry = {
+  accountId: string;
+  amountMinor: number;
+  transferDirection: "in" | "out" | null;
+};
+
+export function assertTransferPairIntegrity(entries: TransferPairEntry[]): void {
+  if (entries.length !== 2) {
+    throw new Error("Transfer must contain exactly one outgoing and one incoming entry.");
+  }
+
+  const outgoing = entries.filter(entry => entry.transferDirection === "out");
+  const incoming = entries.filter(entry => entry.transferDirection === "in");
+
+  if (outgoing.length !== 1 || incoming.length !== 1) {
+    throw new Error("Transfer must contain exactly one outgoing and one incoming entry.");
+  }
+
+  const [source] = outgoing;
+  const [destination] = incoming;
+
+  if (source.accountId === destination.accountId) {
+    throw new Error("Transfer entries must belong to different accounts.");
+  }
+  if (
+    !Number.isSafeInteger(source.amountMinor) ||
+    source.amountMinor <= 0 ||
+    source.amountMinor !== destination.amountMinor
+  ) {
+    throw new Error("Transfer entries must have the same positive amount.");
+  }
+}

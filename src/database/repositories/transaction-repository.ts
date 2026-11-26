@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import type { Transaction, TransactionType, TransferDirection } from "@/database/types";
 import { assertPositiveMinorUnits } from "@/domain/money";
-import { assertTransferAllowed } from "@/domain/accounts";
+import { assertTransferAllowed, assertTransferPairIntegrity } from "@/domain/accounts";
 
 type TransactionRow = {
   id: string; account_id: string; category_id: string | null; transfer_group_id: string | null;
@@ -137,16 +137,33 @@ export function createTransactionRepository(db: SQLiteDatabase) {
       });
       const now = new Date().toISOString();
       await db.withTransactionAsync(async () => {
-        await db.runAsync(
+        const pair = await db.getAllAsync<{
+          account_id: string;
+          amount_minor: number;
+          transfer_direction: TransferDirection | null;
+        }>(
+          "SELECT account_id, amount_minor, transfer_direction FROM transactions WHERE transfer_group_id = ? AND deleted_at IS NULL",
+          existing.transfer_group_id,
+        );
+        assertTransferPairIntegrity(pair.map(entry => ({
+          accountId: entry.account_id,
+          amountMinor: entry.amount_minor,
+          transferDirection: entry.transfer_direction,
+        })));
+
+        const outgoing = await db.runAsync(
           "UPDATE transactions SET account_id=?, amount_minor=?, description=?, notes=?, occurred_at=?, updated_at=? WHERE transfer_group_id=? AND transfer_direction='out' AND deleted_at IS NULL",
           input.sourceAccountId, input.amountMinor, input.description?.trim() || "Transfer", input.notes ?? null,
           input.occurredAt, now, existing.transfer_group_id,
         );
-        await db.runAsync(
+        const incoming = await db.runAsync(
           "UPDATE transactions SET account_id=?, amount_minor=?, description=?, notes=?, occurred_at=?, updated_at=? WHERE transfer_group_id=? AND transfer_direction='in' AND deleted_at IS NULL",
           input.destinationAccountId, input.amountMinor, input.description?.trim() || "Transfer", input.notes ?? null,
           input.occurredAt, now, existing.transfer_group_id,
         );
+        if (outgoing.changes !== 1 || incoming.changes !== 1) {
+          throw new Error("Transfer could not be updated because its entries are incomplete.");
+        }
       });
     },
     async update(id: string, input: Omit<CreateSimpleTransactionInput, "id">): Promise<void> {
