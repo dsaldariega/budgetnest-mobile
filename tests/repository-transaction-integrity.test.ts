@@ -11,8 +11,17 @@ function getMethodBody(source: string, methodSignature: string): string {
   const start = source.indexOf(methodSignature);
   assert.notEqual(start, -1, `Could not find method: ${methodSignature}`);
 
-  const bodyStart = source.indexOf("{", start);
+  const parameterEnd = source.indexOf(")", start);
+  assert.notEqual(parameterEnd, -1, `Could not find method parameters: ${methodSignature}`);
+
+  let bodyStart = source.indexOf("{", parameterEnd + 1);
   assert.notEqual(bodyStart, -1, `Could not find method body: ${methodSignature}`);
+
+  const prefix = source.slice(parameterEnd + 1, bodyStart);
+  if (/^\s*:\s*[A-Za-z_$][\\w$]*(?:\.[A-Za-z_$][\\w$]*)*<[^>]*$/s.test(prefix)) {
+    bodyStart = source.indexOf("{", bodyStart + 1);
+    assert.notEqual(bodyStart, -1, `Could not find method body: ${methodSignature}`);
+  }
 
   let depth = 0;
   for (let index = bodyStart; index < source.length; index += 1) {
