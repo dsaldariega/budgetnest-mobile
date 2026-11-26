@@ -3,15 +3,18 @@
     "name": "BudgetNest",
     "slug": "budgetnest-mobile",
     "version": "1.0.0",
+    "description": "A private, local-first personal finance tracker.",
     "orientation": "portrait",
     "scheme": "budgetnest",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dsaldariega.budgetnest"
+      "bundleIdentifier": "com.dsaldariega.budgetnest",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.dsaldariega.budgetnest",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
     "plugins": ["expo-router"],
