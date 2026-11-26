@@ -227,14 +227,6 @@ export function createLoanRepository(db: SQLiteDatabase) {
           updatedAt,
           loan.id,
         );
-        await db.runAsync(
-          "INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at) VALUES (?, 'loan_payment', ?, 'deleted', ?, ?, ?)",
-          "activity-delete-" + paymentId,
-          loan.id,
-          "Deleted loan payment",
-          JSON.stringify({ paymentId }),
-          now,
-        );
       });
     },
 
@@ -275,10 +267,6 @@ export function createLoanRepository(db: SQLiteDatabase) {
         await db.runAsync(
           "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-expense-loan-payment', NULL, NULL, 'expense', ?, ?, ?, ?, ?, ?)",
           "loan-payment-" + input.id, loan.account_id, input.amountMinor, loan.name + " payment", input.notes?.trim() || null, input.paymentDate, now, now,
-        );
-        await db.runAsync(
-          "INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at) VALUES (?, 'loan_payment', ?, 'created', ?, ?, ?)",
-          "activity-" + input.id, input.loanId, "Recorded loan payment", JSON.stringify({ interestPaidMinor: allocation.interestPaidMinor, principalPaidMinor: allocation.principalPaidMinor }), now,
         );
       });
     },

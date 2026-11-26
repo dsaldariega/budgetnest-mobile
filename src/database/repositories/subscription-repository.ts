@@ -133,15 +133,6 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
           "subscription-payment-" + input.id, subscription.account_id, subscription.category_id, input.amountMinor,
           subscription.name + " payment", input.notes?.trim() || null, subscription.next_billing_date, now, now,
         );
-        await db.runAsync(
-          "INSERT INTO activity_logs " +
-          "(id, entity_type, entity_id, action, summary, metadata_json, created_at) " +
-          "VALUES (?, 'subscription_payment', ?, 'created', ?, ?, ?)",
-          "activity-" + input.id, input.subscriptionId,
-          "Recorded subscription payment",
-          JSON.stringify({ amountMinor: input.amountMinor, billingDate: subscription.next_billing_date }),
-          now,
-        );
       });
     },
 

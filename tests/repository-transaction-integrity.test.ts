@@ -83,4 +83,28 @@ describe("repository transaction integrity", () => {
 
     assert.match(getMethodBody(source, "async generateDue(throughDate:string)"), /withTransactionAsync/);
   });
+  it("relies on database triggers for payment activity logs without inserting duplicates", () => {
+    const loanSource = readSource("../src/database/repositories/loan-repository.ts");
+    const subscriptionSource = readSource("../src/database/repositories/subscription-repository.ts");
+    const migrationSource = readSource("../src/database/migrations/index.ts");
+
+    assert.doesNotMatch(
+      getMethodBody(loanSource, "async recordPayment(input: CreateLoanPaymentInput)"),
+      /INSERT INTO activity_logs/,
+    );
+    assert.doesNotMatch(
+      getMethodBody(loanSource, "async deletePayment(paymentId: string)"),
+      /INSERT INTO activity_logs/,
+    );
+    assert.doesNotMatch(
+      getMethodBody(subscriptionSource, "async recordPayment(input: RecordSubscriptionPaymentInput)"),
+      /INSERT INTO activity_logs/,
+    );
+
+    assert.match(migrationSource, /activity_loan_payments_created/);
+    assert.match(migrationSource, /activity_loan_payments_deleted/);
+    assert.match(migrationSource, /activity_subscription_payments_created/);
+    assert.match(migrationSource, /activity_subscription_payments_deleted/);
+  });
+
 });
