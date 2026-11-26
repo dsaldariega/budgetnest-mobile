@@ -7,6 +7,11 @@ import { DatabaseProvider } from "@/database/provider";
 import { GoogleAuthProvider } from "@/context/google-auth-context";
 import { colors } from "@/theme/colors";
 
+const slideScreenOptions = {
+  presentation: "card" as const,
+  animation: "slide_from_right" as const,
+};
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -24,8 +29,12 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="recurring" options={{ presentation: "card", animation: "slide_from_right" }} />
-          <Stack.Screen name="reports" options={{ presentation: "card", animation: "slide_from_right" }} />
+          <Stack.Screen name="accounts" options={slideScreenOptions} />
+          <Stack.Screen name="loans" options={slideScreenOptions} />
+          <Stack.Screen name="subscriptions" options={slideScreenOptions} />
+          <Stack.Screen name="settings" options={slideScreenOptions} />
+          <Stack.Screen name="recurring" options={slideScreenOptions} />
+          <Stack.Screen name="reports" options={slideScreenOptions} />
         </Stack>
       </DatabaseProvider>
     </GoogleAuthProvider>

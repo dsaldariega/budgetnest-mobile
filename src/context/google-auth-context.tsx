@@ -8,13 +8,6 @@ import {
   type PropsWithChildren,
 } from "react";
 import type { OneTapSuccessData } from "react-native-nitro-google-signin";
-import {
-  configureGoogleAuth,
-  getDriveAccessToken,
-  restoreGoogleUser,
-  signInWithGoogle,
-  signOutFromGoogle,
-} from "@/services/google/google-auth";
 
 type GoogleAuthContextValue = {
   user: OneTapSuccessData | null;
@@ -36,20 +29,37 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    try {
-      configureGoogleAuth();
-      setUser(restoreGoogleUser());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Google sign-in is not available.");
-    } finally {
-      setLoading(false);
-    }
+    let mounted = true;
+
+    void import("@/services/google/google-auth")
+      .then(({ configureGoogleAuth, restoreGoogleUser }) => {
+        configureGoogleAuth();
+        const restoredUser = restoreGoogleUser();
+        if (mounted) setUser(restoredUser);
+      })
+      .catch((e: unknown) => {
+        if (mounted) {
+          setError(
+            e instanceof Error
+              ? e.message
+              : "Google sign-in is unavailable in this build.",
+          );
+        }
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const signIn = useCallback(async () => {
     setError("");
     setSigningIn(true);
     try {
+      const { signInWithGoogle } = await import("@/services/google/google-auth");
       setUser(await signInWithGoogle());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to sign in with Google.");
@@ -62,6 +72,7 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
   const signOut = useCallback(async () => {
     setError("");
     try {
+      const { signOutFromGoogle } = await import("@/services/google/google-auth");
       await signOutFromGoogle();
       setUser(null);
     } catch (e) {
@@ -70,7 +81,10 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
-  const getDriveToken = useCallback(async () => getDriveAccessToken(), []);
+  const getDriveToken = useCallback(async () => {
+    const { getDriveAccessToken } = await import("@/services/google/google-auth");
+    return getDriveAccessToken();
+  }, []);
 
   const value = useMemo(
     () => ({

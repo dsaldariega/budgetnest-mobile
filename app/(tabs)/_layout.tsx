@@ -48,11 +48,7 @@ export default function TabLayout() {
           title: "Home",
           tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="home-outline"
-              size={size}
-              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
-            />
+            <MaterialCommunityIcons name="home-outline" size={size} color={color} />
           ),
         }}
       />
@@ -62,11 +58,7 @@ export default function TabLayout() {
           title: "Activity",
           tabBarLabel: ({ focused }) => <TabLabel label="Activity" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="receipt-text-outline"
-              size={size}
-              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
-            />
+            <MaterialCommunityIcons name="receipt-text-outline" size={size} color={color} />
           ),
         }}
       />
@@ -76,11 +68,7 @@ export default function TabLayout() {
           title: "Budgets",
           tabBarLabel: ({ focused }) => <TabLabel label="Budgets" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="chart-donut"
-              size={size}
-              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
-            />
+            <MaterialCommunityIcons name="chart-donut" size={size} color={color} />
           ),
         }}
       />
@@ -90,11 +78,7 @@ export default function TabLayout() {
           title: "Goals",
           tabBarLabel: ({ focused }) => <TabLabel label="Goals" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="bullseye-arrow"
-              size={size}
-              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
-            />
+            <MaterialCommunityIcons name="bullseye-arrow" size={size} color={color} />
           ),
         }}
       />
@@ -104,19 +88,10 @@ export default function TabLayout() {
           title: "More",
           tabBarLabel: ({ focused }) => <TabLabel label="More" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="menu"
-              size={size}
-              color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted}
-            />
+            <MaterialCommunityIcons name="menu" size={size} color={color} />
           ),
         }}
       />
-
-      <Tabs.Screen name="loans" options={{ href: null }} />
-      <Tabs.Screen name="subscriptions" options={{ href: null }} />
-      <Tabs.Screen name="accounts" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }
