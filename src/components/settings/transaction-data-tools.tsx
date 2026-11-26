@@ -337,6 +337,6 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 11, paddingHorizontal: 10, paddingVertical: 11, fontSize: 12, marginTop: 5 },
   categoryChips: { gap: 7, paddingVertical: 2 },
   errorText: { color: "#D32F2F", fontSize: 11, lineHeight: 16, marginTop: 12 },
-  countCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 18, gap: 4 },
+  countCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 26, gap: 4 },
   count: { fontSize: 28, fontWeight: "900" },
 });

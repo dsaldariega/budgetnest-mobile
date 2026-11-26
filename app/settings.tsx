@@ -83,6 +83,10 @@ export default function SettingsScreen() {
   };
 
   const exportBackupToGoogle = async () => {
+    if (!user) {
+      setGoogleConnectVisible(true);
+      return;
+    }
     setError("");
     setBusy(true);
     try {
@@ -98,6 +102,10 @@ export default function SettingsScreen() {
   };
 
   const selectGoogleRestore = async () => {
+    if (!user) {
+      setGoogleConnectVisible(true);
+      return;
+    }
     setError("");
     setBusy(true);
     try {
@@ -260,31 +268,33 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
-        {user ? (
-          <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <Text style={[styles.cardTitle, { color: palette.text }]}>Google Backup & Restore</Text>
-            <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-              Store one private BudgetNest backup in your Google Drive app data and restore it on another signed-in device.
-            </Text>
-            <Pressable
-              disabled={busy}
-              onPress={() => void exportBackupToGoogle()}
-              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}
-            >
-              <Text style={styles.primaryText}>{busy ? "Working…" : "Back up to Google Drive"}</Text>
-            </Pressable>
-            <Pressable
-              disabled={busy}
-              onPress={() => void selectGoogleRestore()}
-              style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}
-            >
-              <Text style={[styles.secondaryText, { color: palette.text }]}>Restore from Google Drive</Text>
-            </Pressable>
-            <Text style={[styles.note, { color: palette.textMuted }]}>
-              Backup and restore use the existing integrity-checked JSON format. Restoring replaces the current local data.
-            </Text>
-          </View>
-        ) : null}
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Text style={[styles.cardTitle, { color: palette.text }]}>Google Backup & Restore</Text>
+          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
+            {user
+              ? "Store one private BudgetNest backup in your Google Drive app data and restore it on another signed-in device."
+              : "Connect your Google account to unlock cloud backup and restore. Your local data stays available without signing in."}
+          </Text>
+          <Pressable
+            disabled={busy}
+            onPress={() => void exportBackupToGoogle()}
+            style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}
+          >
+            <Text style={styles.primaryText}>{busy ? "Working…" : "Back up to Google Drive"}</Text>
+          </Pressable>
+          <Pressable
+            disabled={busy}
+            onPress={() => void selectGoogleRestore()}
+            style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.secondaryText, { color: palette.text }]}>Restore from Google Drive</Text>
+          </Pressable>
+          <Text style={[styles.note, { color: palette.textMuted }]}>
+            {user
+              ? "Backup and restore use the existing integrity-checked JSON format. Restoring replaces the current local data."
+              : "Sign-in is only requested when you choose one of these cloud features."}
+          </Text>
+        </View>
 
         <TransactionDataTools onImported={() => void loadSettings()} />
 
@@ -313,7 +323,11 @@ export default function SettingsScreen() {
         ) : null}
       </ScrollView>
 
-      <GoogleConnectModal visible={googleConnectVisible} onClose={() => setGoogleConnectVisible(false)} />
+      <GoogleConnectModal
+        visible={googleConnectVisible}
+        onClose={() => setGoogleConnectVisible(false)}
+        onConnected={() => setGoogleConnectVisible(false)}
+      />
 
       <Modal visible={confirmRestore} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmRestore(false); }}>
         <View style={styles.modalBackdrop}>
