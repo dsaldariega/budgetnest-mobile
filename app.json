@@ -7,6 +7,12 @@
     "orientation": "default",
     "scheme": "budgetnest",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/budgetnest-logo.png",
+    "splash": {
+      "image": "./assets/budgetnest-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F4F5EC"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dsaldariega.budgetnest",
@@ -14,7 +20,11 @@
     },
     "android": {
       "package": "com.dsaldariega.budgetnest",
-      "versionCode": 1
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/budgetnest-logo.png",
+        "backgroundColor": "#F4F5EC"
+      }
     },
     "plugins": [
       "expo-router"
@@ -22,7 +32,6 @@
     "experiments": {
       "typedRoutes": true
     },
-    "icon": "./assets/budgetnest-logo.png",
     "owner": "dsaldariega",
     "extra": {
       "eas": {
