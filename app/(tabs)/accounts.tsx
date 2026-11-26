@@ -52,8 +52,11 @@ const emptyImpact: AccountDeleteImpact = {
   transactions: 0,
   budgets: 0,
   goals: 0,
+  goalContributions: 0,
   loans: 0,
+  loanPayments: 0,
   subscriptions: 0,
+  subscriptionPayments: 0,
   recurringRules: 0,
 };
 
