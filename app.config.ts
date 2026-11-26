@@ -18,6 +18,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
+    name: config.name ?? "BudgetNest",
+    slug: config.slug ?? "budgetnest-mobile",
+    version: config.version ?? "1.0.0",
     plugins,
   };
 };
