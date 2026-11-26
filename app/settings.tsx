@@ -124,6 +124,7 @@ export default function SettingsScreen() {
     setBusy(true);
     try {
       await createBackupRepository(db).restoreJson(restoreText);
+      await setPreference(await createSettingsRepository(db).getThemePreference());
       setConfirmRestore(false);
       setRestoreText(null);
       setRestoreExportedAt("");

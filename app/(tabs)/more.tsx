@@ -62,10 +62,28 @@ const MENU_GROUPS = [
     title: "Preferences",
     items: [
       {
+        label: "Activity Log",
+        description: "Review changes made across your financial records.",
+        icon: "history",
+        route: "/activity-log",
+      },
+      {
         label: "Settings",
         description: "Manage currency, appearance, backup, and data.",
         icon: "cog-outline",
         route: "/settings",
+      },
+      {
+        label: "About & Help",
+        description: "Learn how BudgetNest works and find answers.",
+        icon: "help-circle-outline",
+        route: "/about",
+      },
+      {
+        label: "Privacy",
+        description: "Understand where your financial data is stored.",
+        icon: "shield-lock-outline",
+        route: "/privacy",
       },
     ],
   },

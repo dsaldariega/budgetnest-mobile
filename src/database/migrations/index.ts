@@ -223,6 +223,354 @@ export const migrations: DatabaseMigration[] = [
       CREATE INDEX idx_recurring_rules_active_date ON recurring_rules(is_active, next_occurrence_date);
     `,
   },
+
+  {
+    version: 6,
+    description: "Capture key financial changes in the local activity log",
+    sql: `
+      CREATE INDEX IF NOT EXISTS idx_activity_logs_entity_created_at
+        ON activity_logs(entity_type, created_at DESC);
+
+      CREATE TRIGGER IF NOT EXISTS activity_accounts_created
+      AFTER INSERT ON accounts
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'account', NEW.id, 'account.created',
+          'Created account: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_accounts_updated
+      AFTER UPDATE ON accounts
+      WHEN (OLD.name IS NOT NEW.name OR OLD.type IS NOT NEW.type OR OLD.source_type IS NOT NEW.source_type
+        OR OLD.currency_code IS NOT NEW.currency_code OR OLD.opening_balance_minor IS NOT NEW.opening_balance_minor)
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'account', NEW.id, 'account.updated',
+          'Updated account: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_accounts_archived
+      AFTER UPDATE OF is_archived ON accounts
+      WHEN OLD.is_archived = 0 AND NEW.is_archived = 1
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'account', NEW.id, 'account.archived',
+          'Archived account: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_accounts_restored
+      AFTER UPDATE OF is_archived ON accounts
+      WHEN OLD.is_archived = 1 AND NEW.is_archived = 0
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'account', NEW.id, 'account.restored',
+          'Restored account: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_accounts_deleted
+      AFTER DELETE ON accounts
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'account', OLD.id, 'account.deleted',
+          'Deleted account: ' || OLD.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_transactions_created
+      AFTER INSERT ON transactions
+      WHEN (NEW.type IN ('income', 'expense') OR (NEW.type = 'transfer' AND NEW.transfer_direction = 'out'))
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'transaction', NEW.id, 'transaction.created',
+          'Added ' || NEW.type || ': ' || COALESCE(NULLIF(NEW.description, ''), 'Transaction'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_transactions_updated
+      AFTER UPDATE ON transactions
+      WHEN (OLD.account_id IS NOT NEW.account_id OR OLD.category_id IS NOT NEW.category_id
+        OR OLD.type IS NOT NEW.type OR OLD.amount_minor IS NOT NEW.amount_minor
+        OR OLD.description IS NOT NEW.description OR OLD.notes IS NOT NEW.notes
+        OR OLD.occurred_at IS NOT NEW.occurred_at)
+        AND OLD.deleted_at IS NEW.deleted_at
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'transaction', NEW.id, 'transaction.updated',
+          'Updated transaction: ' || COALESCE(NULLIF(NEW.description, ''), 'Transaction'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_transactions_soft_deleted
+      AFTER UPDATE OF deleted_at ON transactions
+      WHEN OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'transaction', NEW.id, 'transaction.deleted',
+          'Deleted transaction: ' || COALESCE(NULLIF(NEW.description, ''), 'Transaction'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_transactions_deleted
+      AFTER DELETE ON transactions
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'transaction', OLD.id, 'transaction.deleted',
+          'Deleted transaction: ' || COALESCE(NULLIF(OLD.description, ''), 'Transaction'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_budgets_created
+      AFTER INSERT ON budgets
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'budget', NEW.id, 'budget.created',
+          'Created budget for ' || COALESCE((SELECT name FROM categories WHERE id = NEW.category_id), 'a category'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_budgets_updated
+      AFTER UPDATE ON budgets
+      WHEN (OLD.category_id IS NOT NEW.category_id OR OLD.account_id IS NOT NEW.account_id
+        OR OLD.period IS NOT NEW.period OR OLD.start_date IS NOT NEW.start_date
+        OR OLD.end_date IS NOT NEW.end_date OR OLD.amount_minor IS NOT NEW.amount_minor
+        OR OLD.rollover_enabled IS NOT NEW.rollover_enabled)
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'budget', NEW.id, 'budget.updated',
+          'Updated budget for ' || COALESCE((SELECT name FROM categories WHERE id = NEW.category_id), 'a category'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_budgets_deleted
+      AFTER DELETE ON budgets
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'budget', OLD.id, 'budget.deleted',
+          'Deleted budget for ' || COALESCE((SELECT name FROM categories WHERE id = OLD.category_id), 'a category'),
+          NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_goals_created
+      AFTER INSERT ON savings_goals
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'goal', NEW.id, 'goal.created',
+          'Created savings goal: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_goals_updated
+      AFTER UPDATE ON savings_goals
+      WHEN (OLD.name IS NOT NEW.name OR OLD.target_amount_minor IS NOT NEW.target_amount_minor
+        OR OLD.target_date IS NOT NEW.target_date OR OLD.account_id IS NOT NEW.account_id
+        OR OLD.icon IS NOT NEW.icon OR OLD.color IS NOT NEW.color)
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'goal', NEW.id, 'goal.updated',
+          'Updated savings goal: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_goals_status_updated
+      AFTER UPDATE OF is_archived ON savings_goals
+      WHEN OLD.is_archived IS NOT NEW.is_archived
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'goal', NEW.id, 'goal.status_updated',
+          'Changed savings goal status: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_goals_deleted
+      AFTER DELETE ON savings_goals
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'goal', OLD.id, 'goal.deleted',
+          'Deleted savings goal: ' || OLD.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_goal_contributions_created
+      AFTER INSERT ON goal_contributions
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'goal', NEW.goal_id, 'goal.contribution_recorded',
+          'Recorded a savings contribution', NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_loans_created
+      AFTER INSERT ON loans
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'loan', NEW.id, 'loan.created',
+          'Created loan: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_loans_updated
+      AFTER UPDATE ON loans
+      WHEN (OLD.name IS NOT NEW.name OR OLD.principal_minor IS NOT NEW.principal_minor
+        OR OLD.monthly_interest_rate_bps IS NOT NEW.monthly_interest_rate_bps
+        OR OLD.interest_type IS NOT NEW.interest_type OR OLD.term_months IS NOT NEW.term_months
+        OR OLD.start_date IS NOT NEW.start_date OR OLD.due_date IS NOT NEW.due_date
+        OR OLD.account_id IS NOT NEW.account_id OR OLD.notes IS NOT NEW.notes)
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'loan', NEW.id, 'loan.updated',
+          'Updated loan: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_loans_status_updated
+      AFTER UPDATE OF status ON loans
+      WHEN OLD.status IS NOT NEW.status
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'loan', NEW.id, 'loan.status_updated',
+          'Changed loan status: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_loans_deleted
+      AFTER DELETE ON loans
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'loan', OLD.id, 'loan.deleted',
+          'Deleted loan: ' || OLD.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_loan_payments_created
+      AFTER INSERT ON loan_payments
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'loan', NEW.loan_id, 'loan.payment_recorded',
+          'Recorded a loan payment', NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_loan_payments_deleted
+      AFTER DELETE ON loan_payments
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'loan', OLD.loan_id, 'loan.payment_deleted',
+          'Deleted a loan payment', NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_subscriptions_created
+      AFTER INSERT ON subscriptions
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'subscription', NEW.id, 'subscription.created',
+          'Created subscription: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_subscriptions_updated
+      AFTER UPDATE ON subscriptions
+      WHEN (OLD.name IS NOT NEW.name OR OLD.amount_minor IS NOT NEW.amount_minor
+        OR OLD.billing_cycle IS NOT NEW.billing_cycle OR OLD.next_billing_date IS NOT NEW.next_billing_date
+        OR OLD.account_id IS NOT NEW.account_id OR OLD.category_id IS NOT NEW.category_id)
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'subscription', NEW.id, 'subscription.updated',
+          'Updated subscription: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_subscriptions_status_updated
+      AFTER UPDATE OF is_active ON subscriptions
+      WHEN OLD.is_active IS NOT NEW.is_active
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'subscription', NEW.id, 'subscription.status_updated',
+          'Changed subscription status: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_subscriptions_deleted
+      AFTER DELETE ON subscriptions
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'subscription', OLD.id, 'subscription.deleted',
+          'Deleted subscription: ' || OLD.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_subscription_payments_created
+      AFTER INSERT ON subscription_payments
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'subscription', NEW.subscription_id, 'subscription.payment_recorded',
+          'Recorded a subscription payment', NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_subscription_payments_deleted
+      AFTER DELETE ON subscription_payments
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'subscription', OLD.subscription_id, 'subscription.payment_deleted',
+          'Deleted a subscription payment', NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_recurring_created
+      AFTER INSERT ON recurring_rules
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'recurring', NEW.id, 'recurring.created',
+          'Created recurring schedule: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_recurring_updated
+      AFTER UPDATE ON recurring_rules
+      WHEN (OLD.name IS NOT NEW.name OR OLD.type IS NOT NEW.type OR OLD.amount_minor IS NOT NEW.amount_minor
+        OR OLD.account_id IS NOT NEW.account_id OR OLD.category_id IS NOT NEW.category_id
+        OR OLD.frequency IS NOT NEW.frequency OR OLD.interval_count IS NOT NEW.interval_count
+        OR OLD.start_date IS NOT NEW.start_date OR OLD.next_occurrence_date IS NOT NEW.next_occurrence_date
+        OR OLD.end_date IS NOT NEW.end_date)
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'recurring', NEW.id, 'recurring.updated',
+          'Updated recurring schedule: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_recurring_status_updated
+      AFTER UPDATE OF is_active ON recurring_rules
+      WHEN OLD.is_active IS NOT NEW.is_active
+        AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'recurring', NEW.id, 'recurring.status_updated',
+          'Changed recurring schedule status: ' || NEW.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS activity_recurring_deleted
+      AFTER DELETE ON recurring_rules
+      WHEN NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'backup_restore_in_progress' AND value = '1')
+      BEGIN
+        INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at)
+        VALUES ('act-' || lower(hex(randomblob(16))), 'recurring', OLD.id, 'recurring.deleted',
+          'Deleted recurring schedule: ' || OLD.name, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+      END;
+    `,
+  },
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {

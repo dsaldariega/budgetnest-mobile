@@ -37,6 +37,9 @@ export default function RootLayout() {
           <Stack.Screen name="settings" options={slideScreenOptions} />
           <Stack.Screen name="recurring" options={slideScreenOptions} />
           <Stack.Screen name="reports" options={slideScreenOptions} />
+          <Stack.Screen name="activity-log" options={slideScreenOptions} />
+          <Stack.Screen name="about" options={slideScreenOptions} />
+          <Stack.Screen name="privacy" options={slideScreenOptions} />
         </Stack>
         </GoogleAuthProvider>
       </ThemePreferenceProvider>
