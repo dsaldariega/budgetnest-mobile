@@ -3,14 +3,14 @@ import { getBudgetWindow, type BudgetPeriod } from "@/domain/budgets";
 import { assertPositiveMinorUnits } from "@/domain/money";
 
 export type BudgetListItem = {
-  id: string; categoryId: string; categoryName: string; accountId: string;
+  id: string; name: string; categoryId: string; categoryName: string; accountId: string;
   accountName: string; currencyCode: string; period: BudgetPeriod; startDate: string;
   endDate: string | null; amountMinor: number; spentMinor: number; remainingMinor: number;
   progress: number; rolloverEnabled: boolean; createdAt: string; updatedAt: string;
 };
 
 export type CreateBudgetInput = {
-  id: string; categoryId: string; accountId: string; period: BudgetPeriod;
+  id: string; name: string; categoryId: string; accountId: string; period: BudgetPeriod;
   startDate: string; endDate?: string | null; amountMinor: number; rolloverEnabled?: boolean;
 };
 
@@ -39,7 +39,7 @@ export function createBudgetRepository(db: SQLiteDatabase) {
       );
       const spentMinor = spent?.spent_minor ?? 0;
       return {
-        id: row.id, categoryId: row.category_id, categoryName: row.category_name,
+        id: row.id, name: row.name || row.category_name, categoryId: row.category_id, categoryName: row.category_name,
         accountId: row.account_id, accountName: row.account_name, currencyCode: row.currency_code,
         period: row.period, startDate: row.start_date, endDate: row.end_date,
         amountMinor: row.amount_minor, spentMinor, remainingMinor: row.amount_minor - spentMinor,
@@ -66,9 +66,9 @@ export function createBudgetRepository(db: SQLiteDatabase) {
       });
       const now = new Date().toISOString();
       await db.runAsync(
-        "INSERT INTO budgets (id, category_id, account_id, period, start_date, end_date, amount_minor, rollover_enabled, created_at, updated_at) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        input.id, input.categoryId, input.accountId, input.period, input.startDate,
+        "INSERT INTO budgets (id, name, category_id, account_id, period, start_date, end_date, amount_minor, rollover_enabled, created_at, updated_at) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        input.id, input.name.trim(), input.categoryId, input.accountId, input.period, input.startDate,
         input.endDate ?? null, input.amountMinor, input.rolloverEnabled ? 1 : 0, now, now,
       );
     },

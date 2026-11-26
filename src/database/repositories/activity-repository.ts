@@ -71,14 +71,6 @@ export function createActivityRepository(db: SQLiteDatabase) {
       }));
     },
 
-    async listBetween(fromDate: string, toDate: string, limit = 500): Promise<ActivityLogItem[]> {
-      const safeLimit = Math.max(1, Math.min(Math.trunc(limit), 500));
-      const rows = await db.getAllAsync<ActivityLogRow>(
-        "SELECT id, entity_type, entity_id, action, summary, created_at FROM activity_logs WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC, id DESC LIMIT ?",
-        fromDate + "T00:00:00.000Z", toDate + "T23:59:59.999Z", safeLimit,
-      );
-      return rows.map(row => ({ id: row.id, entityType: row.entity_type, entityId: row.entity_id, action: row.action, summary: row.summary, createdAt: row.created_at }));
-    },
     async countToday(): Promise<number> {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();

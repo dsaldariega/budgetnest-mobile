@@ -15,7 +15,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 import { GoogleConnectModal } from "@/components/auth/google-connect-modal";
-import { SelectField } from "@/components/ui/select-field";
 
 const formatCount = (value: number) => new Intl.NumberFormat("en-PH").format(value);
 
@@ -206,14 +205,30 @@ export default function SettingsScreen() {
           <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
             Used as the starting currency when you create a new account. Existing balances are not converted.
           </Text>
-          <SelectField
-            label="Preferred currency"
-            value={defaultCurrency}
-            options={SUPPORTED_DEFAULT_CURRENCIES.map(currency => ({ value: currency.code, label: currency.code, description: currency.label }))}
-            onChange={value => void changeDefaultCurrency(value as DefaultCurrencyCode)}
-            disabled={savingCurrency}
-            placeholder="Select currency"
-          />
+          <View style={styles.currencyGrid}>
+            {SUPPORTED_DEFAULT_CURRENCIES.map((currency) => {
+              const selected = defaultCurrency === currency.code;
+              return (
+                <Pressable
+                  key={currency.code}
+                  disabled={savingCurrency}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected, disabled: savingCurrency }}
+                  onPress={() => void changeDefaultCurrency(currency.code)}
+                  style={[
+                    styles.currencyOption,
+                    {
+                      borderColor: selected ? palette.primary : palette.border,
+                      backgroundColor: selected ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: selected ? palette.primary : palette.text, fontSize: 13, fontWeight: "800" }}>{currency.code}</Text>
+                  <Text style={{ color: palette.textMuted, fontSize: 10, marginTop: 3 }}>{currency.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
           {savingCurrency ? <Text style={[styles.note, { color: palette.textMuted }]}>Saving preference…</Text> : null}
         </View>
 
@@ -356,6 +371,8 @@ const styles = StyleSheet.create({
   appearanceOptions: { flexDirection: "row", gap: 9, marginTop: 16 },
   appearanceOption: { flex: 1, minHeight: 68, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   googleIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  currencyGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 15 },
+  currencyOption: { width: "48%", borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11 },
   note: { fontSize: 11, lineHeight: 17, marginTop: 12 },
   primaryButton: { padding: 15, borderRadius: 13, alignItems: "center", marginTop: 16 },
   primaryText: { color: "#fff", fontWeight: "700" },

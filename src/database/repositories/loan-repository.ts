@@ -18,8 +18,8 @@ export type LoanPaymentListItem = {
 
 export type CreateLoanInput = {
   id: string; name: string; principalMinor: number; monthlyInterestRateBps: number;
-  interestType: LoanInterestType; termMonths: number; startDate: string;
-  accountId?: string | null; notes?: string | null;
+  interestType: LoanInterestType; termMonths: number; startDate: string; dueDate: string;
+  accountId: string; notes?: string | null;
 };
 
 export type CreateLoanPaymentInput = {
@@ -123,19 +123,44 @@ export function createLoanRepository(db: SQLiteDatabase) {
       if (!input.name.trim()) throw new Error("Enter a loan name.");
       if (!Number.isSafeInteger(input.monthlyInterestRateBps) || input.monthlyInterestRateBps < 0) throw new Error("Enter a valid interest rate.");
       if (!Number.isInteger(input.termMonths) || input.termMonths <= 0) throw new Error("Term must be a positive number of months.");
-      compareDates(input.startDate, input.startDate);
-      const dueDate = addMonthsClamped(input.startDate, input.termMonths);
-      if (input.accountId) {
-        const account = await db.getFirstAsync<{ is_archived: number }>("SELECT is_archived FROM accounts WHERE id = ?", input.accountId);
-        if (!account || account.is_archived) throw new Error("Choose an active account.");
-      }
+      compareDates(input.startDate, input.dueDate);
+      const dueDate = input.dueDate;
+      const account = await db.getFirstAsync<{ is_archived: number }>("SELECT is_archived FROM accounts WHERE id = ?", input.accountId);
+      if (!account || account.is_archived) throw new Error("Choose an active account.");
       const now = new Date().toISOString();
       await db.runAsync(
         "INSERT INTO loans (id, name, principal_minor, monthly_interest_rate_bps, interest_type, term_months, start_date, due_date, status, account_id, notes, created_at, updated_at) " +
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)",
         input.id, input.name.trim(), input.principalMinor, input.monthlyInterestRateBps, input.interestType,
-        input.termMonths, input.startDate, dueDate, input.accountId ?? null, input.notes?.trim() || null, now, now,
+        input.termMonths, input.startDate, dueDate, input.accountId, input.notes?.trim() || null, now, now,
       );
+      await db.runAsync(
+        "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-income-loan', NULL, NULL, 'income', ?, ?, ?, ?, ?, ?)",
+        "loan-" + input.id, input.accountId, input.principalMinor, input.name.trim(), input.notes?.trim() || null, input.startDate, now, now,
+      );
+    },
+    async update(input: CreateLoanInput): Promise<void> {
+      assertPositiveMinorUnits(input.principalMinor);
+      if (!input.name.trim()) throw new Error("Enter a loan name.");
+      if (!Number.isSafeInteger(input.monthlyInterestRateBps) || input.monthlyInterestRateBps < 0) throw new Error("Enter a valid interest rate.");
+      if (!Number.isInteger(input.termMonths) || input.termMonths <= 0) throw new Error("Term must be a positive number of months.");
+      if (compareDates(input.startDate, input.dueDate) >= 0) throw new Error("End date must be after the start date.");
+      const account = await db.getFirstAsync<{ is_archived: number }>("SELECT is_archived FROM accounts WHERE id = ?", input.accountId);
+      if (!account || account.is_archived) throw new Error("Choose an active account.");
+      const paymentCount = await db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM loan_payments WHERE loan_id = ?", input.id);
+      if ((paymentCount?.count ?? 0) > 0) {
+        const current = await getLoanRow(input.id);
+        if (!current) throw new Error("Loan was not found.");
+        if (current.principal_minor !== input.principalMinor || current.monthly_interest_rate_bps !== input.monthlyInterestRateBps || current.interest_type !== input.interestType || current.term_months !== input.termMonths || current.start_date !== input.startDate || current.account_id !== input.accountId) {
+          throw new Error("Loan terms and linked account cannot be changed after payments have been recorded.");
+        }
+      }
+      const now = new Date().toISOString();
+      await db.withTransactionAsync(async () => {
+        const result = await db.runAsync("UPDATE loans SET name=?, principal_minor=?, monthly_interest_rate_bps=?, interest_type=?, term_months=?, start_date=?, due_date=?, account_id=?, notes=?, updated_at=? WHERE id=?", input.name.trim(), input.principalMinor, input.monthlyInterestRateBps, input.interestType, input.termMonths, input.startDate, input.dueDate, input.accountId, input.notes?.trim() || null, now, input.id);
+        if (result.changes === 0) throw new Error("Loan was not found.");
+        await db.runAsync("UPDATE transactions SET account_id=?, amount_minor=?, description=?, notes=?, occurred_at=?, updated_at=? WHERE id=? AND deleted_at IS NULL", input.accountId, input.principalMinor, input.name.trim(), input.notes?.trim() || null, input.startDate, now, "loan-" + input.id);
+      });
     },
     async deletePayment(paymentId: string): Promise<void> {
       const payment = await db.getFirstAsync<{ id: string; loan_id: string }>(
@@ -145,6 +170,8 @@ export function createLoanRepository(db: SQLiteDatabase) {
       if (!payment) throw new Error("Payment was not found.");
 
       await db.withTransactionAsync(async () => {
+        const now = new Date().toISOString();
+        await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "loan-payment-" + paymentId);
         await db.runAsync("DELETE FROM loan_payments WHERE id = ?", paymentId);
 
         const loan = await getLoanRow(payment.loan_id);
@@ -243,11 +270,12 @@ export function createLoanRepository(db: SQLiteDatabase) {
         );
         await db.runAsync("UPDATE loans SET status = ?, updated_at = ? WHERE id = ?", nextStatus, now, input.loanId);
         await db.runAsync(
+          "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-expense-loan-payment', NULL, NULL, 'expense', ?, ?, ?, ?, ?, ?)",
+          "loan-payment-" + input.id, loan.account_id, input.amountMinor, loan.name + " payment", input.notes?.trim() || null, input.paymentDate, now, now,
+        );
+        await db.runAsync(
           "INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at) VALUES (?, 'loan_payment', ?, 'created', ?, ?, ?)",
-          "activity-" + input.id, input.loanId,
-          "Recorded loan payment of " + input.amountMinor + " minor units",
-          JSON.stringify({ interestPaidMinor: allocation.interestPaidMinor, principalPaidMinor: allocation.principalPaidMinor }),
-          now,
+          "activity-" + input.id, input.loanId, "Recorded loan payment", JSON.stringify({ interestPaidMinor: allocation.interestPaidMinor, principalPaidMinor: allocation.principalPaidMinor }), now,
         );
       });
     },
@@ -255,6 +283,10 @@ export function createLoanRepository(db: SQLiteDatabase) {
       const loan = await db.getFirstAsync<{ id: string }>("SELECT id FROM loans WHERE id = ?", id);
       if (!loan) throw new Error("Loan was not found.");
       await db.withTransactionAsync(async () => {
+        const now = new Date().toISOString();
+        await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "loan-" + id);
+        const paymentRows = await db.getAllAsync<{ id: string }>("SELECT id FROM loan_payments WHERE loan_id = ?", id);
+        for (const payment of paymentRows) await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "loan-payment-" + payment.id);
         await db.runAsync("DELETE FROM loan_payments WHERE loan_id = ?", id);
         const result = await db.runAsync("DELETE FROM loans WHERE id = ?", id);
         if (result.changes === 0) throw new Error("Loan was not found.");
