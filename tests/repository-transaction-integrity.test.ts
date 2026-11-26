@@ -57,6 +57,6 @@ describe("repository transaction integrity", () => {
   it("wraps recurring generation in one SQLite transaction", () => {
     const source = readSource("../src/database/repositories/recurring-repository.ts");
 
-    assert.match(getMethodBody(source, "async generateDue(throughDate: string):Promise<{generatedCount:number;skippedCount:number}>"), /withTransactionAsync/);
+    assert.match(getMethodBody(source, "async generateDue(throughDate:string)"), /withTransactionAsync/);
   });
 });
