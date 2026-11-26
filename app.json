@@ -14,8 +14,8 @@
     },
     "android": {
       "package": "com.dsaldariega.budgetnest",
-      "versionCode": 1,
-      "edgeToEdgeEnabled": true
+      "versionCode": 1
+      
     },
     "plugins": ["expo-router"],
     "experiments": {
