@@ -38,3 +38,19 @@ The Web client ID may be supplied with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. When Go
 The app requests only the Drive app-data scope for BudgetNest backups. It does not request broad Drive access.
 
 Google access tokens are kept in the native authentication/session layer and are not written to SQLite or the portable backup file.
+
+
+### Local native configuration
+
+The Nitro Google Sign-In config plugin requires an iOS OAuth URL scheme when Firebase service files are not being used. BudgetNest keeps this value outside the committed app config.
+
+Set the following in a local `.env` file once the Google OAuth client has been created:
+
+```text
+GOOGLE_IOS_URL_SCHEME=com.googleusercontent.apps.YOUR_IOS_CLIENT_ID
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID
+```
+
+The `GOOGLE_IOS_URL_SCHEME` value is the reversed iOS OAuth client ID (the `REVERSED_CLIENT_ID` value). The Google config plugin is intentionally omitted while this value is not configured, so normal Expo config checks and local development do not fail before Google native credentials are ready.
+
+Do not commit the real `.env` file or OAuth secrets/credentials to Git.
