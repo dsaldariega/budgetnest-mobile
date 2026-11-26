@@ -12,7 +12,7 @@ type GoogleConnectModalProps = {
 };
 
 export function GoogleConnectModal({ visible, onClose, onConnected }: GoogleConnectModalProps) {
-  const { signIn, signingIn, error, clearError } = useGoogleAuth();
+  const { signIn, signingIn, error, clearError, isGoogleAuthAvailable } = useGoogleAuth();
   const { mode } = useThemePreference();
   const dark = mode === "dark";
   const palette = dark ? colors.dark : colors.light;
@@ -46,18 +46,28 @@ export function GoogleConnectModal({ visible, onClose, onConnected }: GoogleConn
             Google is optional. Connect to enable BudgetNest backup and restore with your Google Drive. Your everyday budgeting features continue to work without signing in.
           </Text>
 
+          {!isGoogleAuthAvailable ? (
+            <View style={[styles.infoBox, { backgroundColor: dark ? "#243447" : "#EEF5FF" }]}>
+              <Text style={[styles.infoText, { color: palette.text }]}>
+                Google Sign-In needs a BudgetNest development build. Expo Go does not include the required native module. You can continue using all local features without Google.
+              </Text>
+            </View>
+          ) : null}
+
           {error ? (
             <View style={[styles.errorBox, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
               <Text style={[styles.errorText, { color: palette.primary }]}>{error}</Text>
             </View>
           ) : null}
 
-          <Pressable disabled={signingIn} onPress={() => void connect()} style={[styles.connectButton, { backgroundColor: palette.primary, opacity: signingIn ? 0.7 : 1 }]}>
-            {signingIn ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="google" size={19} color="#FFFFFF" />}
-            <Text style={styles.connectText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
-          </Pressable>
+          {isGoogleAuthAvailable ? (
+            <Pressable disabled={signingIn} onPress={() => void connect()} style={[styles.connectButton, { backgroundColor: palette.primary, opacity: signingIn ? 0.7 : 1 }]}>
+              {signingIn ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="google" size={19} color="#FFFFFF" />}
+              <Text style={styles.connectText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
+            </Pressable>
+          ) : null}
           <Pressable disabled={signingIn} onPress={onClose} style={styles.cancelButton}>
-            <Text style={[styles.cancelText, { color: palette.textMuted }]}>Maybe later</Text>
+            <Text style={[styles.cancelText, { color: palette.textMuted }]}>{isGoogleAuthAvailable ? "Maybe later" : "Continue"}</Text>
           </Pressable>
           <Text style={[styles.privacyNote, { color: palette.textMuted }]}>No Google connection is needed to use BudgetNest locally.</Text>
         </View>
@@ -74,6 +84,8 @@ const styles = StyleSheet.create({
   googleLetter: { fontSize: 28, fontWeight: "900", color: "#4285F4" },
   title: { fontSize: 21, fontWeight: "900", textAlign: "center" },
   description: { fontSize: 13, lineHeight: 20, textAlign: "center", marginTop: 10 },
+  infoBox: { width: "100%", padding: 12, borderRadius: 12, marginTop: 14 },
+  infoText: { fontSize: 12, lineHeight: 18 },
   errorBox: { width: "100%", padding: 12, borderRadius: 12, marginTop: 14 },
   errorText: { fontSize: 12, lineHeight: 18 },
   connectButton: { width: "100%", minHeight: 50, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 20 },

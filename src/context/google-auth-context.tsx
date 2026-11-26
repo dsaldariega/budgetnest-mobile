@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import {
   createContext,
   useCallback,
@@ -14,6 +15,7 @@ type GoogleAuthContextValue = {
   loading: boolean;
   signingIn: boolean;
   error: string;
+  isGoogleAuthAvailable: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   getDriveToken: () => Promise<string>;
@@ -21,14 +23,23 @@ type GoogleAuthContextValue = {
 };
 
 const GoogleAuthContext = createContext<GoogleAuthContextValue | null>(null);
+const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 export function GoogleAuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<OneTapSuccessData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isExpoGo);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Expo Go does not include the native Nitro module. Skip importing it
+    // entirely so local SQLite features remain usable in the Expo Go client.
+    if (isExpoGo) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     void import("@/services/google/google-auth")
@@ -38,8 +49,7 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
         if (mounted) setUser(restoredUser);
       })
       .catch(() => {
-        // Google is optional. A native auth issue must not block local app use
-        // or display a sign-in error before the user asks to connect.
+        // Google is optional. A native auth issue must not block local use.
         if (mounted) setUser(null);
       })
       .finally(() => {
@@ -53,6 +63,12 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
 
   const signIn = useCallback(async () => {
     setError("");
+    if (isExpoGo) {
+      const message = "Google Sign-In requires a BudgetNest development build. Expo Go does not include the required native Nitro module. You can continue using BudgetNest locally without Google.";
+      setError(message);
+      throw new Error(message);
+    }
+
     setSigningIn(true);
     try {
       const { signInWithGoogle } = await import("@/services/google/google-auth");
@@ -78,6 +94,9 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const getDriveToken = useCallback(async () => {
+    if (isExpoGo) {
+      throw new Error("Google Drive backup requires a BudgetNest development build.");
+    }
     const { getDriveAccessToken } = await import("@/services/google/google-auth");
     return getDriveAccessToken();
   }, []);
@@ -90,6 +109,7 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
       loading,
       signingIn,
       error,
+      isGoogleAuthAvailable: !isExpoGo,
       signIn,
       signOut,
       getDriveToken,
