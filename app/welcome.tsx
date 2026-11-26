@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  ActivityIndicator,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,7 +15,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "@/theme/colors";
 import { useThemePreference } from "@/context/theme-context";
-import { GoogleConnectModal } from "@/components/auth/google-connect-modal";
+import { useGoogleAuth } from "@/context/google-auth-context";
 import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 
 const slides = [
@@ -53,12 +54,23 @@ export default function WelcomeScreen() {
   const { width } = useWindowDimensions();
   const { mode } = useThemePreference();
   const palette = mode === "dark" ? colors.dark : colors.light;
+  const { signIn, signingIn, error: googleError } = useGoogleAuth();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [connectVisible, setConnectVisible] = useState(false);
+  const [connectError, setConnectError] = useState("");
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const lastSlide = activeIndex === slides.length - 1;
 
   const explore = () => router.replace("/(tabs)");
+
+  const connectGoogle = async () => {
+    setConnectError("");
+    try {
+      await signIn();
+      router.replace("/(tabs)");
+    } catch (error) {
+      setConnectError(error instanceof Error ? error.message : googleError || "Unable to connect with Google.");
+    }
+  };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = Math.round(event.nativeEvent.contentOffset.x / width);
@@ -119,10 +131,11 @@ export default function WelcomeScreen() {
 
         {lastSlide ? (
           <>
-            <Pressable onPress={() => setConnectVisible(true)} style={[styles.primaryButton, { backgroundColor: palette.primary }]}>
-              <MaterialCommunityIcons name="google" size={19} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>Connect with Google</Text>
+            <Pressable disabled={signingIn} onPress={() => void connectGoogle()} style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: signingIn ? 0.7 : 1 }]}>
+              {signingIn ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="google" size={19} color="#FFFFFF" />}
+              <Text style={styles.primaryButtonText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
             </Pressable>
+            {connectError ? <Text style={[styles.connectError, { color: palette.primary }]}>{connectError}</Text> : null}
             <Pressable onPress={explore} style={styles.secondaryAction}>
               <Text style={[styles.secondaryActionText, { color: palette.textMuted }]}>Continue without Google</Text>
             </Pressable>
@@ -139,14 +152,6 @@ export default function WelcomeScreen() {
         <Text style={[styles.footerNote, { color: palette.textMuted }]}>Your money. Your pace. Your privacy.</Text>
       </View>
 
-      <GoogleConnectModal
-        visible={connectVisible}
-        onClose={() => setConnectVisible(false)}
-        onConnected={() => {
-          setConnectVisible(false);
-          router.replace("/(tabs)");
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -175,4 +180,5 @@ const styles = StyleSheet.create({
   secondaryAction: { minHeight: 36, alignItems: "center", justifyContent: "center" },
   secondaryActionText: { fontSize: 13, fontWeight: "700" },
   footerNote: { fontSize: 10, textAlign: "center", marginTop: 1 },
+  connectError: { fontSize: 11, lineHeight: 16, textAlign: "center" },
 });

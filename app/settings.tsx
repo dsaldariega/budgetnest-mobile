@@ -15,7 +15,6 @@ import { TransactionDataTools } from "@/components/settings/transaction-data-too
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
-import { GoogleConnectModal } from "@/components/auth/google-connect-modal";
 import { SelectField } from "@/components/ui/select-field";
 
 const formatCount = (value: number) => new Intl.NumberFormat("en-PH").format(value);
@@ -26,10 +25,9 @@ export default function SettingsScreen() {
   const { preference, mode, setPreference } = useThemePreference();
   const dark = mode === "dark";
   const palette = dark ? colors.dark : colors.light;
-  const { user, loading: authLoading, signOut } = useGoogleAuth();
+  const { user, loading: authLoading, signingIn, signIn, signOut } = useGoogleAuth();
 
   const [busy, setBusy] = useState(false);
-  const [googleConnectVisible, setGoogleConnectVisible] = useState(false);
   const [error, setError] = useState("");
   const [defaultCurrency, setDefaultCurrency] = useState<DefaultCurrencyCode>(DEFAULT_CURRENCY_CODE);
   const [savingCurrency, setSavingCurrency] = useState(false);
@@ -85,13 +83,10 @@ export default function SettingsScreen() {
   };
 
   const exportBackupToGoogle = async () => {
-    if (!user) {
-      setGoogleConnectVisible(true);
-      return;
-    }
     setError("");
     setBusy(true);
     try {
+      if (!user) await signIn();
       const json = await createBackupRepository(db, Constants.expoConfig?.version ?? "unknown").exportJson();
       const { uploadBackupToGoogleDrive } = await import("@/services/google/google-drive-service");
       await uploadBackupToGoogleDrive(json);
@@ -104,13 +99,10 @@ export default function SettingsScreen() {
   };
 
   const selectGoogleRestore = async () => {
-    if (!user) {
-      setGoogleConnectVisible(true);
-      return;
-    }
     setError("");
     setBusy(true);
     try {
+      if (!user) await signIn();
       const { downloadLatestBackupFromGoogleDrive } = await import("@/services/google/google-drive-service");
       const text = await downloadLatestBackupFromGoogleDrive();
       if (!text) {
@@ -233,11 +225,11 @@ export default function SettingsScreen() {
 
           {!user ? (
             <Pressable
-              disabled={authLoading}
-              onPress={() => setGoogleConnectVisible(true)}
-              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: authLoading ? 0.6 : 1 }]}
+              disabled={authLoading || signingIn}
+              onPress={() => { setError(""); void signIn().catch(e => setError(e instanceof Error ? e.message : "Unable to connect with Google.")); }}
+              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: authLoading || signingIn ? 0.6 : 1 }]}
             >
-              <Text style={styles.primaryText}>Connect with Google</Text>
+              <Text style={styles.primaryText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -308,12 +300,6 @@ export default function SettingsScreen() {
           </View>
         ) : null}
       </ScrollView>
-
-      <GoogleConnectModal
-        visible={googleConnectVisible}
-        onClose={() => setGoogleConnectVisible(false)}
-        onConnected={() => setGoogleConnectVisible(false)}
-      />
 
       <Modal visible={confirmRestore} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmRestore(false); }}>
         <View style={styles.modalBackdrop}>
