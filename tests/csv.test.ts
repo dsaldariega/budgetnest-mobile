@@ -46,6 +46,23 @@ test("CSV export includes the compatible web-app header order", () => {
   assert.match(csv, /Main Wallet,PHP,income,250\.00,Salary,Payday,2026-11-26/);
 });
 
+test("CSV export neutralizes spreadsheet formula injection in text fields", () => {
+  const csv = makeTransactionCsv([{
+    accountName: "=HYPERLINK(\"https://example.com\",\"open\")",
+    currencyCode: "PHP",
+    type: "expense",
+    amountMinor: 10000,
+    categoryName: "\t=IMPORTXML(\"https://example.com\",\"//a\")",
+    description: "@SUM(1+1)",
+    occurredAt: "2026-11-26",
+  }]);
+
+  const rows = parseCsv(csv);
+  assert.equal(rows[1][0], "'=HYPERLINK(\"https://example.com\",\"open\")");
+  assert.equal(rows[1][4], "'\t=IMPORTXML(\"https://example.com\",\"//a\")");
+  assert.equal(rows[1][5], "'@SUM(1+1)");
+});
+
 test("custom export date range is preserved", () => {
   assert.deepEqual(getExportDateRange("custom", "2026-01-01", "2026-01-31"), {
     start: "2026-01-01",

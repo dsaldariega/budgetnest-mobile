@@ -122,6 +122,13 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 - [ ] Navigate between all tabs and stack screens.
 - [ ] Check empty states, validation messages, and long lists on a smaller screen.
 
+## Security and privacy checks
+
+- CSV exports neutralize spreadsheet formula markers in user-controlled text fields.
+- Backup JSON remains unencrypted; the in-app privacy page explicitly warns users to protect exported files. The checksum detects corruption, not malicious tampering or authorship.
+- Google Drive access is limited to the app-data scope and is requested only when backup/restore is used.
+- The local SQLite database does not currently have a separate SQLCipher encryption layer; users should secure the device and its screen lock.
+
 ## Release blockers still requiring a human/device check
 
 - Real Android build and installation.

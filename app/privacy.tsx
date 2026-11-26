@@ -19,7 +19,7 @@ const SECTIONS = [
     title: "Optional Google Drive backup",
     paragraphs: [
       "If you choose to connect a Google account, BudgetNest can save a complete backup to its private Google Drive app-data area. The backup action is manual; connecting Google does not automatically upload your records.",
-      "Restoring a backup replaces the current local records after you review and confirm the restore. Keep a recent backup before changing devices or clearing app storage.",
+      "Restoring a backup replaces the current local records after you review and confirm the restore. Backup JSON files are not encrypted by BudgetNest and can be read by anyone who obtains the file. Keep them in a trusted location and avoid sharing them publicly.",
     ],
   },
   {
@@ -27,7 +27,7 @@ const SECTIONS = [
     title: "Transaction CSV files",
     paragraphs: [
       "CSV export creates a file containing the income and expense transactions that match your selected date range and filters. Transfers are excluded so that their paired records remain linked inside BudgetNest.",
-      "CSV import reads a file you select, matches an active account by name and currency, creates missing categories, and skips duplicate transactions. Files you share or save outside BudgetNest are subject to the privacy and security of the destination you choose.",
+      "CSV import reads a file you select, matches an active account by name and currency, creates missing categories, and skips duplicate transactions. Exported CSV files are plain text; BudgetNest neutralizes spreadsheet formula markers in exported text fields, but files you share or save outside BudgetNest are subject to the privacy and security of the destination you choose.",
     ],
   },
   {

@@ -192,7 +192,14 @@ export function normalizeImportCsv(text: string): CsvImportRow[] {
 }
 
 function csvEscape(value: unknown): string {
-  const text = value === null || value === undefined ? "" : String(value);
+  let text = value === null || value === undefined ? "" : String(value);
+
+  // Prevent spreadsheet formula execution when exported text starts with a
+  // formula marker, including markers preceded by control/whitespace chars.
+  if (/^[\u0000-\u0020]*[=+\-@]/.test(text)) {
+    text = "'" + text;
+  }
+
   return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 
