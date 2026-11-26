@@ -4,7 +4,7 @@
     "slug": "budgetnest-mobile",
     "version": "1.0.0",
     "description": "A private, local-first personal finance tracker.",
-    "orientation": "portrait",
+    "orientation": "default",
     "scheme": "budgetnest",
     "userInterfaceStyle": "automatic",
     "ios": {

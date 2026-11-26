@@ -7,6 +7,7 @@ import {
   Text,
   View,
   useColorScheme,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "@/theme/colors";
@@ -14,13 +15,13 @@ import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 
 const MENU_GROUPS = [
   {
-    title: "Money",
+    title: "Financial Planning",
     items: [
       {
-        label: "Accounts",
-        description: "Manage your cash, bank, and e-wallet accounts.",
-        icon: "wallet-outline",
-        route: "/accounts",
+        label: "Goals",
+        description: "Plan and track progress toward your savings targets.",
+        icon: "bullseye-arrow",
+        route: "/(tabs)/goals",
       },
     ],
   },
@@ -48,7 +49,7 @@ const MENU_GROUPS = [
     ],
   },
   {
-    title: "Insights",
+    title: "Insights & Reports",
     items: [
       {
         label: "Reports",
@@ -59,7 +60,7 @@ const MENU_GROUPS = [
     ],
   },
   {
-    title: "Preferences",
+    title: "Preferences & Support",
     items: [
       {
         label: "Activity Log",
@@ -93,6 +94,8 @@ export default function MoreScreen() {
   const router = useRouter();
   const dark = useColorScheme() === "dark";
   const palette = dark ? colors.dark : colors.light;
+  const { width, height } = useWindowDimensions();
+  const useColumns = width >= 720 || width > height;
 
   return (
     <SafeAreaView
@@ -100,17 +103,19 @@ export default function MoreScreen() {
       edges={["top", "left", "right"]}
     >
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, useColumns && styles.contentWide]}
         showsVerticalScrollIndicator={false}
       >
-        <BudgetNestBrand color={palette.text} size={38} />
-        <Text style={[styles.title, { color: palette.text }]}>More</Text>
-        <Text style={[styles.subtitle, { color: palette.textMuted }]}>
-          Explore the rest of your financial workspace.
-        </Text>
+        <View style={styles.intro}>
+          <BudgetNestBrand color={palette.text} size={38} />
+          <Text style={[styles.title, { color: palette.text }]}>More</Text>
+          <Text style={[styles.subtitle, { color: palette.textMuted }]}>
+            Explore the rest of your financial workspace.
+          </Text>
+        </View>
 
         {MENU_GROUPS.map((group) => (
-          <View key={group.title} style={styles.group}>
+          <View key={group.title} style={[styles.group, useColumns && styles.groupWide]}>
             <Text style={[styles.groupTitle, { color: palette.textMuted }]}>
               {group.title.toUpperCase()}
             </Text>
@@ -180,10 +185,13 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36 },
+  contentWide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", maxWidth: 1160, width: "100%", alignSelf: "center" },
+  intro: { width: "100%" },
   eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
   title: { fontSize: 30, fontWeight: "800", marginTop: 4 },
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: 7, marginBottom: 22 },
   group: { marginBottom: 19 },
+  groupWide: { width: "48%" },
   groupTitle: {
     fontSize: 10,
     fontWeight: "800",

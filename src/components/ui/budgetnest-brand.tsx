@@ -11,7 +11,12 @@ export function BudgetNestBrand({
 }) {
   return (
     <View style={styles.container}>
-      <Image source={logo} style={{ width: size, height: size }} resizeMode="contain" />
+      <Image
+        source={logo}
+        accessibilityLabel="BudgetNest logo"
+        resizeMode="contain"
+        style={{ width: size, aspectRatio: 1, flexShrink: 0 }}
+      />
       <Text style={[styles.wordmark, { color, fontSize: size * 0.42 }]}>BudgetNest</Text>
     </View>
   );

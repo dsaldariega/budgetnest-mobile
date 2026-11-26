@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Text, useColorScheme } from "react-native";
+import { Text, useColorScheme, useWindowDimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/theme/colors";
@@ -24,21 +24,36 @@ export default function TabLayout() {
   const isDark = useColorScheme() === "dark";
   const palette = isDark ? colors.dark : colors.light;
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const useNavigationRail = width >= 768 || width > height;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarPosition: useNavigationRail ? "left" : "bottom",
+        tabBarVariant: useNavigationRail ? "material" : "uikit",
+        tabBarLabelPosition: "below-icon",
         tabBarActiveTintColor: palette.primary,
         tabBarInactiveTintColor: palette.textMuted,
-        tabBarStyle: {
-          backgroundColor: palette.surface,
-          borderTopColor: palette.border,
-          height: 64 + insets.bottom,
-          paddingTop: 7,
-          paddingBottom: 7 + insets.bottom,
-        },
+        tabBarStyle: useNavigationRail
+          ? {
+              width: 88,
+              backgroundColor: palette.surface,
+              borderRightColor: palette.border,
+              borderTopWidth: 0,
+              paddingTop: 12 + insets.top,
+              paddingBottom: 12 + insets.bottom,
+            }
+          : {
+              backgroundColor: palette.surface,
+              borderTopColor: palette.border,
+              height: 64 + insets.bottom,
+              paddingTop: 7,
+              paddingBottom: 7 + insets.bottom,
+            },
         tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        tabBarItemStyle: useNavigationRail ? { minHeight: 66 } : undefined,
         tabBarHideOnKeyboard: true,
       }}
     >
@@ -53,10 +68,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="accounts"
+        options={{
+          title: "Accounts",
+          tabBarLabel: ({ focused }) => <TabLabel label="Accounts" focused={focused} dark={isDark} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="wallet-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="transactions"
         options={{
-          title: "Activity",
-          tabBarLabel: ({ focused }) => <TabLabel label="Activity" focused={focused} dark={isDark} />,
+          title: "Transactions",
+          tabBarLabel: ({ focused }) => <TabLabel label="Transactions" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="receipt-text-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
           ),
@@ -69,16 +94,6 @@ export default function TabLayout() {
           tabBarLabel: ({ focused }) => <TabLabel label="Budgets" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="chart-donut" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="goals"
-        options={{
-          title: "Goals",
-          tabBarLabel: ({ focused }) => <TabLabel label="Goals" focused={focused} dark={isDark} />,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bullseye-arrow" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
           ),
         }}
       />

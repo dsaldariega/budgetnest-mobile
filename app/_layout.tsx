@@ -31,7 +31,6 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="accounts" options={slideScreenOptions} />
           <Stack.Screen name="loans" options={slideScreenOptions} />
           <Stack.Screen name="subscriptions" options={slideScreenOptions} />
           <Stack.Screen name="settings" options={slideScreenOptions} />

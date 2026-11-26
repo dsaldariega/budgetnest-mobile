@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
   useColorScheme,
+  useWindowDimensions,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -24,7 +25,6 @@ import type { AccountType, CreateAccountInput } from "@/database/types";
 import { toMinorUnits } from "@/domain/money";
 import { createSettingsRepository } from "@/database/repositories/settings-repository";
 import { colors } from "@/theme/colors";
-import { ScreenBackButton } from "@/components/ui/screen-back-button";
 
 const TYPES: { value: AccountType; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
   { value: "cash", label: "Cash", icon: "cash-multiple" },
@@ -61,6 +61,8 @@ export default function AccountsScreen() {
   const db = useSQLiteContext();
   const dark = useColorScheme() === "dark";
   const palette = dark ? colors.dark : colors.light;
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 720;
 
   const [rows, setRows] = useState<AccountWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,9 +242,8 @@ export default function AccountsScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]} edges={["top", "left", "right"]}>
-      <View style={styles.page}>
+      <View style={[styles.page, isWideLayout && styles.widePage]}>
         <View style={styles.header}>
-          <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.eyebrow, { color: palette.primary }]}>YOUR MONEY</Text>
             <Text style={[styles.title, { color: palette.text }]}>Accounts</Text>
@@ -311,7 +312,7 @@ export default function AccountsScreen() {
             ) : null}
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={[styles.list, isWideLayout && styles.wideList]} showsVerticalScrollIndicator={false}>
             {visibleRows.map((account) => {
               const accountType = TYPES.find((item) => item.value === account.type);
               return (
@@ -319,6 +320,7 @@ export default function AccountsScreen() {
                   key={account.id}
                   style={[
                     styles.accountCard,
+                    isWideLayout && styles.wideAccountCard,
                     {
                       backgroundColor: palette.surface,
                       borderColor: palette.border,
@@ -453,6 +455,7 @@ export default function AccountsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   page: { flex: 1, paddingHorizontal: 20, paddingTop: 18 },
+  widePage: { width: "100%", maxWidth: 1120, alignSelf: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   eyebrow: { color: "#D32F2F", fontSize: 11, fontWeight: "800", letterSpacing: 1 },
   title: { fontSize: 29, fontWeight: "800", marginTop: 4 },
@@ -470,7 +473,9 @@ const styles = StyleSheet.create({
   filterButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 8, paddingLeft: 8 },
   filterText: { fontSize: 11, fontWeight: "800" },
   list: { gap: 11, paddingBottom: 30 },
+  wideList: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   accountCard: { borderWidth: 1, borderRadius: 17, padding: 15 },
+  wideAccountCard: { width: "48%" },
   accountTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   accountIcon: { width: 43, height: 43, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   accountCopy: { flex: 1, minWidth: 0, gap: 3 },

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -52,6 +52,8 @@ export default function DashboardScreen() {
   const router = useRouter();
   const dark = useColorScheme() === "dark";
   const p = dark ? colors.dark : colors.light;
+  const { width, height } = useWindowDimensions();
+  const wideLayout = width >= 720 || width > height;
   const [data, setData] = useState<DashboardData>({
     accounts: [], currencies: [], budgets: [], goals: [], subscriptions: [], loans: [], activity: [],
   });
@@ -125,7 +127,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[s.content, wideLayout && s.contentWide]} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
           <View>
             <Text style={[s.brand, { color: p.primary }]}>BudgetNest</Text>
@@ -191,7 +193,7 @@ export default function DashboardScreen() {
         <SectionHeading title="Quick access" palette={p} />
         <View style={s.quickGrid}>
           {quickLinks.map(link => (
-            <Pressable key={link.label} onPress={() => router.push(link.route)} style={[s.quickCard, { backgroundColor: p.surface, borderColor: p.border }]}>
+            <Pressable key={link.label} onPress={() => router.push(link.route)} style={[s.quickCard, wideLayout && s.quickCardWide, { backgroundColor: p.surface, borderColor: p.border }]}>
               <View style={[s.quickIcon, { backgroundColor: dark ? "#432727" : "#FCE8E8" }]}>
                 <MaterialCommunityIcons name={link.icon} size={22} color={p.primary} />
               </View>
@@ -266,6 +268,7 @@ export default function DashboardScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 36 },
+  contentWide: { width: "100%", maxWidth: 1160, alignSelf: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
   brand: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
   greeting: { fontSize: 27, fontWeight: "800", letterSpacing: -0.7, marginTop: 3 },
@@ -299,6 +302,7 @@ const s = StyleSheet.create({
   netValue: { fontSize: 14, fontWeight: "800" },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },
   quickCard: { width: "48%", minHeight: 88, borderWidth: 1, borderRadius: 16, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 },
+  quickCardWide: { width: "31.5%" },
   quickIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   quickLabel: { flex: 1, fontSize: 13, fontWeight: "700" },
   listCard: { borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 10, gap: 12 },
