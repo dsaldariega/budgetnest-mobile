@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { Text, useColorScheme } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/theme/colors";
 
 function TabLabel({ label, focused, dark }: { label: string; focused: boolean; dark: boolean }) {
@@ -19,6 +20,7 @@ function TabLabel({ label, focused, dark }: { label: string; focused: boolean; d
 export default function TabLayout() {
   const isDark = useColorScheme() === "dark";
   const palette = isDark ? colors.dark : colors.light;
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -29,11 +31,12 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: palette.surface,
           borderTopColor: palette.border,
-          height: 64,
+          height: 64 + insets.bottom,
           paddingTop: 8,
-          paddingBottom: 8,
+          paddingBottom: 8 + insets.bottom,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} dark={isDark} /> }} />
