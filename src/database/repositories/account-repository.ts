@@ -2,19 +2,70 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import type { Account, AccountType, CreateAccountInput, SourceAccountType } from "@/database/types";
 
 type AccountRow = {
-  id: string; name: string; type: Exclude<AccountType, "investment">;
-  source_type: SourceAccountType | null; currency_code: string;
-  opening_balance_minor: number; is_archived: number; created_at: string; updated_at: string;
+  id: string;
+  name: string;
+  type: Exclude<AccountType, "investment">;
+  source_type: SourceAccountType | null;
+  currency_code: string;
+  opening_balance_minor: number;
+  is_archived: number;
+  created_at: string;
+  updated_at: string;
 };
 
 export type AccountWithBalance = Account & { balanceMinor: number };
 
+export type AccountDeleteImpact = {
+  transactions: number;
+  budgets: number;
+  goals: number;
+  loans: number;
+  subscriptions: number;
+  recurringRules: number;
+};
+
+export function getAccountDeleteImpactCount(impact: AccountDeleteImpact): number {
+  return Object.values(impact).reduce((total, count) => total + count, 0);
+}
+
 function mapAccount(row: AccountRow): Account {
   const type: AccountType = row.source_type === "investment" ? "investment" : row.type;
   return {
-    id: row.id, name: row.name, type, sourceType: row.source_type,
-    currencyCode: row.currency_code, openingBalanceMinor: row.opening_balance_minor,
-    isArchived: row.is_archived === 1, createdAt: row.created_at, updatedAt: row.updated_at,
+    id: row.id,
+    name: row.name,
+    type,
+    sourceType: row.source_type,
+    currencyCode: row.currency_code,
+    openingBalanceMinor: row.opening_balance_minor,
+    isArchived: row.is_archived === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function validateInput(input: CreateAccountInput): {
+  name: string;
+  currency: string;
+  storedType: Exclude<AccountType, "investment">;
+  sourceType: SourceAccountType;
+} {
+  const name = input.name.trim();
+  const currency = input.currencyCode.trim().toUpperCase();
+
+  if (!name) throw new Error("Enter an account name.");
+  if (name.length > 80) throw new Error("Account names must be 80 characters or fewer.");
+  if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Enter a valid 3-letter currency code.");
+  if (!Number.isSafeInteger(input.openingBalanceMinor)) throw new Error("Opening balance is invalid.");
+
+  return {
+    name,
+    currency,
+    storedType: input.type === "investment" ? "other" : input.type,
+    sourceType: input.sourceType ?? (
+      input.type === "investment" ? "investment" :
+      input.type === "credit_card" ? "credit" :
+      input.type
+    ),
   };
 }
 
@@ -41,18 +92,34 @@ export function createAccountRepository(db: SQLiteDatabase) {
   return {
     list: () => listWithBalances(false),
     listAll: () => listWithBalances(true),
+
     async findById(id: string): Promise<Account | null> {
       const row = await db.getFirstAsync<AccountRow>("SELECT * FROM accounts WHERE id = ?", id);
       return row ? mapAccount(row) : null;
     },
+
+    async getDeleteImpact(id: string): Promise<AccountDeleteImpact> {
+      const [transactions, budgets, goals, loans, subscriptions, recurringRules] = await Promise.all([
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM transactions WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM budgets WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM savings_goals WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM loans WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM subscriptions WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM recurring_rules WHERE account_id = ?", id),
+      ]);
+
+      return {
+        transactions: transactions?.count ?? 0,
+        budgets: budgets?.count ?? 0,
+        goals: goals?.count ?? 0,
+        loans: loans?.count ?? 0,
+        subscriptions: subscriptions?.count ?? 0,
+        recurringRules: recurringRules?.count ?? 0,
+      };
+    },
+
     async create(input: CreateAccountInput): Promise<Account> {
-      const name = input.name.trim();
-      const currency = input.currencyCode.trim().toUpperCase();
-      if (!name) throw new Error("Enter an account name.");
-      if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Enter a valid 3-letter currency code.");
-      if (!Number.isSafeInteger(input.openingBalanceMinor)) throw new Error("Opening balance is invalid.");
-      const storedType = input.type === "investment" ? "other" : input.type;
-      const sourceType = input.sourceType ?? (input.type === "investment" ? "investment" : input.type === "credit_card" ? "credit" : null);
+      const { name, currency, storedType, sourceType } = validateInput(input);
       const now = new Date().toISOString();
       await db.runAsync(
         `INSERT INTO accounts (id, name, type, source_type, currency_code, opening_balance_minor, is_archived, created_at, updated_at)
@@ -63,12 +130,39 @@ export function createAccountRepository(db: SQLiteDatabase) {
       if (!created) throw new Error("Account was created but could not be retrieved.");
       return created;
     },
-    async archive(id: string): Promise<void> {
+
+    async update(id: string, input: CreateAccountInput): Promise<Account> {
+      const { name, currency, storedType, sourceType } = validateInput(input);
       const result = await db.runAsync(
-        "UPDATE accounts SET is_archived = 1, updated_at = ? WHERE id = ? AND is_archived = 0",
+        `UPDATE accounts
+         SET name = ?, type = ?, source_type = ?, currency_code = ?,
+             opening_balance_minor = ?, updated_at = ?
+         WHERE id = ?`,
+        name, storedType, sourceType, currency, input.openingBalanceMinor,
         new Date().toISOString(), id,
       );
-      if (result.changes === 0) throw new Error("Account could not be found or is already archived.");
+      if (result.changes === 0) throw new Error("Account could not be found.");
+      const updated = await this.findById(id);
+      if (!updated) throw new Error("Account was updated but could not be retrieved.");
+      return updated;
+    },
+
+    async setArchived(id: string, archived: boolean): Promise<void> {
+      const result = await db.runAsync(
+        "UPDATE accounts SET is_archived = ?, updated_at = ? WHERE id = ?",
+        archived ? 1 : 0, new Date().toISOString(), id,
+      );
+      if (result.changes === 0) throw new Error("Account could not be found.");
+    },
+
+    async delete(id: string): Promise<void> {
+      const impact = await this.getDeleteImpact(id);
+      if (getAccountDeleteImpactCount(impact) > 0) {
+        throw new Error("This account has linked financial records and cannot be deleted. Archive it instead to preserve your history.");
+      }
+
+      const result = await db.runAsync("DELETE FROM accounts WHERE id = ?", id);
+      if (result.changes === 0) throw new Error("Account could not be found.");
     },
   };
 }
