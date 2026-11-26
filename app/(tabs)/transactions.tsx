@@ -26,19 +26,21 @@ export default function TransactionsScreen() {
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [categoryName, setCategoryName] = useState("");
   const [error, setError] = useState("");
 
   const repo = useMemo(() => createHistoryRepository(db), [db]);
 
   const load = useCallback(async () => {
     try {
-      const history = await repo.list({ filter, search, fromDate: fromDate || undefined, toDate: toDate || undefined });
+      const history = await repo.list({ filter, search, fromDate: fromDate || undefined, toDate: toDate || undefined, accountName: accountName || undefined, categoryName: categoryName || undefined });
       setItems(history);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load financial history.");
     }
-  }, [repo, filter, search, fromDate, toDate]);
+  }, [repo, filter, search, fromDate, toDate, accountName, categoryName]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -47,6 +49,8 @@ export default function TransactionsScreen() {
     setSearch("");
     setFromDate("");
     setToDate("");
+    setAccountName("");
+    setCategoryName("");
   };
 
   return (
@@ -70,12 +74,17 @@ export default function TransactionsScreen() {
 
         <View style={[s.searchBox, { backgroundColor: p.surface, borderColor: p.border }]}>
           <TextInput value={search} onChangeText={setSearch} placeholder="Search activity" placeholderTextColor={p.textMuted} style={[s.searchInput, { color: p.text }]} />
-          {search || fromDate || toDate || filter !== "all" ? <Pressable onPress={clearFilters}><Text style={{ color: p.primary, fontWeight: "700", fontSize: 12 }}>Clear</Text></Pressable> : null}
+          {search || fromDate || toDate || accountName || categoryName || filter !== "all" ? <Pressable onPress={clearFilters}><Text style={{ color: p.primary, fontWeight: "700", fontSize: 12 }}>Clear</Text></Pressable> : null}
         </View>
 
         <View style={s.dateRow}>
           <TextInput value={fromDate} onChangeText={setFromDate} placeholder="From YYYY-MM-DD" placeholderTextColor={p.textMuted} style={[s.dateInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
           <TextInput value={toDate} onChangeText={setToDate} placeholder="To YYYY-MM-DD" placeholderTextColor={p.textMuted} style={[s.dateInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+        </View>
+
+        <View style={s.dateRow}>
+          <TextInput value={accountName} onChangeText={setAccountName} placeholder="Account name" placeholderTextColor={p.textMuted} style={[s.dateInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+          <TextInput value={categoryName} onChangeText={setCategoryName} placeholder="Category name" placeholderTextColor={p.textMuted} style={[s.dateInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
         </View>
 
         {error ? <View style={[s.error, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={{ color: p.primary, fontWeight: "800", fontSize: 12 }}>Unable to load activity</Text><Text style={{ color: p.text, fontSize: 12, marginTop: 4 }}>{error}</Text></View> : null}

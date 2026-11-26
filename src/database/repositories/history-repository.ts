@@ -156,6 +156,8 @@ export function createHistoryRepository(db: SQLiteDatabase) {
       fromDate?: string;
       toDate?: string;
       limit?: number;
+      accountName?: string;
+      categoryName?: string;
     } = {}): Promise<HistoryItem[]> {
       const conditions: string[] = [];
       const values: (string | number)[] = [];
@@ -169,6 +171,8 @@ export function createHistoryRepository(db: SQLiteDatabase) {
         const term = "%" + options.search.trim() + "%";
         values.push(term, term, term, term);
       }
+      if (options.accountName?.trim()) { conditions.push("account_name LIKE ?"); values.push("%" + options.accountName.trim() + "%"); }
+      if (options.categoryName?.trim()) { conditions.push("category_name LIKE ?"); values.push("%" + options.categoryName.trim() + "%"); }
       if (options.fromDate) {
         conditions.push("occurred_at >= ?");
         values.push(options.fromDate);

@@ -120,6 +120,7 @@ export default function DashboardScreen() {
     { label: "Budgets", icon: "chart-donut" as const, route: "/(tabs)/budgets" as const },
     { label: "Savings", icon: "target" as const, route: "/(tabs)/goals" as const },
     { label: "Recurring", icon: "autorenew" as const, route: "/recurring" as const },
+    { label: "Reports", icon: "chart-box-outline" as const, route: "/reports" as const },
   ];
 
   return (
