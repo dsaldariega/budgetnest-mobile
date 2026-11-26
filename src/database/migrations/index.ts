@@ -942,19 +942,6 @@ export const migrations: DatabaseMigration[] = [
     
     `,
   },
-  {
-    version: 7,
-    description: "Seed dedicated loan transaction categories",
-    sql: `
-      INSERT OR IGNORE INTO categories
-        (id, name, type, icon, is_system, created_at, updated_at)
-      VALUES
-        ('cat-income-loan', 'Loan proceeds', 'income', 'cash-plus', 1,
-          '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'),
-        ('cat-expense-loan-payment', 'Loan payment', 'expense', 'cash-minus', 1,
-          '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
-    `,
-  },
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
