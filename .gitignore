@@ -21,3 +21,6 @@ yarn-debug.log*
 expo-env.d.ts
 # @end expo-cli
 .expo-runtime-test/
+
+/android/
+/ios/
