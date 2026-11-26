@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   BACKUP_FORMAT_VERSION,
   DATABASE_SCHEMA_VERSION,
+  createBackupFilename,
   createBackupPayload,
   parseBackup,
   serializeBackup,
@@ -16,6 +17,13 @@ function emptyData(): BackupData {
     loan_payments: [], activity_logs: [], app_settings: [],
   };
 }
+
+test("backup filename uses a stable dated JSON name", () => {
+  assert.equal(
+    createBackupFilename("2026-11-26T01:23:39.000Z"),
+    "budgetnest-backup-2026-11-26.json",
+  );
+});
 
 test("backup payload contains explicit format and schema versions", () => {
   const backup = createBackupPayload(emptyData(), "2026-11-26T00:00:00.000Z");

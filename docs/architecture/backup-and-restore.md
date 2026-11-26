@@ -4,49 +4,43 @@
 
 BudgetNest Mobile now has a versioned portable JSON backup format and a database-level restore service.
 
-The backup is intentionally **not** a raw SQLite database file. It contains application data as JSON so future schema migrations can validate and transform it without exposing the device database implementation as the public backup contract.
+The backup is intentionally not a raw SQLite database file. It contains application data as JSON so future schema migrations can validate and transform it without exposing the device database implementation as the public backup contract.
 
-## Format
+## Phase 10 scope
 
-Every backup contains:
+The portable backup can now be moved through the device:
 
-- `metadata.format` — identifies a BudgetNest backup.
-- `metadata.formatVersion` — version of the portable JSON contract.
-- `metadata.schemaVersion` — SQLite schema version represented by the backup.
-- `metadata.exportedAt` — ISO timestamp.
-- `data` — rows grouped by supported application table.
+- Export creates a dated JSON file in the app cache.
+- The system share sheet can send the file to another app or storage provider.
+- Restore opens the system document picker and reads a JSON backup from the selected file.
+- Restore requires explicit confirmation because it replaces the current local database.
 
-The current portable format is version `1` and represents SQLite schema version `4`.
+The mobile app still does not perform automatic cloud sync.
 
-## Validation
+## Validation and restore safety
 
-Before restore:
+A selected file is parsed and validated before the destructive restore confirmation is shown.
 
-1. JSON must parse successfully.
-2. The format identifier must match.
-3. The format version must be supported.
-4. The database schema version must match the current mobile schema.
-5. Every supported table must exist as an array.
-6. Primary-key values must be present, non-empty, and unique within each table.
+Restore then:
 
-A failed validation stops the restore before any existing local data is deleted.
-
-## Restore behavior
-
-Restore is transactional:
-
-1. Validate the complete backup.
-2. Delete existing application rows in foreign-key-safe order.
-3. Insert backup rows in dependency order.
-4. Commit only if every insert succeeds.
+1. Validates the backup again inside the repository.
+2. Deletes existing application rows in foreign-key-safe order.
+3. Inserts backup rows in dependency order.
+4. Commits only if every insert succeeds.
 
 If an insert fails, SQLite rolls the restore back instead of leaving a partially restored database.
 
-## Important safety boundary
+## Security boundary
 
-Phase 9 does not add automatic cloud sync, Google Drive, encryption, recovery phrases, or file sharing. Those are separate concerns.
+Phase 10 does not add encryption, recovery phrases, Google Drive sync, or automatic cloud backup.
 
-The next backup phase can add device file creation, import/export UI, and sharing. Encryption should be designed before backups are treated as a production security boundary.
+Backups are plain JSON and should be treated as sensitive financial data. Encryption and recovery design should be completed before backups are presented as a security-protected production feature.
+
+## Platform notes
+
+expo-file-system is used for temporary local backup files, expo-document-picker for imports, and expo-sharing for exports.
+
+The share sheet is intentionally used instead of building a custom cloud-storage integration. Users can choose a compatible destination such as a file provider or messaging/storage app supported by the device.
 
 ## Current limitation
 

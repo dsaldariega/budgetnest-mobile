@@ -1,4 +1,3 @@
-
 export const BACKUP_FORMAT_VERSION = 1;
 export const DATABASE_SCHEMA_VERSION = 4;
 
@@ -21,6 +20,11 @@ export type BudgetNestBackup = {
   data: BackupData;
 };
 
+export function createBackupFilename(exportedAt = new Date().toISOString()): string {
+  const date = exportedAt.slice(0, 10);
+  return `budgetnest-backup-${date}.json`;
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -35,7 +39,10 @@ function hasUniqueKeys(rows: Record<string, unknown>[], key: string): boolean {
   return true;
 }
 
-export function createBackupPayload(data: BackupData, exportedAt = new Date().toISOString()): BudgetNestBackup {
+export function createBackupPayload(
+  data: BackupData,
+  exportedAt = new Date().toISOString(),
+): BudgetNestBackup {
   return {
     metadata: {
       format: "budgetnest-backup",
@@ -67,11 +74,13 @@ export function validateBackupPayload(value: unknown): asserts value is BudgetNe
   if (!isPlainObject(value)) throw new Error("Backup must be a JSON object.");
 
   const metadata = value.metadata;
-  if (!isPlainObject(metadata) ||
-      metadata.format !== "budgetnest-backup" ||
-      metadata.formatVersion !== BACKUP_FORMAT_VERSION ||
-      metadata.schemaVersion !== DATABASE_SCHEMA_VERSION ||
-      typeof metadata.exportedAt !== "string") {
+  if (
+    !isPlainObject(metadata) ||
+    metadata.format !== "budgetnest-backup" ||
+    metadata.formatVersion !== BACKUP_FORMAT_VERSION ||
+    metadata.schemaVersion !== DATABASE_SCHEMA_VERSION ||
+    typeof metadata.exportedAt !== "string"
+  ) {
     throw new Error("This backup format is unsupported or uses a different database schema.");
   }
 
