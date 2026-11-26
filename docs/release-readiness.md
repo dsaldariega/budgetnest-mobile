@@ -27,9 +27,9 @@ npx expo config --type public
 The repository includes two EAS Build profiles:
 
 - `preview`: internally distributed Android APK for installation and custodian/developer testing.
-- `production`: Android App Bundle intended for a later store release.
+- `production`: signed, internally distributed Android APK for the first production-candidate rollout. Google Play publishing would require a separate AAB/store-submission profile.
 
-Before the first EAS build, authenticate with the intended Expo account and run the EAS build configuration flow. Confirm the Expo project ownership and generated project ID before committing any generated configuration. Do not share signing credentials or upload keystores to Git.
+Before the first EAS build, authenticate with the Expo account that owns `@dsaldariega/budgetnest-mobile`. The app is linked to Expo project `95e67897-a658-44df-8590-7bad57099602`. Run the EAS build from the local repository with the CLI; the connected-repository build trigger is not configured for this Expo project. EAS-managed Android signing should be used; do not share signing credentials or upload keystores to Git.
 
 Preview build:
 
@@ -37,7 +37,7 @@ Preview build:
 eas build --profile preview --platform android
 ```
 
-Production build (only after approval and successful testing):
+Production-candidate APK build (after EAS linking and signing setup):
 
 ```bash
 eas build --profile production --platform android

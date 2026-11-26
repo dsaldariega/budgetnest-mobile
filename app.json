@@ -22,6 +22,12 @@
     "experiments": {
       "typedRoutes": true
     },
-    "icon": "./assets/budgetnest-logo.png"
+    "icon": "./assets/budgetnest-logo.png",
+    "owner": "dsaldariega",
+    "extra": {
+      "eas": {
+        "projectId": "95e67897-a658-44df-8590-7bad57099602"
+      }
+    }
   }
 }
