@@ -102,6 +102,7 @@ export default function LoansScreen() {
   const savePayment = async () => {
     setError("");
     if (!selected) return;
+    if (!selected.accountId) { setError("Edit this loan first and choose a linked account."); return; }
     if (!/^\d+(\.\d{1,2})?$/.test(paymentAmount.trim()) || Number(paymentAmount) <= 0) { setError("Enter a positive payment amount."); return; }
     try {
       setSaving(true);
