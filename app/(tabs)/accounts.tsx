@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import type { AccountType } from "@/database/types";
 import { toMinorUnits } from "@/domain/money";
+import { createSettingsRepository } from "@/database/repositories/settings-repository";
 import { colors } from "@/theme/colors";
 
 const TYPES: {value: AccountType; label: string}[] = [
@@ -23,12 +24,13 @@ export default function AccountsScreen(){
  const load=useCallback(async()=>{setLoading(true);try{setRows(await createAccountRepository(db).list());}catch(e){setError(e instanceof Error?e.message:"Unable to load accounts.");}finally{setLoading(false);}},[db]);
  useFocusEffect(useCallback(()=>{void load();},[load]));
  const reset=()=>{setName("");setType("cash");setCurrency("PHP");setOpening("0");setError("");};
+ const openCreate=async()=>{reset();try{setCurrency(await createSettingsRepository(db).getDefaultCurrency());}catch{setCurrency("PHP");}setOpen(true);};
  const save=async()=>{setError("");const n=Number(opening||"0");if(!name.trim()){setError("Enter an account name.");return;}if(!Number.isFinite(n)){setError("Enter a valid opening balance.");return;}setSaving(true);try{await createAccountRepository(db).create({id:makeId(),name,type,sourceType:null,currencyCode:currency,openingBalanceMinor:toMinorUnits(n)});setOpen(false);reset();await load();}catch(e){setError(e instanceof Error?e.message:"Unable to save account.");}finally{setSaving(false);}};
  const archive=(a:AccountWithBalance)=>Alert.alert("Archive account?",`“${a.name}” will be hidden from active accounts. Its history will be kept.`,[{text:"Cancel",style:"cancel"},{text:"Archive",style:"destructive",onPress:async()=>{try{await createAccountRepository(db).archive(a.id);await load();}catch(e){Alert.alert("Unable to archive",e instanceof Error?e.message:"Please try again.");}}}]);
  return <SafeAreaView style={[s.safe,{backgroundColor:p.background}]} edges={["top","left","right"]}>
-  <View style={s.page}><View style={s.header}><View><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>YOUR MONEY</Text><Text style={[s.title,{color:p.text}]}>Accounts</Text></View><Pressable onPress={()=>{reset();setOpen(true);}} style={[s.add,{backgroundColor:p.primary}]}><Text style={s.addText}>+ Add</Text></Pressable></View>
+  <View style={s.page}><View style={s.header}><View><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>YOUR MONEY</Text><Text style={[s.title,{color:p.text}]}>Accounts</Text></View><Pressable onPress={()=>{void openCreate();}} style={[s.add,{backgroundColor:p.primary}]}><Text style={s.addText}>+ Add</Text></Pressable></View>
   <Text style={[s.sub,{color:p.textMuted}]}>Manage the places where you keep your money.</Text>
-  {loading?<Text style={{color:p.textMuted}}>Loading accounts…</Text>:rows.length===0?<View style={[s.empty,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={[s.cardTitle,{color:p.text}]}>No accounts yet</Text><Text style={{color:p.textMuted,marginTop:6}}>Add your cash, bank, or e-wallet account to get started.</Text><Pressable onPress={()=>setOpen(true)} style={[s.primary,{backgroundColor:p.primary}]}><Text style={s.primaryText}>Create your first account</Text></Pressable></View>:
+  {loading?<Text style={{color:p.textMuted}}>Loading accounts…</Text>:rows.length===0?<View style={[s.empty,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={[s.cardTitle,{color:p.text}]}>No accounts yet</Text><Text style={{color:p.textMuted,marginTop:6}}>Add your cash, bank, or e-wallet account to get started.</Text><Pressable onPress={()=>{void openCreate();}} style={[s.primary,{backgroundColor:p.primary}]}><Text style={s.primaryText}>Create your first account</Text></Pressable></View>:
   <ScrollView contentContainerStyle={{gap:12,paddingBottom:30}}>{rows.map(a=><View key={a.id} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>
    <View style={s.row}><View style={[s.icon,{backgroundColor:dark?"#3A2424":"#FCE8E8"}]}><Text style={{color:p.primary,fontWeight:"800"}}>{a.name.slice(0,1).toUpperCase()}</Text></View><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{a.name}</Text><Text style={{color:p.textMuted,fontSize:12,marginTop:3}}>{TYPES.find(t=>t.value===a.type)?.label??"Other"} · {a.currencyCode}</Text></View><Pressable onPress={()=>archive(a)} hitSlop={10}><Text style={{color:p.textMuted,fontWeight:"800"}}>•••</Text></Pressable></View>
    <Text style={[s.label,{color:p.textMuted}]}>CURRENT BALANCE</Text><Text style={[s.balance,{color:p.text}]}>{fmt(a.balanceMinor,a.currencyCode)}</Text>
