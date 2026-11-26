@@ -183,6 +183,17 @@ export const migrations: DatabaseMigration[] = [
         ('cat-expense-other', 'Other expense', 'expense', 'more-horizontal', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z');
     `,
   },
+
+  {
+    version: 4,
+    description: "Link budgets and savings goals to accounts",
+    sql: `
+      ALTER TABLE budgets ADD COLUMN account_id TEXT REFERENCES accounts(id) ON DELETE RESTRICT;
+      ALTER TABLE savings_goals ADD COLUMN account_id TEXT REFERENCES accounts(id) ON DELETE RESTRICT;
+      CREATE INDEX idx_budgets_account_category ON budgets(account_id, category_id, start_date);
+      CREATE INDEX idx_savings_goals_account ON savings_goals(account_id, is_archived);
+    `,
+  },
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {

@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from "expo-sqlite";
-import type { CreateTransactionInput, Transaction, TransactionType, TransferDirection } from "@/database/types";
+import type { Transaction, TransactionType, TransferDirection } from "@/database/types";
 import { assertPositiveMinorUnits } from "@/domain/money";
 import { assertTransferAllowed } from "@/domain/accounts";
 
