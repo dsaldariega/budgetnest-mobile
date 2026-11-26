@@ -113,14 +113,21 @@ export default function SubscriptionsScreen() {
   };
 
   const remove = (item: SubscriptionListItem) => Alert.alert(
-    "Delete subscription?",
-    item.paymentCount > 0 ? "This subscription has payment history and cannot be deleted. You can pause it instead." : "This will permanently remove the subscription.",
-    item.paymentCount > 0
-      ? [{ text: "OK" }]
-      : [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: async () => {
-          try { await createSubscriptionRepository(db).delete(item.id); await load(); }
-          catch (e) { Alert.alert("Unable to delete", e instanceof Error ? e.message : "Please try again."); }
-        } }],
+    "Delete subscription and payment history?",
+    `“${item.name}” and all ${item.paymentCount} recorded payment(s) will be permanently deleted, including its billing history. This action cannot be undone.`,
+    [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete subscription", style: "destructive", onPress: async () => {
+        try {
+          await createSubscriptionRepository(db).delete(item.id);
+          setSelected(null);
+          setPayments([]);
+          await load();
+        } catch (e) {
+          Alert.alert("Unable to delete", e instanceof Error ? e.message : "Please try again.");
+        }
+      } },
+    ],
   );
 
   const removePayment = (payment: SubscriptionPaymentListItem) => Alert.alert(

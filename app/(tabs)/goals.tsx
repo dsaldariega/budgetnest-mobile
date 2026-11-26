@@ -46,6 +46,24 @@ export default function GoalsScreen() {
       setContributeGoal(null); setContribution(""); setContributionNote(""); await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to add contribution."); } finally { setSaving(false); }
   };
+  const remove = async (item: SavingsGoalListItem) => {
+    try {
+      const impact = await createGoalRepository(db).getDeleteImpact(item.id);
+      Alert.alert(
+        "Delete goal and contribution history?",
+        `“${item.name}” and all ${impact.contributions} recorded contribution(s) will be permanently deleted. This action cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete goal", style: "destructive", onPress: async () => {
+            try { await createGoalRepository(db).delete(item.id); await load(); }
+            catch (e) { Alert.alert("Unable to delete goal", e instanceof Error ? e.message : "Please try again."); }
+          } },
+        ],
+      );
+    } catch (e) {
+      Alert.alert("Unable to check goal history", e instanceof Error ? e.message : "Please try again.");
+    }
+  };
   const archive = (item: SavingsGoalListItem) => Alert.alert("Archive goal?", "“" + item.name + "” will be hidden from active goals. Its contribution history will be kept.", [
     { text: "Cancel", style: "cancel" }, { text: "Archive", style: "destructive", onPress: async () => { try { await createGoalRepository(db).archive(item.id); await load(); } catch (e) { Alert.alert("Unable to archive", e instanceof Error ? e.message : "Please try again."); } } },
   ]);
@@ -56,7 +74,7 @@ export default function GoalsScreen() {
       <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }}>
         {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={[s.cardTitle, { color: p.text }]}>No savings goals yet</Text><Text style={{ color: p.textMuted, marginTop: 6 }}>Create a goal, then record contributions as you save.</Text><Pressable onPress={() => setOpen(true)} style={[s.primary, { backgroundColor: p.primary }]}><Text style={s.primaryText}>Create a goal</Text></Pressable></View> :
         items.map(item => <View key={item.id} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
-          <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{item.name}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{item.accountName} · {item.currencyCode}{item.targetDate ? " · target " + item.targetDate : ""}</Text></View><Pressable onPress={() => archive(item)}><Text style={s.archive}>Archive</Text></Pressable></View>
+          <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{item.name}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{item.accountName} · {item.currencyCode}{item.targetDate ? " · target " + item.targetDate : ""}</Text></View><View style={{ alignItems: "flex-end", gap: 8 }}><Pressable onPress={() => archive(item)}><Text style={s.archive}>Archive</Text></Pressable><Pressable onPress={() => void remove(item)}><Text style={[s.archive, { color: p.expense }]}>Delete</Text></Pressable></View></View>
           <View style={s.moneyRow}><Text style={[s.current, { color: p.text }]}>{fmt(item.currentAmountMinor, item.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 12 }}>of {fmt(item.targetAmountMinor, item.currencyCode)}</Text></View>
           <View style={[s.track, { backgroundColor: dark ? "#332B2B" : "#EEEFF2" }]}><View style={[s.fill, { width: Math.min(100, Math.round(item.progress * 100)) + "%", backgroundColor: p.income }]} /></View>
           <View style={s.moneyRow}><Text style={{ color: p.textMuted, fontSize: 12 }}>{fmt(item.remainingMinor, item.currencyCode)} remaining</Text><Pressable onPress={() => { setError(""); setContributeGoal(item); }}><Text style={[s.contribute, { color: p.primary }]}>+ Add contribution</Text></Pressable></View>

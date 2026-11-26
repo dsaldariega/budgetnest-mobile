@@ -175,14 +175,13 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
     },
 
     async delete(id: string): Promise<void> {
-      const payments = await db.getFirstAsync<{ count: number }>(
-        "SELECT COUNT(*) AS count FROM subscription_payments WHERE subscription_id = ?", id,
-      );
-      if ((payments?.count ?? 0) > 0) {
-        throw new Error("This subscription has payment history. Pause it instead of deleting it.");
-      }
-      const result = await db.runAsync("DELETE FROM subscriptions WHERE id = ?", id);
-      if (result.changes === 0) throw new Error("Subscription was not found.");
+      const subscription = await getSubscriptionRow(db, id);
+      if (!subscription) throw new Error("Subscription was not found.");
+      await db.withTransactionAsync(async () => {
+        await db.runAsync("DELETE FROM subscription_payments WHERE subscription_id = ?", id);
+        const result = await db.runAsync("DELETE FROM subscriptions WHERE id = ?", id);
+        if (result.changes === 0) throw new Error("Subscription was not found.");
+      });
     },
   };
 }

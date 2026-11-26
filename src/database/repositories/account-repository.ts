@@ -19,8 +19,11 @@ export type AccountDeleteImpact = {
   transactions: number;
   budgets: number;
   goals: number;
+  goalContributions: number;
   loans: number;
+  loanPayments: number;
   subscriptions: number;
+  subscriptionPayments: number;
   recurringRules: number;
 };
 
@@ -99,12 +102,15 @@ export function createAccountRepository(db: SQLiteDatabase) {
     },
 
     async getDeleteImpact(id: string): Promise<AccountDeleteImpact> {
-      const [transactions, budgets, goals, loans, subscriptions, recurringRules] = await Promise.all([
+      const [transactions, budgets, goals, goalContributions, loans, loanPayments, subscriptions, subscriptionPayments, recurringRules] = await Promise.all([
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM transactions WHERE account_id = ?", id),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM budgets WHERE account_id = ?", id),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM savings_goals WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM goal_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE account_id = ?)", id),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM loans WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM loan_payments WHERE loan_id IN (SELECT id FROM loans WHERE account_id = ?)", id),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM subscriptions WHERE account_id = ?", id),
+        db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM subscription_payments WHERE subscription_id IN (SELECT id FROM subscriptions WHERE account_id = ?)", id),
         db.getFirstAsync<{ count: number }>("SELECT COUNT(*) AS count FROM recurring_rules WHERE account_id = ?", id),
       ]);
 
@@ -112,8 +118,11 @@ export function createAccountRepository(db: SQLiteDatabase) {
         transactions: transactions?.count ?? 0,
         budgets: budgets?.count ?? 0,
         goals: goals?.count ?? 0,
+        goalContributions: goalContributions?.count ?? 0,
         loans: loans?.count ?? 0,
+        loanPayments: loanPayments?.count ?? 0,
         subscriptions: subscriptions?.count ?? 0,
+        subscriptionPayments: subscriptionPayments?.count ?? 0,
         recurringRules: recurringRules?.count ?? 0,
       };
     },
@@ -156,13 +165,22 @@ export function createAccountRepository(db: SQLiteDatabase) {
     },
 
     async delete(id: string): Promise<void> {
-      const impact = await this.getDeleteImpact(id);
-      if (getAccountDeleteImpactCount(impact) > 0) {
-        throw new Error("This account has linked financial records and cannot be deleted. Archive it instead to preserve your history.");
-      }
+      const account = await db.getFirstAsync<{ id: string }>("SELECT id FROM accounts WHERE id = ?", id);
+      if (!account) throw new Error("Account could not be found.");
 
-      const result = await db.runAsync("DELETE FROM accounts WHERE id = ?", id);
-      if (result.changes === 0) throw new Error("Account could not be found.");
+      await db.withTransactionAsync(async () => {
+        await db.runAsync("DELETE FROM transactions WHERE account_id = ?", id);
+        await db.runAsync("DELETE FROM budgets WHERE account_id = ?", id);
+        await db.runAsync("DELETE FROM goal_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE account_id = ?)", id);
+        await db.runAsync("DELETE FROM loan_payments WHERE loan_id IN (SELECT id FROM loans WHERE account_id = ?)", id);
+        await db.runAsync("DELETE FROM subscription_payments WHERE subscription_id IN (SELECT id FROM subscriptions WHERE account_id = ?)", id);
+        await db.runAsync("DELETE FROM recurring_rules WHERE account_id = ?", id);
+        await db.runAsync("DELETE FROM savings_goals WHERE account_id = ?", id);
+        await db.runAsync("DELETE FROM loans WHERE account_id = ?", id);
+        await db.runAsync("DELETE FROM subscriptions WHERE account_id = ?", id);
+        const result = await db.runAsync("DELETE FROM accounts WHERE id = ?", id);
+        if (result.changes === 0) throw new Error("Account could not be found.");
+      });
     },
   };
 }

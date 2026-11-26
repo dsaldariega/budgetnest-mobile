@@ -251,6 +251,15 @@ export function createLoanRepository(db: SQLiteDatabase) {
         );
       });
     },
+    async delete(id: string): Promise<void> {
+      const loan = await db.getFirstAsync<{ id: string }>("SELECT id FROM loans WHERE id = ?", id);
+      if (!loan) throw new Error("Loan was not found.");
+      await db.withTransactionAsync(async () => {
+        await db.runAsync("DELETE FROM loan_payments WHERE loan_id = ?", id);
+        const result = await db.runAsync("DELETE FROM loans WHERE id = ?", id);
+        if (result.changes === 0) throw new Error("Loan was not found.");
+      });
+    },
     async pause(id: string): Promise<void> {
       const result = await db.runAsync("UPDATE loans SET status = 'paused', updated_at = ? WHERE id = ? AND status = 'active'", new Date().toISOString(), id);
       if (result.changes === 0) throw new Error("Only an active loan can be paused.");

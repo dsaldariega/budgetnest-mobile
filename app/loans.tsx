@@ -93,6 +93,24 @@ export default function LoansScreen() {
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to record payment."); } finally { setSaving(false); }
   };
 
+  const deleteLoan = (loan: LoanListItem) => Alert.alert(
+    "Delete loan and payment history?",
+    `“${loan.name}” and all ${payments.length} recorded payment(s) will be permanently deleted, including its financial history. This action cannot be undone.`,
+    [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete loan", style: "destructive", onPress: async () => {
+        try {
+          await repo.delete(loan.id);
+          setSelected(null);
+          setPayments([]);
+          await load();
+        } catch (e) {
+          Alert.alert("Unable to delete loan", e instanceof Error ? e.message : "Please try again.");
+        }
+      } },
+    ],
+  );
+
   const togglePause = async (loan: LoanListItem) => {
     try {
       if (loan.status === "active") await repo.pause(loan.id); else if (loan.status === "paused") await repo.resume(loan.id);
@@ -145,6 +163,7 @@ export default function LoansScreen() {
           </View>
           <Pressable disabled={selected.status === "paid"} onPress={() => { setPaymentDate(today()); setPaymentAmount(""); setPaymentNote(""); setError(""); setPaymentOpen(true); }} style={[s.primary, { backgroundColor: p.primary, opacity: selected.status === "paid" ? 0.5 : 1 }]}><Text style={s.primaryText}>Record payment</Text></Pressable>
           {selected.status !== "paid" ? <Pressable onPress={() => void togglePause(selected)} style={[s.secondary, { borderColor: p.border }]}><Text style={{ color: p.text, fontWeight: "700" }}>{selected.status === "active" ? "Pause loan" : "Resume loan"}</Text></Pressable> : null}
+          <Pressable onPress={() => deleteLoan(selected)} style={s.dangerButton}><Text style={s.dangerText}>Delete loan and history</Text></Pressable>
           <Text style={[s.section, { color: p.text }]}>Payment history</Text>
           {payments.length === 0 ? <Text style={{ color: p.textMuted }}>No payments recorded yet.</Text> : payments.map(payment => <View key={payment.id} style={[s.payment, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{fmt(payment.amountMinor, selected.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{payment.paymentDate}</Text></View><Text style={{ color: p.textMuted, fontSize: 11 }}>Interest {fmt(payment.interestPaidMinor, selected.currencyCode)}</Text></View>
@@ -178,6 +197,7 @@ const s = StyleSheet.create({
   big: { fontSize: 21, fontWeight: "800" }, empty: { borderWidth: 1, borderRadius: 18, padding: 20 },
   primary: { padding: 15, borderRadius: 13, alignItems: "center", marginTop: 18 }, primaryText: { color: "#fff", fontWeight: "700" },
   secondary: { padding: 14, borderWidth: 1, borderRadius: 13, alignItems: "center", marginTop: 10 },
+  dangerButton: { padding: 14, alignItems: "center", marginTop: 8 }, dangerText: { color: "#D32F2F", fontWeight: "700" },
   modal: { flex: 1 }, form: { padding: 22, paddingBottom: 40 }, modalTitle: { fontSize: 22, fontWeight: "800" },
   label: { fontSize: 13, fontWeight: "700", marginTop: 17, marginBottom: 8 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },

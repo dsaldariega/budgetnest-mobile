@@ -77,6 +77,23 @@ export function createGoalRepository(db: SQLiteDatabase) {
         input.id, input.goalId, input.amountMinor, input.contributedAt, input.note ?? null, new Date().toISOString(),
       );
     },
+    async getDeleteImpact(id: string): Promise<{ contributions: number }> {
+      const goal = await db.getFirstAsync<{ id: string }>("SELECT id FROM savings_goals WHERE id = ?", id);
+      if (!goal) throw new Error("Goal was not found.");
+      const row = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM goal_contributions WHERE goal_id = ?", id,
+      );
+      return { contributions: row?.count ?? 0 };
+    },
+    async delete(id: string): Promise<void> {
+      const goal = await db.getFirstAsync<{ id: string }>("SELECT id FROM savings_goals WHERE id = ?", id);
+      if (!goal) throw new Error("Goal was not found.");
+      await db.withTransactionAsync(async () => {
+        await db.runAsync("DELETE FROM goal_contributions WHERE goal_id = ?", id);
+        const result = await db.runAsync("DELETE FROM savings_goals WHERE id = ?", id);
+        if (result.changes === 0) throw new Error("Goal was not found.");
+      });
+    },
     async archive(id: string): Promise<void> {
       const result = await db.runAsync(
         "UPDATE savings_goals SET is_archived = 1, updated_at = ? WHERE id = ? AND is_archived = 0",

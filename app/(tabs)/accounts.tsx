@@ -204,11 +204,19 @@ export default function AccountsScreen() {
   const deleteAccount = () => {
     if (!selected) return;
     const account = selected;
-    if (!impactReady || getAccountDeleteImpactCount(deleteImpact) > 0) return;
+    if (!impactReady) return;
+
+    const linkedCount = getAccountDeleteImpactCount(deleteImpact);
+    const linkedSummary = linkedCount > 0
+      ? dependencyLabels
+          .filter(([key]) => deleteImpact[key] > 0)
+          .map(([key, label]) => `${deleteImpact[key]} ${label.toLowerCase()}`)
+          .join(", ")
+      : "There are no connected records.";
 
     Alert.alert(
-      "Delete this account?",
-      `“${account.name}” will be permanently deleted. This action cannot be undone.`,
+      "Delete this account and all connected data?",
+      `“${account.name}” and all connected data will be permanently deleted, including transactions, transfers, budgets, loans, subscriptions, recurring schedules, savings goals, and their payment/contribution history. ${linkedSummary} This action cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -235,8 +243,11 @@ export default function AccountsScreen() {
     ["transactions", "Transactions"],
     ["budgets", "Budgets"],
     ["goals", "Savings goals"],
+    ["goalContributions", "Goal contributions / history"],
     ["loans", "Loans"],
+    ["loanPayments", "Loan payments / history"],
     ["subscriptions", "Subscriptions"],
+    ["subscriptionPayments", "Subscription payments / history"],
     ["recurringRules", "Recurring schedules"],
   ] as const;
 
@@ -434,11 +445,11 @@ export default function AccountsScreen() {
               ) : getAccountDeleteImpactCount(deleteImpact) === 0 ? (
                 <Text style={[styles.impactText, { color: palette.success }]}>No linked records. This account can be deleted.</Text>
               ) : (
-                <Text style={[styles.impactText, { color: palette.textMuted }]}>Delete is unavailable while records are linked. Archive the account to keep its history safe.</Text>
+                <Text style={[styles.impactText, { color: palette.expense }]}>Deleting this account also permanently deletes all listed records and their financial history.</Text>
               )}
             </View>
 
-            <Pressable disabled={saving || !impactReady || getAccountDeleteImpactCount(deleteImpact) > 0} onPress={deleteAccount} style={[styles.sheetAction, { opacity: !impactReady || getAccountDeleteImpactCount(deleteImpact) > 0 ? 0.4 : 1 }]}>
+            <Pressable disabled={saving || !impactReady} onPress={deleteAccount} style={[styles.sheetAction, { opacity: !impactReady || saving ? 0.4 : 1 }]}>
               <MaterialCommunityIcons name="trash-can-outline" size={20} color={palette.expense} />
               <Text style={[styles.sheetActionText, { color: palette.expense }]}>Delete account</Text>
             </Pressable>
