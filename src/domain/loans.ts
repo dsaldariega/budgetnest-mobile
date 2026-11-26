@@ -61,9 +61,12 @@ export function allocateLoanPayment(input: {
   const principalBasis = input.terms.interestType === "flat_rate"
     ? input.terms.principalMinor
     : input.remainingPrincipalMinor;
-  const accrued = input.terms.interestType === "flat_rate"
-    ? accruedInterest(principalBasis, input.terms.monthlyRateBps, input.previousPaymentDate, input.payment.paymentDate)
-    : accruedInterest(principalBasis, input.terms.monthlyRateBps, input.previousPaymentDate, input.payment.paymentDate);
+  const accrued = accruedInterest(
+    principalBasis,
+    input.terms.monthlyRateBps,
+    input.previousPaymentDate,
+    input.payment.paymentDate,
+  );
   const interestDue = input.terms.interestType === "flat_rate"
     ? Math.min(input.accruedFlatInterestMinor, accrued)
     : accrued;
