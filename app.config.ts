@@ -6,8 +6,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     process.env.GOOGLE_SERVICES_JSON?.trim() || "./google-services.json";
 
   const plugins = (config.plugins ?? []).filter(
-    (plugin) => plugin !== "react-native-nitro-google-signin",
+    (plugin) =>
+      plugin !== "react-native-nitro-google-signin" && plugin !== "expo-sharing",
   );
+
+  plugins.push("expo-sharing");
 
   if (iosUrlScheme) {
     plugins.push([
