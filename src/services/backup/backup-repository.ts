@@ -1,4 +1,3 @@
-import Constants from "expo-constants";
 import type { SQLiteBindValue, SQLiteDatabase } from "expo-sqlite";
 import {
   BACKUP_TABLES,
@@ -58,7 +57,7 @@ function quoteIdentifier(identifier: string): string {
   return '"' + identifier.replace(/"/g, '""') + '"';
 }
 
-export function createBackupRepository(db: SQLiteDatabase) {
+export function createBackupRepository(db: SQLiteDatabase, appVersion = "unknown") {
   return {
     async createBackup(): Promise<BudgetNestBackup> {
       const data = {} as BackupData;
@@ -74,7 +73,7 @@ export function createBackupRepository(db: SQLiteDatabase) {
       return createBackupPayload(
         data,
         new Date().toISOString(),
-        Constants.expoConfig?.version ?? "unknown",
+        appVersion,
       );
     },
 

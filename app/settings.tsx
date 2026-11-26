@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import Constants from "expo-constants";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -91,7 +92,7 @@ export default function SettingsScreen() {
     setError("");
     setBusy(true);
     try {
-      const json = await createBackupRepository(db).exportJson();
+      const json = await createBackupRepository(db, Constants.expoConfig?.version ?? "unknown").exportJson();
       const { uploadBackupToGoogleDrive } = await import("@/services/google/google-drive-service");
       await uploadBackupToGoogleDrive(json);
       Alert.alert("Backup complete", "Your BudgetNest backup was saved to your Google Drive app data.");
@@ -135,7 +136,7 @@ export default function SettingsScreen() {
     setError("");
     setBusy(true);
     try {
-      await createBackupRepository(db).restoreJson(restoreText);
+      await createBackupRepository(db, Constants.expoConfig?.version ?? "unknown").restoreJson(restoreText);
       await setPreference(await createSettingsRepository(db).getThemePreference());
       setConfirmRestore(false);
       setRestoreText(null);
