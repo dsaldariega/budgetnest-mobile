@@ -1,4 +1,20 @@
-export const colors = {
+export type ThemeColors = {
+  primary: string;
+  primaryLight: string;
+  primaryDark: string;
+  secondary: string;
+  background: string;
+  surface: string;
+  text: string;
+  textMuted: string;
+  border: string;
+  income: string;
+  expense: string;
+  success: string;
+  warning: string;
+};
+
+export const colors: Record<"light" | "dark", ThemeColors> = {
   light: {
     primary: "#D32F2F",
     primaryLight: "#EF5350",

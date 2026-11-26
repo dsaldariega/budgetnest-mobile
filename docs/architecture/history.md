@@ -20,3 +20,15 @@ Activity entries can be opened for details. Loan payments expose the interest/pr
 The tab and modal surfaces use safe-area-aware containers. The bottom tab bar also accounts for the device bottom inset so content and navigation controls do not overlap system navigation areas.
 
 No cloud sync, automatic backup, or new database migration was added in this phase.
+
+
+## Phase 13
+
+Loans now have a complete repayment lifecycle foundation.
+
+- Payment dates are validated against the loan start date and previous payment.
+- Flat-rate payments can settle remaining future fixed-term interest after principal is fully covered.
+- Deleting a payment recalculates all remaining payment allocations in one SQLite transaction.
+- A deleted payment restores a paid loan to active when an obligation remains.
+- Payment deletion is recorded in the local activity log.
+- No database migration was required.
