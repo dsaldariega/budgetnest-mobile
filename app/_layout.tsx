@@ -22,6 +22,7 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="recurring" options={{ presentation: "card", animation: "slide_from_right" }} />
       </Stack>
     </DatabaseProvider>
   );

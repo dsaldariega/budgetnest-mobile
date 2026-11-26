@@ -2,8 +2,8 @@ import Constants from "expo-constants";
 import type { SQLiteBindValue, SQLiteDatabase } from "expo-sqlite";
 import { BACKUP_TABLES, createBackupPayload, parseBackup, serializeBackup, type BackupData, type BudgetNestBackup } from "./backup-format";
 import { verifyBackupChecksum } from "./backup-integrity";
-const restoreOrder=["activity_logs","loan_payments","subscription_payments","goal_contributions","transactions","loans","subscriptions","budgets","savings_goals","categories","accounts","app_settings"] as const;
-const insertOrder=["accounts","categories","transactions","budgets","savings_goals","goal_contributions","subscriptions","subscription_payments","loans","loan_payments","activity_logs","app_settings"] as const;
+const restoreOrder=["activity_logs","loan_payments","subscription_payments","goal_contributions","transactions","recurring_rules","loans","subscriptions","budgets","savings_goals","categories","accounts","app_settings"] as const;
+const insertOrder=["accounts","categories","recurring_rules","transactions","budgets","savings_goals","goal_contributions","subscriptions","subscription_payments","loans","loan_payments","activity_logs","app_settings"] as const;
 async function assertDatabaseIntegrity(db: SQLiteDatabase): Promise<void> {
   const foreignKeyErrors=await db.getAllAsync<Record<string,unknown>>("PRAGMA foreign_key_check");
   if (foreignKeyErrors.length>0) throw new Error("Restored data failed the database relationship check.");

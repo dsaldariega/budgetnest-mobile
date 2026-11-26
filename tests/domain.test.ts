@@ -131,3 +131,22 @@ test("flat-rate payment can settle future interest after principal", async () =>
   assert.equal(allocation.remainingInterestMinor, 0);
   assert.equal(allocation.remainingPrincipalMinor, 0);
 });
+
+import { advanceRecurringDate, getDueRecurringDates } from "@/domain/recurring";
+
+test("recurring schedules advance by interval with month-end clamping", () => {
+  assert.equal(advanceRecurringDate("2026-01-31", "monthly", 1), "2026-02-28");
+  assert.equal(advanceRecurringDate("2026-01-31", "monthly", 2), "2026-03-31");
+  assert.equal(advanceRecurringDate("2026-02-28", "yearly", 1), "2027-02-28");
+  assert.equal(advanceRecurringDate("2026-01-01", "weekly", 2), "2026-01-15");
+});
+
+test("due recurring dates include missed occurrences once and stop at end date", () => {
+  assert.deepEqual(getDueRecurringDates({
+    nextOccurrenceDate: "2026-01-31",
+    frequency: "monthly",
+    intervalCount: 1,
+    throughDate: "2026-04-30",
+    endDate: "2026-03-31",
+  }), ["2026-01-31", "2026-02-28", "2026-03-28"]);
+});

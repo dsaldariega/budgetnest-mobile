@@ -1,8 +1,8 @@
 import { calculateBackupChecksum } from "./backup-integrity";
 
 export const BACKUP_FORMAT_VERSION = 1;
-export const DATABASE_SCHEMA_VERSION = 4;
-export const BACKUP_TABLES = ["accounts","categories","transactions","budgets","savings_goals","goal_contributions","subscriptions","subscription_payments","loans","loan_payments","activity_logs","app_settings"] as const;
+export const DATABASE_SCHEMA_VERSION = 5;
+export const BACKUP_TABLES = ["accounts","categories","recurring_rules","transactions","budgets","savings_goals","goal_contributions","subscriptions","subscription_payments","loans","loan_payments","activity_logs","app_settings"] as const;
 export type BackupTableName = typeof BACKUP_TABLES[number];
 export type BackupData = Record<BackupTableName, Record<string, unknown>[]>;
 export type BackupRecordCounts = Record<BackupTableName, number>;
@@ -30,6 +30,6 @@ export function validateBackupPayload(value: unknown): asserts value is BudgetNe
     if (!Array.isArray(rows) || !rows.every(isPlainObject) || typeof count!=="number" || !Number.isInteger(count) || count<0 || count!==rows.length) throw new Error("Backup table \""+table+"\" is invalid or has an incorrect record count.");
   }
   const data=value.data as BackupData;
-  const primaryKeys: Record<BackupTableName,string>={accounts:"id",categories:"id",transactions:"id",budgets:"id",savings_goals:"id",goal_contributions:"id",subscriptions:"id",subscription_payments:"id",loans:"id",loan_payments:"id",activity_logs:"id",app_settings:"key"};
+  const primaryKeys: Record<BackupTableName,string>={accounts:"id",categories:"id",recurring_rules:"id",transactions:"id",budgets:"id",savings_goals:"id",goal_contributions:"id",subscriptions:"id",subscription_payments:"id",loans:"id",loan_payments:"id",activity_logs:"id",app_settings:"key"};
   for (const table of BACKUP_TABLES) if (!hasUniqueKeys(data[table],primaryKeys[table])) throw new Error("Backup table \""+table+"\" contains missing or duplicate primary keys.");
 }

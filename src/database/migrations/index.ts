@@ -194,6 +194,35 @@ export const migrations: DatabaseMigration[] = [
       CREATE INDEX idx_savings_goals_account ON savings_goals(account_id, is_archived);
     `,
   },
+  {
+    version: 5,
+    description: "Add recurring income and expense schedules",
+    sql: `
+      CREATE TABLE recurring_rules (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+        type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+        amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+        account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+        category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+        frequency TEXT NOT NULL CHECK (frequency IN ('weekly', 'monthly', 'yearly')),
+        interval_count INTEGER NOT NULL DEFAULT 1 CHECK (interval_count > 0),
+        start_date TEXT NOT NULL,
+        next_occurrence_date TEXT NOT NULL,
+        end_date TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        CHECK (end_date IS NULL OR end_date >= start_date)
+      );
+      ALTER TABLE transactions ADD COLUMN recurring_rule_id TEXT REFERENCES recurring_rules(id) ON DELETE SET NULL;
+      ALTER TABLE transactions ADD COLUMN recurring_occurrence_date TEXT;
+      CREATE UNIQUE INDEX idx_transactions_recurring_occurrence
+        ON transactions(recurring_rule_id, recurring_occurrence_date)
+        WHERE recurring_rule_id IS NOT NULL AND recurring_occurrence_date IS NOT NULL;
+      CREATE INDEX idx_recurring_rules_active_date ON recurring_rules(is_active, next_occurrence_date);
+    `,
+  },
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
