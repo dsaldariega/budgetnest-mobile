@@ -25,6 +25,7 @@ import {
   type ExportPeriod,
 } from "@/services/csv/transaction-csv";
 import { colors } from "@/theme/colors";
+import { DateField } from "@/components/ui/date-field";
 
 const todayLocal = () => {
   const date = new Date();
@@ -258,12 +259,10 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
             {period === "custom" ? (
               <View style={styles.dateRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.fieldCaption, { color: palette.textMuted }]}>Start date</Text>
-                  <TextInput value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={palette.textMuted} style={[styles.input, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border }]} />
+                  <DateField label="Start date" value={startDate} onChange={setStartDate} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.fieldCaption, { color: palette.textMuted }]}>End date</Text>
-                  <TextInput value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" placeholderTextColor={palette.textMuted} style={[styles.input, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border }]} />
+                  <DateField label="End date" value={endDate} onChange={setEndDate} />
                 </View>
               </View>
             ) : null}
