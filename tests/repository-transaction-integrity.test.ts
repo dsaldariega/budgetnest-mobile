@@ -142,6 +142,29 @@ describe("repository transaction integrity", () => {
     assert.match(source, /identifier\.replace\(\/"\/g, '""'\)/);
   });
 
+  it("reads subscription payment and billing state inside the deletion transaction", () => {
+    const source = readSource("../src/database/repositories/subscription-repository.ts");
+    const deletion = getMethodBody(source, "async deletePayment(id: string)");
+
+    assert.ok(deletion.indexOf("withTransactionAsync") < deletion.indexOf("SELECT sp.subscription_id"));
+    assert.ok(deletion.indexOf("withTransactionAsync") < deletion.indexOf("getSubscriptionRow(db, payment.subscription_id)"));
+    assert.ok(deletion.indexOf("getSubscriptionRow(db, payment.subscription_id)") < deletion.indexOf("DELETE FROM subscription_payments"));
+    assert.match(deletion, /WHERE id = \? AND next_billing_date = \?/);
+    assert.match(deletion, /deleted\.changes !== 1/);
+  });
+
+  it("cleans account-linked records transactionally while retaining activity history", () => {
+    const source = readSource("../src/database/repositories/account-repository.ts");
+    const deletion = getMethodBody(source, "async delete(id: string)");
+
+    assert.match(deletion, /withTransactionAsync/);
+    assert.ok(deletion.indexOf("DELETE FROM transactions") < deletion.indexOf("DELETE FROM accounts"));
+    for (const table of ["budgets", "goal_contributions", "loan_payments", "subscription_payments", "recurring_rules", "savings_goals", "loans", "subscriptions"]) {
+      assert.match(deletion, new RegExp("DELETE FROM " + table));
+    }
+    assert.doesNotMatch(deletion, /DELETE FROM activity_logs/);
+  });
+
   it("preserves linked loan and subscription transaction history when records are deleted", () => {
     const loanSource = readSource("../src/database/repositories/loan-repository.ts");
     const subscriptionSource = readSource("../src/database/repositories/subscription-repository.ts");
