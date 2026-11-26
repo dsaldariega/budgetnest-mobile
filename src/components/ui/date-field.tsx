@@ -32,6 +32,12 @@ export function DateField({
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [mode, setMode] = useState<"calendar"|"months"|"years">("calendar");
 
+  const moveMonth = (delta: number) => {
+    const next = new Date(viewYear, viewMonth + delta, 1);
+    setViewMonth(next.getMonth());
+    setViewYear(next.getFullYear());
+  };
+
   const openPicker = () => {
     const d = parseDate(value);
     setViewMonth(d.getMonth());
@@ -68,14 +74,13 @@ export function DateField({
           {mode === "calendar" ? (
             <>
               <View style={s.calendarHeader}>
-                <Pressable onPress={() => setViewMonth(m => m === 0 ? 11 : m - 1)} style={s.iconButton}><MaterialCommunityIcons name="chevron-left" size={21} color={p.text} /></Pressable>
+                <Pressable onPress={() => moveMonth(-1)} style={s.iconButton}><MaterialCommunityIcons name="chevron-left" size={21} color={p.text} /></Pressable>
                 <View style={s.monthTitle}>
                   <Pressable onPress={() => setMode("months")}><Text style={[s.monthText, { color: p.text }]}>{MONTHS[viewMonth]}</Text></Pressable>
                   <Pressable onPress={() => setMode("years")}><Text style={[s.yearText, { color: p.primary }]}>{viewYear}</Text></Pressable>
                 </View>
-                <Pressable onPress={() => setViewMonth(m => m === 11 ? 0 : m + 1)} style={s.iconButton}><MaterialCommunityIcons name="chevron-right" size={21} color={p.text} /></Pressable>
+                <Pressable onPress={() => moveMonth(1)} style={s.iconButton}><MaterialCommunityIcons name="chevron-right" size={21} color={p.text} /></Pressable>
               </View>
-              {viewMonth === 0 ? null : null}
               <View style={s.weekRow}>{WEEKDAYS.map(day => <Text key={day} style={[s.weekday, { color: p.textMuted }]}>{day}</Text>)}</View>
               <View style={s.grid}>
                 {days.map((day, index) => {

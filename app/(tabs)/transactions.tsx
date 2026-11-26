@@ -69,12 +69,12 @@ export default function TransactionsScreen() {
   const load = useCallback(async () => {
     try {
       const [history, tx, acc] = await Promise.all([historyRepo.list({ filter, search, fromDate: fromDate || undefined, toDate: toDate || undefined, accountName: accountName || undefined, categoryName: categoryName || undefined }), txRepo.listRecent(200), accountRepo.list()]);
-      setItems(history); setTransactions(tx); setAccounts(acc);
+      setItems(history); setTransactions(tx); setAccounts(acc.filter(a => !a.isArchived));
       setAccountId(v => acc.some(a => a.id === v) ? v : acc[0]?.id ?? "");
       setDestinationAccountId(v => acc.some(a => a.id === v && a.id !== accountId) ? v : acc.find(a => a.id !== accountId)?.id ?? "");
       setError("");
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to load activity."); }
-  }, [historyRepo, txRepo, accountRepo, filter, search, fromDate, toDate, accountName, categoryName, accountId]);
+  }, [historyRepo, txRepo, accountRepo, filter, search, fromDate, toDate, accountName, categoryName]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 

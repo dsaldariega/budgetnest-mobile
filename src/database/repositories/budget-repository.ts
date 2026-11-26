@@ -17,7 +17,7 @@ export type CreateBudgetInput = {
 export function createBudgetRepository(db: SQLiteDatabase) {
   async function list(referenceDate: string): Promise<BudgetListItem[]> {
     const rows = await db.getAllAsync<{
-      id: string; category_id: string; category_name: string; account_id: string;
+      id: string; name: string; category_id: string; category_name: string; account_id: string;
       account_name: string; currency_code: string; period: BudgetPeriod;
       start_date: string; end_date: string | null; amount_minor: number;
       rollover_enabled: number; created_at: string; updated_at: string;
