@@ -143,30 +143,34 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
     },
 
     async deletePayment(id: string): Promise<void> {
-      const payment = await db.getFirstAsync<{
-        subscription_id: string; billing_date: string; billing_cycle: BillingCycle;
-      }>(
-        "SELECT sp.subscription_id, sp.billing_date, s.billing_cycle " +
-        "FROM subscription_payments sp JOIN subscriptions s ON s.id = sp.subscription_id WHERE sp.id = ?",
-        id,
-      );
-      if (!payment) throw new Error("Payment was not found.");
-
-      const subscription = await getSubscriptionRow(db, payment.subscription_id);
-      if (!subscription) throw new Error("Subscription was not found.");
-
-      const immediateNextDate = advanceBillingDate(payment.billing_date, payment.billing_cycle);
-      const shouldRollback = subscription.next_billing_date === immediateNextDate;
-      const now = new Date().toISOString();
-
       await db.withTransactionAsync(async () => {
+        const payment = await db.getFirstAsync<{
+          subscription_id: string; billing_date: string; billing_cycle: BillingCycle;
+        }>(
+          "SELECT sp.subscription_id, sp.billing_date, s.billing_cycle " +
+          "FROM subscription_payments sp JOIN subscriptions s ON s.id = sp.subscription_id WHERE sp.id = ?",
+          id,
+        );
+        if (!payment) throw new Error("Payment was not found.");
+
+        const subscription = await getSubscriptionRow(db, payment.subscription_id);
+        if (!subscription) throw new Error("Subscription was not found.");
+
+        const immediateNextDate = advanceBillingDate(payment.billing_date, payment.billing_cycle);
+        const shouldRollback = subscription.next_billing_date === immediateNextDate;
         const now = new Date().toISOString();
-        await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "subscription-payment-" + id);
-        await db.runAsync("DELETE FROM subscription_payments WHERE id = ?", id);
+
+        await db.runAsync(
+          "UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+          now, now, "subscription-payment-" + id,
+        );
+        const deleted = await db.runAsync("DELETE FROM subscription_payments WHERE id = ?", id);
+        if (deleted.changes !== 1) throw new Error("Payment was not found.");
+
         if (shouldRollback) {
           await db.runAsync(
-            "UPDATE subscriptions SET next_billing_date = ?, updated_at = ? WHERE id = ?",
-            payment.billing_date, now, payment.subscription_id,
+            "UPDATE subscriptions SET next_billing_date = ?, updated_at = ? WHERE id = ? AND next_billing_date = ?",
+            payment.billing_date, now, payment.subscription_id, immediateNextDate,
           );
         }
       });
