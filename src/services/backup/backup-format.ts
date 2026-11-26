@@ -22,7 +22,7 @@ export function parseBackup(text: string): BudgetNestBackup { let parsed: unknow
 export function validateBackupPayload(value: unknown): asserts value is BudgetNestBackup {
   if (!isPlainObject(value)) throw new Error("Backup must be a JSON object.");
   const metadata=value.metadata;
-  if (!isPlainObject(metadata) || metadata.format!=="budgetnest-backup" || metadata.formatVersion!==BACKUP_FORMAT_VERSION || !Number.isInteger(metadata.schemaVersion) || metadata.schemaVersion < 5 || metadata.schemaVersion > DATABASE_SCHEMA_VERSION || typeof metadata.appVersion!=="string" || typeof metadata.exportedAt!=="string" || typeof metadata.checksum!=="string" || !/^[a-f0-9]{64}$/.test(metadata.checksum)) throw new Error("This backup format is unsupported or uses a different database schema.");
+  if (!isPlainObject(metadata) || metadata.format!=="budgetnest-backup" || metadata.formatVersion!==BACKUP_FORMAT_VERSION || typeof metadata.schemaVersion!=="number" || !Number.isInteger(metadata.schemaVersion) || metadata.schemaVersion < 5 || metadata.schemaVersion > DATABASE_SCHEMA_VERSION || typeof metadata.appVersion!=="string" || typeof metadata.exportedAt!=="string" || typeof metadata.checksum!=="string" || !/^[a-f0-9]{64}$/.test(metadata.checksum)) throw new Error("This backup format is unsupported or uses a different database schema.");
   if (Number.isNaN(Date.parse(metadata.exportedAt))) throw new Error("Backup export date is invalid.");
   if (!isPlainObject(metadata.recordCounts) || !isPlainObject(value.data)) throw new Error("Backup metadata or data is missing.");
   for (const table of BACKUP_TABLES) {
