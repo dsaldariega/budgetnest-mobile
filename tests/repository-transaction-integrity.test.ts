@@ -130,4 +130,28 @@ describe("repository transaction integrity", () => {
     assert.match(generation, /UPDATE recurring_rules SET next_occurrence_date/);
   });
 
+
+  it("creates backups from one consistent snapshot and safely quotes restored column names", () => {
+    const source = readSource("../src/services/backup/backup-repository.ts");
+    const createBackup = getMethodBody(source, "async createBackup()");
+    const restore = getMethodBody(source, "async restoreJson(text: string)");
+
+    assert.match(createBackup, /withTransactionAsync/);
+    assert.ok(createBackup.indexOf("withTransactionAsync") < createBackup.indexOf("for (const table of BACKUP_TABLES)"));
+    assert.match(restore, /quoteIdentifier/);
+    assert.match(source, /identifier\.replace\(\/"\/g, '""'\)/);
+  });
+
+  it("preserves linked loan and subscription transaction history when records are deleted", () => {
+    const loanSource = readSource("../src/database/repositories/loan-repository.ts");
+    const subscriptionSource = readSource("../src/database/repositories/subscription-repository.ts");
+    const loanDelete = getMethodBody(loanSource, "async delete(id: string)");
+    const subscriptionDelete = getMethodBody(subscriptionSource, "async delete(id: string)");
+
+    assert.match(loanDelete, /UPDATE transactions SET deleted_at/);
+    assert.ok(loanDelete.indexOf("UPDATE transactions SET deleted_at") < loanDelete.indexOf("DELETE FROM loan_payments"));
+    assert.match(subscriptionDelete, /UPDATE transactions SET deleted_at/);
+    assert.ok(subscriptionDelete.indexOf("UPDATE transactions SET deleted_at") < subscriptionDelete.indexOf("DELETE FROM subscription_payments"));
+  });
+
 });
