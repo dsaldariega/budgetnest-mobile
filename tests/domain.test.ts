@@ -94,3 +94,40 @@ test("reducing-balance zero-rate loan is simple principal division", async () =>
   assert.equal(summary.totalInterestMinor, 0);
   assert.equal(summary.scheduledPaymentMinor, 25000);
 });
+
+
+test("loan payment dates must stay chronological", async () => {
+  const terms = {
+    principalMinor: 100000,
+    monthlyRateBps: 200,
+    termMonths: 10,
+    interestType: "flat_rate" as const,
+  };
+  assert.throws(() => allocateLoanPayment({
+    terms,
+    previousPaymentDate: "2026-02-28",
+    payment: { amountMinor: 10000, paymentDate: "2026-02-27" },
+    remainingPrincipalMinor: 92000,
+    remainingInterestMinor: 18000,
+  }), /earlier than the previous payment/);
+});
+
+test("flat-rate payment can settle future interest after principal", async () => {
+  const terms = {
+    principalMinor: 100000,
+    monthlyRateBps: 200,
+    termMonths: 2,
+    interestType: "flat_rate" as const,
+  };
+  const allocation = allocateLoanPayment({
+    terms,
+    previousPaymentDate: "2026-01-01",
+    payment: { amountMinor: 104000, paymentDate: "2026-02-01" },
+    remainingPrincipalMinor: 100000,
+    remainingInterestMinor: 4000,
+  });
+  assert.equal(allocation.interestPaidMinor, 4000);
+  assert.equal(allocation.principalPaidMinor, 100000);
+  assert.equal(allocation.remainingInterestMinor, 0);
+  assert.equal(allocation.remainingPrincipalMinor, 0);
+});

@@ -137,6 +137,77 @@ export function createLoanRepository(db: SQLiteDatabase) {
         input.termMonths, input.startDate, dueDate, input.accountId ?? null, input.notes?.trim() || null, now, now,
       );
     },
+    async deletePayment(paymentId: string): Promise<void> {
+      const payment = await db.getFirstAsync<{ id: string; loan_id: string }>(
+        "SELECT id, loan_id FROM loan_payments WHERE id = ?",
+        paymentId,
+      );
+      if (!payment) throw new Error("Payment was not found.");
+
+      await db.withTransactionAsync(async () => {
+        await db.runAsync("DELETE FROM loan_payments WHERE id = ?", paymentId);
+
+        const loan = await getLoanRow(payment.loan_id);
+        if (!loan) throw new Error("Loan was not found.");
+
+        const terms = {
+          principalMinor: loan.principal_minor,
+          monthlyRateBps: loan.monthly_interest_rate_bps,
+          termMonths: loan.term_months,
+          interestType: loan.interest_type,
+        };
+        const summary = calculateLoanSummary(terms, loan.start_date);
+        const payments = await db.getAllAsync<{
+          id: string; amount_minor: number; payment_date: string; created_at: string;
+        }>(
+          "SELECT id, amount_minor, payment_date, created_at FROM loan_payments WHERE loan_id = ? ORDER BY payment_date ASC, created_at ASC",
+          loan.id,
+        );
+
+        let remainingPrincipalMinor = loan.principal_minor;
+        let remainingInterestMinor = summary.totalInterestMinor;
+        let previousPaymentDate = loan.start_date;
+
+        for (const item of payments) {
+          const allocation = allocateLoanPayment({
+            terms,
+            previousPaymentDate,
+            payment: { amountMinor: item.amount_minor, paymentDate: item.payment_date },
+            remainingPrincipalMinor,
+            remainingInterestMinor,
+          });
+          await db.runAsync(
+            "UPDATE loan_payments SET interest_paid_minor = ?, principal_paid_minor = ? WHERE id = ?",
+            allocation.interestPaidMinor,
+            allocation.principalPaidMinor,
+            item.id,
+          );
+          remainingPrincipalMinor = allocation.remainingPrincipalMinor;
+          remainingInterestMinor = allocation.remainingInterestMinor;
+          previousPaymentDate = item.payment_date;
+        }
+
+        const nextStatus = remainingPrincipalMinor === 0 && remainingInterestMinor === 0
+          ? "paid"
+          : loan.status === "paid" ? "active" : loan.status;
+        const now = new Date().toISOString();
+        await db.runAsync(
+          "UPDATE loans SET status = ?, updated_at = ? WHERE id = ?",
+          nextStatus,
+          now,
+          loan.id,
+        );
+        await db.runAsync(
+          "INSERT INTO activity_logs (id, entity_type, entity_id, action, summary, metadata_json, created_at) VALUES (?, 'loan_payment', ?, 'deleted', ?, ?, ?)",
+          "activity-delete-" + paymentId,
+          loan.id,
+          "Deleted loan payment",
+          JSON.stringify({ paymentId }),
+          now,
+        );
+      });
+    },
+
     async recordPayment(input: CreateLoanPaymentInput): Promise<void> {
       assertPositiveMinorUnits(input.amountMinor);
       compareDates(input.paymentDate, input.paymentDate);
@@ -144,6 +215,12 @@ export function createLoanRepository(db: SQLiteDatabase) {
       if (!loan) throw new Error("Loan was not found.");
       if (loan.status === "paid") throw new Error("This loan is already paid.");
       const state = await calculateRemaining(input.loanId);
+      if (compareDates(input.paymentDate, loan.start_date) < 0) {
+        throw new Error("Payment date cannot be earlier than the loan start date.");
+      }
+      if (compareDates(input.paymentDate, state.previousPaymentDate) < 0) {
+        throw new Error("Payment date cannot be earlier than the previous payment.");
+      }
       const allocation = allocateLoanPayment({
         terms: {
           principalMinor: loan.principal_minor,
