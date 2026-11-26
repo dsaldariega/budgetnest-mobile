@@ -54,7 +54,7 @@ describe("database migration integrity", () => {
       assert.match(sql, new RegExp(`CREATE TABLE ${table}\\b`, "i"));
     }
 
-    assert.match(sql, /CHECK\\s*\\(interest_paid_minor \\+ principal_paid_minor = amount_minor\\)/i);
+    assert.match(sql, /CHECK\s*\(interest_paid_minor \+ principal_paid_minor = amount_minor\)/i);
     assert.match(sql, /CREATE INDEX idx_loan_payments_loan_date/i);
     assert.match(sql, /CREATE INDEX idx_subscription_payments_subscription_date/i);
     assert.match(sql, /CREATE INDEX idx_activity_logs_created_at/i);
