@@ -42,3 +42,14 @@ export type LoanPayment = {
   id: string; loanId: string; amountMinor: number; interestPaidMinor: number;
   principalPaidMinor: number; paymentDate: string; notes: string | null; createdAt: string;
 };
+
+export type SubscriptionBillingCycle = "weekly" | "monthly" | "quarterly" | "yearly";
+export type Subscription = {
+  id: string; name: string; amountMinor: number; billingCycle: SubscriptionBillingCycle;
+  nextBillingDate: string; accountId: string | null; categoryId: string | null;
+  isActive: boolean; createdAt: string; updatedAt: string;
+};
+export type SubscriptionPayment = {
+  id: string; subscriptionId: string; amountMinor: number; billingDate: string;
+  paidAt: string; notes: string | null; createdAt: string;
+};

@@ -41,6 +41,7 @@ export default function TabLayout() {
       <Tabs.Screen name="budgets" options={{ title: "Budgets", tabBarLabel: ({ focused }) => <TabLabel label="Budgets" focused={focused} dark={isDark} /> }} />
       <Tabs.Screen name="goals" options={{ title: "Goals", tabBarLabel: ({ focused }) => <TabLabel label="Goals" focused={focused} dark={isDark} /> }} />
       <Tabs.Screen name="loans" options={{ title: "Loans", tabBarLabel: ({ focused }) => <TabLabel label="Loans" focused={focused} dark={isDark} /> }} />
+      <Tabs.Screen name="subscriptions" options={{ title: "Subscriptions", tabBarLabel: ({ focused }) => <TabLabel label="Subs" focused={focused} dark={isDark} /> }} />
       <Tabs.Screen name="accounts" options={{ title: "Accounts", tabBarLabel: ({ focused }) => <TabLabel label="Accounts" focused={focused} dark={isDark} /> }} />
       <Tabs.Screen name="settings" options={{ title: "Settings", tabBarLabel: ({ focused }) => <TabLabel label="Settings" focused={focused} dark={isDark} /> }} />
     </Tabs>
