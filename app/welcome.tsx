@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ComponentRef } from "react";
 import {
   useWindowDimensions,
   NativeScrollEvent,
@@ -54,7 +54,7 @@ export default function WelcomeScreen() {
   const palette = mode === "dark" ? colors.dark : colors.light;
   const [activeIndex, setActiveIndex] = useState(0);
   const [connectVisible, setConnectVisible] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const lastSlide = activeIndex === slides.length - 1;
 
   const explore = () => router.replace("/(tabs)");
