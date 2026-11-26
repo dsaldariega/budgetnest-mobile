@@ -37,14 +37,10 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
         const restoredUser = restoreGoogleUser();
         if (mounted) setUser(restoredUser);
       })
-      .catch((e: unknown) => {
-        if (mounted) {
-          setError(
-            e instanceof Error
-              ? e.message
-              : "Google sign-in is unavailable in this build.",
-          );
-        }
+      .catch(() => {
+        // Google is optional. A native auth issue must not block local app use
+        // or display a sign-in error before the user asks to connect.
+        if (mounted) setUser(null);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -86,6 +82,8 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
     return getDriveAccessToken();
   }, []);
 
+  const clearError = useCallback(() => setError(""), []);
+
   const value = useMemo(
     () => ({
       user,
@@ -95,9 +93,9 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
       signIn,
       signOut,
       getDriveToken,
-      clearError: () => setError(""),
+      clearError,
     }),
-    [user, loading, signingIn, error, signIn, signOut, getDriveToken],
+    [user, loading, signingIn, error, signIn, signOut, getDriveToken, clearError],
   );
 
   return (

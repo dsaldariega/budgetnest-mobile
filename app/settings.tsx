@@ -15,6 +15,7 @@ import { TransactionDataTools } from "@/components/settings/transaction-data-too
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
+import { GoogleConnectModal } from "@/components/auth/google-connect-modal";
 
 const formatCount = (value: number) => new Intl.NumberFormat("en-PH").format(value);
 
@@ -24,9 +25,10 @@ export default function SettingsScreen() {
   const { preference, mode, setPreference } = useThemePreference();
   const dark = mode === "dark";
   const palette = dark ? colors.dark : colors.light;
-  const { user, loading: authLoading, signingIn, error: authError, signIn, signOut, clearError } = useGoogleAuth();
+  const { user, loading: authLoading, signOut } = useGoogleAuth();
 
   const [busy, setBusy] = useState(false);
+  const [googleConnectVisible, setGoogleConnectVisible] = useState(false);
   const [error, setError] = useState("");
   const [defaultCurrency, setDefaultCurrency] = useState<DefaultCurrencyCode>(DEFAULT_CURRENCY_CODE);
   const [savingCurrency, setSavingCurrency] = useState(false);
@@ -234,23 +236,13 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {authError ? (
-            <View style={[styles.errorCard, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
-              <Text style={[styles.errorTitle, { color: palette.primary }]}>Google sign-in failed</Text>
-              <Text style={[styles.errorText, { color: palette.text }]}>{authError}</Text>
-              <Pressable onPress={clearError} style={styles.dismissError}>
-                <Text style={{ color: palette.primary, fontWeight: "800" }}>Dismiss</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
           {!user ? (
             <Pressable
-              disabled={authLoading || signingIn}
-              onPress={() => void signIn()}
-              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: authLoading || signingIn ? 0.6 : 1 }]}
+              disabled={authLoading}
+              onPress={() => setGoogleConnectVisible(true)}
+              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: authLoading ? 0.6 : 1 }]}
             >
-              <Text style={styles.primaryText}>{signingIn ? "Signing in…" : "Sign in with Google"}</Text>
+              <Text style={styles.primaryText}>Connect with Google</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -319,6 +311,8 @@ export default function SettingsScreen() {
           </View>
         ) : null}
       </ScrollView>
+
+      <GoogleConnectModal visible={googleConnectVisible} onClose={() => setGoogleConnectVisible(false)} />
 
       <Modal visible={confirmRestore} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmRestore(false); }}>
         <View style={styles.modalBackdrop}>
