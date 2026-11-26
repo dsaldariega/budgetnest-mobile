@@ -8,6 +8,7 @@ import { createRecurringRepository } from "../src/database/repositories/recurrin
 import { createSubscriptionRepository } from "../src/database/repositories/subscription-repository";
 import { createTransactionRepository } from "../src/database/repositories/transaction-repository";
 import { createBackupRepository } from "../src/services/backup/backup-repository";
+import { calculateBackupChecksum } from "../src/services/backup/backup-integrity";
 
 class TestSQLiteDatabase {
   constructor(private readonly native: DatabaseSync) { }
@@ -344,6 +345,46 @@ describe("financial workflow integration", () => {
         "transfer-1-out",
       );
       assert.equal(outgoing?.amount_minor, 3_000);
+    });
+  });
+
+  it("rolls back a failed restore and preserves the existing database", async () => {
+    await withDatabase(async db => {
+      const backups = createBackupRepository(db as never);
+      await db.runAsync("UPDATE accounts SET name = ? WHERE id = ?", "Original local account", "cash");
+      const backup = await backups.createBackup();
+
+      backup.data.transactions.push({
+        id: "invalid-restore-transaction",
+        account_id: "missing-account",
+        type: "expense",
+        amount_minor: 100,
+        description: "Invalid foreign key",
+        occurred_at: "2026-01-02",
+        created_at: "2026-01-02T00:00:00.000Z",
+        updated_at: "2026-01-02T00:00:00.000Z",
+      });
+      backup.metadata.recordCounts.transactions += 1;
+      backup.metadata.checksum = calculateBackupChecksum(backup.data);
+
+      await assert.rejects(backups.restoreJson(JSON.stringify(backup)));
+
+      const account = await db.getFirstAsync<{ name: string }>(
+        "SELECT name FROM accounts WHERE id = ?",
+        "cash",
+      );
+      assert.equal(account?.name, "Original local account");
+
+      const restoreFlag = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM app_settings WHERE key = ?",
+        "backup_restore_in_progress",
+      );
+      assert.equal(restoreFlag?.count, 0);
+
+      const transactionCount = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM transactions",
+      );
+      assert.equal(transactionCount?.count, 0);
     });
   });
 

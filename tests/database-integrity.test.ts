@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import { migrations, migrateDatabase } from "../src/database/migrations";
+import { DATABASE_SCHEMA_VERSION } from "../src/services/backup/backup-format";
 
 describe("database migration integrity", () => {
   it("keeps migration versions unique and strictly increasing", () => {
@@ -13,6 +14,10 @@ describe("database migration integrity", () => {
     for (let index = 1; index < versions.length; index += 1) {
       assert.equal(versions[index], versions[index - 1] + 1);
     }
+  });
+
+  it("keeps the backup schema version aligned with the latest database migration", () => {
+    assert.equal(DATABASE_SCHEMA_VERSION, migrations[migrations.length - 1].version);
   });
 
   it("keeps migration descriptions and SQL non-empty", () => {

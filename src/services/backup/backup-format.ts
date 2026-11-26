@@ -1,7 +1,7 @@
 import { calculateBackupChecksum } from "./backup-integrity";
 
 export const BACKUP_FORMAT_VERSION = 1;
-export const DATABASE_SCHEMA_VERSION = 6;
+export const DATABASE_SCHEMA_VERSION = 10;
 export const BACKUP_TABLES = ["accounts","categories","recurring_rules","transactions","budgets","savings_goals","goal_contributions","subscriptions","subscription_payments","loans","loan_payments","activity_logs","app_settings"] as const;
 export type BackupTableName = typeof BACKUP_TABLES[number];
 export type BackupData = Record<BackupTableName, Record<string, unknown>[]>;
