@@ -129,16 +129,18 @@ export function createLoanRepository(db: SQLiteDatabase) {
       const account = await db.getFirstAsync<{ is_archived: number }>("SELECT is_archived FROM accounts WHERE id = ?", input.accountId);
       if (!account || account.is_archived) throw new Error("Choose an active account.");
       const now = new Date().toISOString();
-      await db.runAsync(
-        "INSERT INTO loans (id, name, principal_minor, monthly_interest_rate_bps, interest_type, term_months, start_date, due_date, status, account_id, notes, created_at, updated_at) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)",
-        input.id, input.name.trim(), input.principalMinor, input.monthlyInterestRateBps, input.interestType,
-        input.termMonths, input.startDate, dueDate, input.accountId, input.notes?.trim() || null, now, now,
-      );
-      await db.runAsync(
-        "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-income-loan', NULL, NULL, 'income', ?, ?, ?, ?, ?, ?)",
-        "loan-" + input.id, input.accountId, input.principalMinor, input.name.trim(), input.notes?.trim() || null, input.startDate, now, now,
-      );
+      await db.withTransactionAsync(async () => {
+        await db.runAsync(
+          "INSERT INTO loans (id, name, principal_minor, monthly_interest_rate_bps, interest_type, term_months, start_date, due_date, status, account_id, notes, created_at, updated_at) " +
+          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)",
+          input.id, input.name.trim(), input.principalMinor, input.monthlyInterestRateBps, input.interestType,
+          input.termMonths, input.startDate, dueDate, input.accountId, input.notes?.trim() || null, now, now,
+        );
+        await db.runAsync(
+          "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-income-loan', NULL, NULL, 'income', ?, ?, ?, ?, ?, ?)",
+          "loan-" + input.id, input.accountId, input.principalMinor, input.name.trim(), input.notes?.trim() || null, input.startDate, now, now,
+        );
+      });
     },
     async update(input: CreateLoanInput): Promise<void> {
       assertPositiveMinorUnits(input.principalMinor);
