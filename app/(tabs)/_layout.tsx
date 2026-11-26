@@ -25,7 +25,9 @@ export default function TabLayout() {
   const palette = isDark ? colors.dark : colors.light;
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const useNavigationRail = width >= 768 || width > height;
+  // Keep the bottom bar on phones, including landscape. Use a side rail only
+  // when the device has tablet-sized space on both dimensions.
+  const useNavigationRail = Math.min(width, height) >= 600;
 
   return (
     <Tabs
