@@ -133,12 +133,6 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
         if (updated.changes !== 1) {
           throw new Error("Subscription billing schedule changed. Please try again.");
         }
-        await db.runAsync(
-          "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, ?, NULL, NULL, 'expense', ?, ?, ?, ?, ?, ?)",
-          "subscription-payment-" + input.id, subscription.account_id, subscription.category_id,
-          input.amountMinor, subscription.name + " payment", input.notes?.trim() || null,
-          billingDate, now, now,
-        );
       });
     },
 
@@ -160,10 +154,6 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
         const shouldRollback = subscription.next_billing_date === immediateNextDate;
         const now = new Date().toISOString();
 
-        await db.runAsync(
-          "UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
-          now, now, "subscription-payment-" + id,
-        );
         const deleted = await db.runAsync("DELETE FROM subscription_payments WHERE id = ?", id);
         if (deleted.changes !== 1) throw new Error("Payment was not found.");
 
@@ -197,10 +187,6 @@ export function createSubscriptionRepository(db: SQLiteDatabase) {
       if (!subscription) throw new Error("Subscription was not found.");
       await db.withTransactionAsync(async () => {
         const now = new Date().toISOString();
-        const payments = await db.getAllAsync<{ id: string }>("SELECT id FROM subscription_payments WHERE subscription_id = ?", id);
-        for (const payment of payments) {
-          await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "subscription-payment-" + payment.id);
-        }
         await db.runAsync("DELETE FROM subscription_payments WHERE subscription_id = ?", id);
         const result = await db.runAsync("DELETE FROM subscriptions WHERE id = ?", id);
         if (result.changes === 0) throw new Error("Subscription was not found.");
