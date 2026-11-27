@@ -107,21 +107,21 @@ describe("financial workflow integration", () => {
         accountId: "cash",
       });
 
-      const loanTransaction = await db.getFirstAsync<{ category_id: string }>(
-        "SELECT category_id FROM transactions WHERE id = ?",
+      const loanTransactionCount = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM transactions WHERE id = ?",
         "loan-loan-1",
       );
-      assert.equal(loanTransaction?.category_id, "cat-income-loan");
+      assert.equal(loanTransactionCount?.count, 0);
 
       await db.runAsync(
-        "INSERT INTO transactions (id, account_id, category_id, type, amount_minor, description, occurred_at, created_at, updated_at) VALUES (?, ?, ?, 'expense', ?, ?, ?, ?, ?)",
-        "loan-payment-payment-rollback",
-        "cash",
-        "cat-expense-loan-payment",
+        "INSERT INTO loan_payments (id, loan_id, amount_minor, interest_paid_minor, principal_paid_minor, payment_date, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "payment-rollback",
+        "loan-1",
         100,
-        "Existing transaction",
+        0,
+        100,
         "2026-02-01",
-        "2026-02-01T00:00:00.000Z",
+        null,
         "2026-02-01T00:00:00.000Z",
       );
 
@@ -179,7 +179,7 @@ describe("financial workflow integration", () => {
 
       const cash = (await createAccountRepository(db as never).listAll())
         .find(account => account.id === "cash");
-      assert.equal(cash?.balanceMinor, -10_100);
+      assert.equal(cash?.balanceMinor, 10_000);
     });
   });
 
@@ -204,13 +204,6 @@ describe("financial workflow integration", () => {
 
       let subscription = (await subscriptions.list())[0];
       assert.equal(subscription.nextBillingDate, "2026-02-28");
-      const paymentTransaction = await db.getFirstAsync<{ id: string; deleted_at: string | null }>(
-        "SELECT id, deleted_at FROM transactions WHERE id = ?",
-        "subscription-payment-subscription-payment-1",
-      );
-      assert.ok(paymentTransaction);
-      assert.equal(paymentTransaction.deleted_at, null);
-
       await subscriptions.deletePayment("subscription-payment-1");
       subscription = (await subscriptions.list())[0];
       assert.equal(subscription.nextBillingDate, "2026-01-31");
@@ -222,11 +215,15 @@ describe("financial workflow integration", () => {
       assert.equal(paymentActivity?.recorded, 1);
       assert.equal(paymentActivity?.deleted, 1);
 
-      const deletedTransaction = await db.getFirstAsync<{ deleted_at: string | null }>(
-        "SELECT deleted_at FROM transactions WHERE id = ?",
+      const paymentTransactionCount = await db.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM transactions WHERE id = ?",
         "subscription-payment-subscription-payment-1",
       );
-      assert.ok(deletedTransaction?.deleted_at);
+      assert.equal(paymentTransactionCount?.count, 0);
+
+      const cash = (await createAccountRepository(db as never).listAll())
+        .find(account => account.id === "cash");
+      assert.equal(cash?.balanceMinor, 10_000);
     });
   });
 
