@@ -69,7 +69,7 @@ export function createRecurringRepository(db: SQLiteDatabase) {
       compareDates(throughDate,throughDate);
       let generatedCount=0,skippedCount=0;
       await db.withTransactionAsync(async()=>{
-        const rules=await db.getAllAsync<{id:string;name:string;type:"income"|"expense";amount_minor:number;account_id:string;category_id:string;frequency:RecurringFrequency;interval_count:number;next_occurrence_date:string;end_date:string|null}>(
+        const rules=await db.getAllAsync<{id:string;name:string;type:"income"|"expense";amount_minor:number;account_id:string;category_id:string;frequency:RecurringFrequency;interval_count:number;start_date:string;next_occurrence_date:string;end_date:string|null}>(
           "SELECT id,name,type,amount_minor,account_id,category_id,frequency,interval_count,start_date,next_occurrence_date,end_date FROM recurring_rules WHERE is_active=1 ORDER BY next_occurrence_date ASC");
         const now=new Date().toISOString();
         for(const rule of rules) {
