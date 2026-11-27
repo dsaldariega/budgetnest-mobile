@@ -18,11 +18,13 @@
       }
     },
     "production": {
+      "environment": "production",
       "autoIncrement": true,
-      "android": {
-        "buildType": "apk"
-      },
-      "distribution": "internal"
-    }
+        "android": 
+        {
+          "buildType": "apk"
+        },
+  "distribution": "internal"
+}
   }
 }
