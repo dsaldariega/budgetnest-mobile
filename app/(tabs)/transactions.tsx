@@ -6,7 +6,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { createHistoryRepository, type HistoryFilter, type HistoryItem } from "@/database/repositories/history-repository";
-import { createTransactionRepository, type TransactionListItem } from "@/database/repositories/transaction-repository";
+import { createTransactionRepository, isLinkedTransactionId, type TransactionListItem } from "@/database/repositories/transaction-repository";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { historyAmountPrefix, historyKindLabel } from "@/domain/history";
 import { getTransferDestinationAccountId } from "@/domain/accounts";
@@ -42,7 +42,6 @@ export default function TransactionsScreen() {
   const dark = useColorScheme() === "dark";
   const p = dark ? colors.dark : colors.light;
   const [items, setItems] = useState<HistoryItem[]>([]);
-  const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [selected, setSelected] = useState<HistoryItem | null>(null);
   const [editing, setEditing] = useState<TransactionListItem | null>(null);
@@ -72,7 +71,7 @@ export default function TransactionsScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [history, tx, acc] = await Promise.all([historyRepo.list({ filter, search, fromDate: fromDate || undefined, toDate: toDate || undefined, accountName: accountName || undefined, categoryName: categoryName || undefined }), txRepo.listRecent(200), accountRepo.list()]);
+      const [history, acc] = await Promise.all([historyRepo.list({ filter, search, fromDate: fromDate || undefined, toDate: toDate || undefined, accountName: accountName || undefined, categoryName: categoryName || undefined }), accountRepo.list()]);
       const activeAccounts = acc.filter(a => !a.isArchived);
       const activeAccountIds = activeAccounts.map(account => account.id);
       const sourceAccountId = activeAccountIds.includes(accountId)
@@ -80,7 +79,6 @@ export default function TransactionsScreen() {
         : activeAccountIds[0] ?? "";
 
       setItems(history);
-      setTransactions(tx);
       setAccounts(activeAccounts);
       setAccountId(sourceAccountId);
       setDestinationAccountId(current =>
@@ -108,11 +106,43 @@ export default function TransactionsScreen() {
     setDestinationAccountId(accounts.find(a => a.id !== accounts[0]?.id)?.id ?? ""); setCategoryId(""); setNote(""); setOccurredAt(today()); setError("");
     void loadCategories("expense");
   };
-  const openEdit = async (item: TransactionListItem) => {
-    setEditing(item); setFormKind(transactionKind(item)); setName(item.description); setAmount((item.amountMinor / 100).toFixed(2));
-    setAccountId(item.accountId); setDestinationAccountId(item.transferGroupId ? transactions.find(t => t.transferGroupId === item.transferGroupId && t.transferDirection === "in")?.accountId ?? "" : "");
-    setCategoryId(item.categoryId ?? ""); setNote(item.notes ?? ""); setOccurredAt(item.occurredAt.slice(0, 10)); setError("");
-    await loadCategories(transactionKind(item)); setFormOpen(true);
+  const openEdit = async (item: HistoryItem) => {
+    if (item.kind !== "income" && item.kind !== "expense" && item.kind !== "transfer") return;
+    if (isLinkedTransactionId(item.id)) return;
+    const transaction = await txRepo.getForHistory(item.id, item.kind);
+    if (!transaction) {
+      Alert.alert("Unable to edit", "This transaction is no longer available.");
+      return;
+    }
+    setEditing(transaction); setFormKind(transactionKind(transaction)); setName(transaction.description); setAmount((transaction.amountMinor / 100).toFixed(2));
+    setAccountId(transaction.accountId);
+    if (transaction.transferGroupId) {
+      const destination = await db.getFirstAsync<{ account_id: string }>(
+        "SELECT account_id FROM transactions WHERE transfer_group_id = ? AND transfer_direction = 'in' AND deleted_at IS NULL",
+        transaction.transferGroupId,
+      );
+      setDestinationAccountId(destination?.account_id ?? "");
+    } else {
+      setDestinationAccountId("");
+    }
+    setCategoryId(transaction.categoryId ?? ""); setNote(transaction.notes ?? ""); setOccurredAt(transaction.occurredAt.slice(0, 10)); setError("");
+    await loadCategories(transactionKind(transaction)); setFormOpen(true);
+  };
+  const remove = (item: HistoryItem) => {
+    if (item.kind !== "income" && item.kind !== "expense" && item.kind !== "transfer") return;
+    if (isLinkedTransactionId(item.id)) return;
+    Alert.alert(
+      item.kind === "transfer" ? "Delete transfer?" : "Delete transaction?",
+      item.kind === "transfer" ? "Both sides of this transfer will be deleted from account balances and activity." : "This transaction will be removed from balances and activity. The action will be recorded in the Activity Log.",
+      [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: async () => {
+        try {
+          const transaction = await txRepo.getForHistory(item.id, item.kind);
+          if (!transaction) throw new Error("This transaction is no longer available.");
+          await txRepo.delete(transaction.id);
+          await load();
+        } catch (e) { Alert.alert("Unable to delete", e instanceof Error ? e.message : "Please try again."); }
+      } }],
+    );
   };
   const save = async () => {
     setError("");
@@ -144,12 +174,6 @@ export default function TransactionsScreen() {
       setSaving(false);
     }
   };
-  const remove = (item: TransactionListItem) => Alert.alert(
-    item.transferGroupId ? "Delete transfer?" : "Delete transaction?",
-    item.transferGroupId ? "Both sides of this transfer will be deleted from account balances and activity." : "This transaction will be removed from balances and activity. The action will be recorded in the Activity Log.",
-    [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: async () => { try { await txRepo.delete(item.id); await load(); } catch (e) { Alert.alert("Unable to delete", e instanceof Error ? e.message : "Please try again."); } } }],
-  );
-
   const openNew = () => { resetForm(); setFormOpen(true); };
 
   return (
@@ -171,12 +195,11 @@ export default function TransactionsScreen() {
           {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><MaterialCommunityIcons name="receipt-text-outline" size={34} color={p.primary}/><Text style={[s.itemTitle, { color: p.text, marginTop: 10 }]}>No activity found</Text><Text style={{ color: p.textMuted, fontSize: 13, marginTop: 6, textAlign: "center" }}>Try a different filter, or add your first transaction.</Text><Pressable onPress={openNew} style={[s.primaryButton, { backgroundColor: p.primary }]}><Text style={s.primaryButtonText}>Add transaction</Text></Pressable></View> :
           items.map(item => {
             const prefix = historyAmountPrefix(item.kind);
-            const editable = item.kind === "income" || item.kind === "expense" || item.kind === "transfer";
-            const tx = editable ? transactions.find(t => t.id === item.id || (item.kind === "transfer" && t.transferGroupId === item.id)) : null;
+            const editable = (item.kind === "income" || item.kind === "expense" || item.kind === "transfer") && !isLinkedTransactionId(item.id);
             return <Pressable key={item.kind + "-" + item.id} onPress={() => setSelected(item)} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
               <View style={s.itemRow}><View style={[s.dot, { backgroundColor: kindColor(item.kind, p) }]} /><View style={{ flex: 1 }}><Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.title}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 4 }} numberOfLines={1}>{historyKindLabel(item.kind)} · {item.subtitle}</Text></View><Text style={{ fontWeight: "800", fontSize: 12, color: item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.text }}>{prefix}{fmt(item.amountMinor, item.currencyCode)}</Text></View>
               <View style={s.bottom}><Text style={{ color: p.textMuted, fontSize: 11 }}>{item.occurredAt.slice(0,10)}</Text><Text style={{ color: p.textMuted, fontSize: 11 }}>{item.accountName ?? "No account"}</Text></View>
-              {tx ? <View style={s.rowActions}><Pressable onPress={() => void openEdit(tx)} hitSlop={8}><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800" }}>Edit</Text></Pressable><Pressable onPress={() => remove(tx)} hitSlop={8}><Text style={{ color: p.expense, fontSize: 11, fontWeight: "800" }}>Delete</Text></Pressable></View> : null}
+              {editable ? <View style={s.rowActions}><Pressable onPress={() => void openEdit(item)} hitSlop={8}><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800" }}>Edit</Text></Pressable><Pressable onPress={() => remove(item)} hitSlop={8}><Text style={{ color: p.expense, fontSize: 11, fontWeight: "800" }}>Delete</Text></Pressable></View> : null}
             </Pressable>;
           })}
         </ScrollView>
