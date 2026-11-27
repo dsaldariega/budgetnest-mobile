@@ -2,25 +2,36 @@
 
 ## Current release posture
 
-BudgetNest Mobile is a local-first Expo application. A successful typecheck and unit-test run is necessary but does not replace a native Android build or hands-on device testing.
+BudgetNest Mobile is a local-first Expo application. A successful CI/typecheck/test run is necessary but does not replace a native Android build or hands-on device testing.
 
-This phase adds repeatable checks and EAS build profiles. It does not submit the app to an app store, create signing credentials, configure cloud sync, or merge development into production.
+Phase 7 adds repository-level CI coverage for the repeatable checks. It does not submit the app to an app store, create signing credentials, configure cloud sync, or merge development into production.
 
-## Quality checks
+## Automated quality gate
+
+Every push to `dev` or `main`, and every pull request targeting either branch, runs:
+
+1. `npm ci`
+2. TypeScript validation
+3. Unit tests
+4. Android Expo/Metro bundle smoke test
+5. Expo Doctor
+
+The workflow uses Node.js 22.13.0 to match the documented Expo SDK 58 development requirement.
+
+## Local checks
 
 Run from the repository root:
 
 ```bash
-npm install
+npm ci
 npm run check
 npm run doctor
 npx expo config --type public
 ```
 
-- `npm run check` runs TypeScript validation, the automated Node test suite, and a production Android bundle export through Expo/Metro. The export catches app-wide route, import, and bundling failures; it does not replace device interaction testing.
-- `npm run test:runtime` can be run separately when only the Expo/Metro bundle smoke test is needed.
-- `npm run doctor` runs Expo's project compatibility checks.
-- Review the resolved public Expo config before producing a build.
+`npm run check` runs TypeScript validation, the automated Node test suite, and a production Android bundle export through Expo/Metro. The export catches app-wide route, import, and bundling failures; it does not replace device interaction testing.
+
+Review the resolved public Expo config before producing a build.
 
 ## Android build profiles
 
@@ -37,7 +48,7 @@ Preview build:
 eas build --profile preview --platform android
 ```
 
-Production-candidate APK build (after EAS linking and signing setup):
+Production-candidate APK build:
 
 ```bash
 eas build --profile production --platform android
@@ -45,17 +56,34 @@ eas build --profile production --platform android
 
 The production profile is configuration only; it is not authorization to publish.
 
+## Google Sign-In / Drive configuration
+
+Google backup remains optional. Normal local finance tracking must work without Google configuration.
+
+For native Google backup testing, configure the required OAuth/Firebase values outside Git:
+
+- Android OAuth client for package `com.budgetnest.app` and the relevant EAS signing SHA-1/SHA-256.
+- Web OAuth client ID supplied through `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` when auto-detection is not sufficient.
+- `google-services.json` supplied through the EAS file environment mechanism and never committed.
+- Google Drive API enabled.
+- OAuth consent screen configured for the Drive app-data scope.
+- iOS builds additionally require the reversed iOS OAuth client ID as `GOOGLE_IOS_URL_SCHEME`.
+
+Google authentication requires a native development/production build; Expo Go is not sufficient.
+
 ## Application runtime and UI smoke test
 
-After `npm run check` passes, start the app with `npx expo start` and open it in Expo Go or a compatible development build. Use disposable test data for destructive flows.
+After automated checks pass, start the app with `npx expo start` and open it in Expo Go or a compatible development build. Use disposable test data for destructive flows.
 
 ### Navigation and shared runtime
+
 - [ ] App opens to the welcome screen when signed out and reaches the main tabs after the configured sign-in flow.
 - [ ] Visit every bottom tab and every More/stack screen; confirm there are no red screens, stuck loading states, or missing route errors.
 - [ ] Switch light/dark appearance and verify the current screen updates without restarting.
 - [ ] Background and reopen the app; confirm SQLite data remains available.
 
 ### Accounts and transaction UI
+
 - [ ] Create two active PHP accounts; verify both appear in account selectors.
 - [ ] Open Add transaction, choose Transfer, and confirm the default source and destination are different.
 - [ ] Change the source account; confirm the destination remains different or is automatically replaced.
@@ -65,6 +93,7 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 - [ ] Search and filter Activity; clear filters and verify the full list returns.
 
 ### Connected features
+
 - [ ] Create a loan, open its details, record a payment, and verify the payment history and remaining balance.
 - [ ] Create a subscription, record a payment, verify its next billing date, then delete the payment and verify the date rolls back.
 - [ ] Create a recurring rule and generate due entries; run generation again and verify duplicates are skipped.
@@ -72,6 +101,7 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 - [ ] Open Reports and switch month, 3-month, and year periods; confirm currencies remain separated.
 
 ### Settings and backup
+
 - [ ] Change the default currency and confirm it affects new accounts only.
 - [ ] Export a backup to Google Drive using a connected test account.
 - [ ] Select a valid backup, cancel the restore confirmation, and confirm current data remains unchanged.
@@ -80,6 +110,7 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 ## Android device test checklist
 
 ### Install and launch
+
 - [ ] Install the preview APK on a clean Android device.
 - [ ] App launches without a red screen or database migration error.
 - [ ] App can be closed and reopened without losing saved data.
@@ -87,6 +118,7 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 - [ ] Light and dark system appearance are readable.
 
 ### Accounts and transactions
+
 - [ ] Create cash, bank, and e-wallet accounts with different currencies.
 - [ ] Default currency preference is applied to newly created accounts.
 - [ ] Changing the default currency does not change existing accounts.
@@ -96,6 +128,7 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 - [ ] Archive an account and confirm its history remains available.
 
 ### Budgets, goals, loans, subscriptions, recurring
+
 - [ ] Create and review a budget.
 - [ ] Create a savings goal and add a contribution.
 - [ ] Create a loan and record repayments; verify remaining balance.
@@ -104,11 +137,13 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 - [ ] Generate recurring occurrences more than once; confirm duplicates are not created.
 
 ### Activity and reports
+
 - [ ] Search and filter activity by type, date, account, and category.
 - [ ] Review reports for month, trailing three months, and year.
 - [ ] Confirm different currencies are shown separately, never added together.
 
-### Backup and restore (use test data first)
+### Backup and restore
+
 - [ ] Export a backup and confirm the JSON file can be shared/saved.
 - [ ] Import a valid backup and inspect the restore confirmation details.
 - [ ] Cancel restore and confirm current data remains unchanged.
@@ -117,6 +152,7 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 - [ ] Keep a separate copy of important data before testing restore.
 
 ### Offline and resilience
+
 - [ ] Use core screens with Wi-Fi and mobile data disabled.
 - [ ] Force-close and reopen the app after creating records.
 - [ ] Navigate between all tabs and stack screens.
@@ -140,5 +176,5 @@ After `npm run check` passes, start the app with `npx expo start` and open it in
 ## Release branch policy
 
 - Continue development and fixes on `dev`.
-- Do not merge to `main` until typecheck, tests, Expo Doctor, preview build, and the device checklist have been reviewed.
+- Do not merge to `main` until automated CI, Expo Doctor, preview build, and the device checklist have been reviewed.
 - Keep one completed phase per commit.
