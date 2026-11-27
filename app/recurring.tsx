@@ -1,0 +1,75 @@
+import { useCallback, useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
+import { createTransactionRepository } from "@/database/repositories/transaction-repository";
+import { createRecurringRepository, type RecurringRule } from "@/database/repositories/recurring-repository";
+import { colors } from "@/theme/colors";
+import type { RecurringFrequency } from "@/domain/recurring";
+import { SelectField } from "@/components/ui/select-field";
+import { DateField } from "@/components/ui/date-field";
+const today=()=>new Date().toISOString().slice(0,10);
+const makeId=()=>"recurring-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
+const fmt=(minor:number,currency:string)=>new Intl.NumberFormat("en-PH",{style:"currency",currency}).format(minor/100);
+const repeatLabel=(f:RecurringFrequency,n:number)=>"Every "+(n===1?"":n+" ")+(f==="weekly"?"week":f==="monthly"?"month":"year")+(n===1?"":"s");
+export default function RecurringScreen(){
+ const db=useSQLiteContext(),router=useRouter(),dark=useColorScheme()==="dark",p=dark?colors.dark:colors.light;
+ const [rules,setRules]=useState<RecurringRule[]>([]),[accounts,setAccounts]=useState<AccountWithBalance[]>([]);
+ const [categories,setCategories]=useState<{id:string;name:string}[]>([]);
+ const [formOpen,setFormOpen]=useState(false),[editing,setEditing]=useState<RecurringRule|null>(null);
+ const [name,setName]=useState(""),[type,setType]=useState<"income"|"expense">("expense"),[amount,setAmount]=useState("");
+ const [accountId,setAccountId]=useState(""),[categoryId,setCategoryId]=useState(""),[frequency,setFrequency]=useState<RecurringFrequency>("monthly");
+ const [intervalCount,setIntervalCount]=useState("1"),[startDate,setStartDate]=useState(today()),[endDate,setEndDate]=useState("");
+ const [saving,setSaving]=useState(false),[error,setError]=useState("");
+ const load=useCallback(async()=>{const [r,a]=await Promise.all([createRecurringRepository(db).list(),createAccountRepository(db).list()]);setRules(r);setAccounts(a.filter(x=>!x.isArchived));},[db]);
+ useFocusEffect(useCallback(()=>{void load();},[load]));
+ const loadCategories=async(t:"income"|"expense",preferred?:string)=>{const rows=await createTransactionRepository(db).listCategories(t);setCategories(rows);setCategoryId(preferred&&rows.some(x=>x.id===preferred)?preferred:rows[0]?.id??"");};
+ const openForm=async(item?:RecurringRule)=>{setEditing(item??null);setName(item?.name??"");setType(item?.type??"expense");setAmount(item?(item.amountMinor/100).toFixed(2):"");setAccountId(item?.accountId??accounts[0]?.id??"");setFrequency(item?.frequency??"monthly");setIntervalCount(String(item?.intervalCount??1));setStartDate(item?.startDate??today());setEndDate(item?.endDate??"");setError("");await loadCategories(item?.type??"expense",item?.categoryId);setFormOpen(true);};
+ const save=async()=>{setError("");if(!/^\d+(\.\d{1,2})?$/.test(amount.trim())||Number(amount)<=0){setError("Enter a positive amount with up to two decimal places.");return;}const interval=Number(intervalCount);if(!Number.isInteger(interval)||interval<1||interval>120){setError("Repeat interval must be between 1 and 120.");return;}if(!accountId||!categoryId){setError("Choose an account and category.");return;}try{setSaving(true);await createRecurringRepository(db).save({id:editing?.id??makeId(),name,type,amountMinor:Math.round(Number(amount)*100),accountId,categoryId,frequency,intervalCount:interval,startDate,endDate:endDate.trim()||null});setFormOpen(false);await load();}catch(e){setError(e instanceof Error?e.message:"Unable to save recurring schedule.");}finally{setSaving(false);}};
+ const generate=()=>Alert.alert("Generate due entries?","This adds all scheduled income and expenses due through today to transaction history. Existing occurrences will not be duplicated.",[{text:"Cancel",style:"cancel"},{text:"Generate",onPress:async()=>{try{const result=await createRecurringRepository(db).generateDue(today());await load();Alert.alert("Recurring entries generated",result.generatedCount+" new transaction(s) added"+(result.skippedCount?". "+result.skippedCount+" duplicate(s) skipped.":"."));}catch(e){Alert.alert("Unable to generate entries",e instanceof Error?e.message:"Please try again.");}}}]);
+ const toggle=async(item:RecurringRule)=>{try{await createRecurringRepository(db).setActive(item.id,!item.isActive);await load();}catch(e){Alert.alert("Unable to update schedule",e instanceof Error?e.message:"Please try again.");}};
+ const remove=(item:RecurringRule)=>Alert.alert("Delete recurring schedule?",item.generatedCount?"Generated transactions will remain in your history.":"This schedule will be permanently deleted.",[{text:"Cancel",style:"cancel"},{text:"Delete",style:"destructive",onPress:async()=>{try{await createRecurringRepository(db).delete(item.id);await load();}catch(e){Alert.alert("Unable to delete",e instanceof Error?e.message:"Please try again.");}}}]);
+ return <SafeAreaView style={[s.safe,{backgroundColor:p.background}]} edges={["top","left","right"]}><View style={s.page}>
+  <View style={s.header}><Pressable onPress={()=>router.back()} style={[s.back,{backgroundColor:p.surface,borderColor:p.border}]}><MaterialCommunityIcons name="arrow-left" size={21} color={p.text}/></Pressable><View style={{flex:1}}><Text style={[s.eyebrow,{color:p.primary}]}>AUTOMATED PLANNING</Text><Text style={[s.title,{color:p.text}]}>Recurring</Text></View>{rules.length>0?<Pressable onPress={()=>void openForm()} style={[s.add,{backgroundColor:p.primary}]}><MaterialCommunityIcons name="plus" size={18} color="#fff"/><Text style={s.addText}>Add</Text></Pressable>:null}</View>
+  <View style={[s.info,{backgroundColor:p.surface,borderColor:p.border}]}><MaterialCommunityIcons name="calendar-sync-outline" size={22} color={p.primary}/><Text style={[s.infoText,{color:p.textMuted}]}>Set up regular income and expenses. Nothing is added to your accounts until you review and generate due entries.</Text></View>
+  <Pressable onPress={generate} style={[s.generate,{backgroundColor:dark?"#3B2424":"#FCE8E8",borderColor:p.primary}]}><MaterialCommunityIcons name="play-circle-outline" size={21} color={p.primary}/><Text style={[s.generateText,{color:p.primary}]}>Generate entries due through today</Text><MaterialCommunityIcons name="chevron-right" size={20} color={p.primary}/></Pressable>
+  <ScrollView contentContainerStyle={{gap:10,paddingBottom:28}}>
+   {rules.length===0?<View style={[s.empty,{backgroundColor:p.surface,borderColor:p.border}]}><MaterialCommunityIcons name="autorenew" size={34} color={p.primary}/><Text style={[s.cardTitle,{color:p.text,marginTop:10}]}>No recurring schedules yet</Text><Text style={{color:p.textMuted,textAlign:"center",lineHeight:19,marginTop:6}}>Add salary, rent, utilities, allowances, or any income and expense that repeats.</Text><Pressable onPress={()=>void openForm()} style={[s.primary,{backgroundColor:p.primary}]}><Text style={s.primaryText}>Create a schedule</Text></Pressable></View>:rules.map(item=><View key={item.id} style={[s.card,{backgroundColor:p.surface,borderColor:p.border,opacity:item.isActive?1:0.68}]}>
+    <View style={s.cardTop}><View style={[s.iconBox,{backgroundColor:item.type==="income"?(dark?"#24382C":"#E8F5E9"):(dark?"#3A2D20":"#FFF3E0")}]}><MaterialCommunityIcons name={item.type==="income"?"trending-up":"repeat"} size={21} color={item.type==="income"?p.income:p.warning}/></View><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{item.name}</Text><Text style={[s.subText,{color:p.textMuted}]}>{item.type==="income"?"Income":"Expense"} · {repeatLabel(item.frequency,item.intervalCount)}</Text></View><Text style={[s.status,{color:item.isActive?p.success:p.textMuted}]}>{item.isActive?"Active":"Paused"}</Text></View>
+    <Text style={[s.amountText,{color:p.text}]}>{fmt(item.amountMinor,item.currencyCode)}</Text><View style={s.metaRow}><Text style={[s.meta,{color:p.textMuted}]}>{item.accountName} · {item.categoryName}</Text><Text style={[s.meta,{color:p.textMuted}]}>Next: {item.nextOccurrenceDate}</Text></View>{item.endDate?<Text style={[s.meta,{color:p.textMuted}]}>Ends {item.endDate}</Text>:null}
+    <View style={[s.actions,{borderTopColor:p.border}]}><Pressable onPress={()=>void openForm(item)} style={s.action}><MaterialCommunityIcons name="pencil-outline" size={17} color={p.primary}/><Text style={[s.actionText,{color:p.primary}]}>Edit</Text></Pressable><Pressable onPress={()=>void toggle(item)} style={s.action}><MaterialCommunityIcons name={item.isActive?"pause-circle-outline":"play-circle-outline"} size={17} color={p.textMuted}/><Text style={[s.actionText,{color:p.textMuted}]}>{item.isActive?"Pause":"Resume"}</Text></Pressable><Pressable onPress={()=>remove(item)} style={s.action}><MaterialCommunityIcons name="trash-can-outline" size={17} color={p.expense}/><Text style={[s.actionText,{color:p.expense}]}>Delete</Text></Pressable></View><Text style={[s.meta,{color:p.textMuted}]}>{item.generatedCount} generated transaction(s)</Text>
+   </View>)}
+  </ScrollView>
+ </View>
+ <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setFormOpen(false)}><SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+  <View style={s.header}><Text style={[s.modalTitle,{color:p.text}]}>{editing?"Edit schedule":"New schedule"}</Text><Pressable onPress={()=>setFormOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
+  <Text style={[s.label,{color:p.text}]}>Name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Monthly salary" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
+  <Text style={[s.label,{color:p.text}]}>Type</Text><View style={s.chips}>{(["income","expense"] as const).map(v=><Pressable key={v} onPress={()=>{setType(v);void loadCategories(v);}} style={[s.chip,{backgroundColor:type===v?p.primary:p.surface,borderColor:type===v?p.primary:p.border}]}><Text style={{color:type===v?"#fff":p.text,fontWeight:"700",textTransform:"capitalize"}}>{v}</Text></Pressable>)}</View>
+  <Text style={[s.label,{color:p.text}]}>Amount</Text><TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input,s.amountInput,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
+  <SelectField label="Linked account" required value={accountId} options={accounts.map(a=>({value:a.id,label:a.name,description:a.currencyCode}))} onChange={setAccountId} placeholder="Select account" />
+  <SelectField label="Category" required value={categoryId} options={categories.map(c=>({value:c.id,label:c.name}))} onChange={setCategoryId} placeholder="Select category" />
+  <Text style={[s.label,{color:p.text}]}>Repeat</Text><View style={s.chips}>{(["weekly","monthly","yearly"] as RecurringFrequency[]).map(v=><Pressable key={v} onPress={()=>setFrequency(v)} style={[s.chip,{backgroundColor:frequency===v?p.primary:p.surface,borderColor:frequency===v?p.primary:p.border}]}><Text style={{color:frequency===v?"#fff":p.text,fontWeight:"700",textTransform:"capitalize"}}>{v}</Text></Pressable>)}</View>
+  <Text style={[s.label,{color:p.text}]}>Interval (1 = every {frequency==="weekly"?"week":frequency==="monthly"?"month":"year"})</Text><TextInput value={intervalCount} onChangeText={setIntervalCount} keyboardType="number-pad" placeholder="1" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
+  <DateField label="Start date" required value={startDate} onChange={setStartDate} />
+  <DateField label="End date (optional)" value={endDate} onChange={setEndDate} placeholder="No end date" />
+  {error?<Text style={s.error}>{error}</Text>:null}<Pressable disabled={saving} onPress={()=>void save()} style={[s.primary,{backgroundColor:p.primary,opacity:saving?0.6:1}]}><Text style={s.primaryText}>{saving?"Saving…":editing?"Save changes":"Create schedule"}</Text></Pressable>
+ </ScrollView></SafeAreaView></Modal>
+ </SafeAreaView>;
+}
+const s=StyleSheet.create({
+ safe:{flex:1},page:{flex:1,paddingHorizontal:18,paddingTop:12},header:{flexDirection:"row",alignItems:"center",gap:11,marginBottom:16},
+ back:{width:40,height:40,borderRadius:13,borderWidth:1,alignItems:"center",justifyContent:"center"},eyebrow:{fontSize:10,fontWeight:"800",letterSpacing:1},title:{fontSize:27,fontWeight:"800",marginTop:2},
+ add:{flexDirection:"row",alignItems:"center",gap:4,paddingHorizontal:14,paddingVertical:10,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
+ info:{borderWidth:1,borderRadius:15,padding:13,flexDirection:"row",alignItems:"center",gap:10,marginBottom:10},infoText:{flex:1,fontSize:11,lineHeight:17},
+ generate:{borderWidth:1,borderRadius:14,padding:13,flexDirection:"row",alignItems:"center",gap:9,marginBottom:14},generateText:{flex:1,fontSize:12,fontWeight:"800"},
+ card:{borderWidth:1,borderRadius:17,padding:14,gap:9},cardTop:{flexDirection:"row",alignItems:"center",gap:10},iconBox:{width:40,height:40,borderRadius:13,alignItems:"center",justifyContent:"center"},
+ cardTitle:{fontSize:14,fontWeight:"800"},subText:{fontSize:11,marginTop:3},status:{fontSize:10,fontWeight:"800",textTransform:"uppercase"},amountText:{fontSize:21,fontWeight:"800"},
+ metaRow:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",gap:5},meta:{fontSize:10},actions:{borderTopWidth:1,paddingTop:10,flexDirection:"row",justifyContent:"space-between"},
+ action:{flexDirection:"row",alignItems:"center",gap:5,paddingVertical:3},actionText:{fontSize:11,fontWeight:"700"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center",marginTop:8},
+ primary:{padding:14,borderRadius:13,alignItems:"center",marginTop:16},primaryText:{color:"#fff",fontWeight:"700"},modal:{flex:1},form:{padding:20,paddingBottom:40},modalTitle:{flex:1,fontSize:22,fontWeight:"800"},
+ label:{fontSize:13,fontWeight:"700",marginTop:16,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:12,paddingVertical:9},
+ input:{borderWidth:1,borderRadius:12,paddingHorizontal:13,paddingVertical:12,fontSize:14},amountInput:{fontSize:21,fontWeight:"800"},error:{color:"#D32F2F",fontSize:12,marginTop:12}
+});

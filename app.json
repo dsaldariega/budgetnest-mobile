@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "BudgetNest",
+    "slug": "budgetnest-mobile",
+    "version": "1.0.0",
+    "description": "A private, local-first personal finance tracker.",
+    "orientation": "default",
+    "scheme": "budgetnest",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/budgetnest-logo.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.budgetnest.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.budgetnest.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/budgetnest-icon-foreground.png",
+        "backgroundColor": "#E50914"
+      }
+    },
+    "plugins": [
+  "expo-router",
+      [
+    "expo-splash-screen",
+        {
+      "image": "./assets/budgetnest-logo.png",
+      "imageWidth": 200,
+      "resizeMode": "contain",
+      "backgroundColor": "#F4F5EC"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "owner": "dsaldariega",
+    "extra": {
+      "eas": {
+        "projectId": "95e67897-a658-44df-8590-7bad57099602"
+      }
+    }
+  }
+}
