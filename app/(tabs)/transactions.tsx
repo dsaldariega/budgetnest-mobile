@@ -107,9 +107,10 @@ export default function TransactionsScreen() {
     void loadCategories("expense");
   };
   const openEdit = async (item: HistoryItem) => {
-    if (item.kind !== "income" && item.kind !== "expense" && item.kind !== "transfer") return;
+    const kind = item.kind;
+    if (kind !== "income" && kind !== "expense" && kind !== "transfer") return;
     if (isLinkedTransactionId(item.id)) return;
-    const transaction = await txRepo.getForHistory(item.id, item.kind);
+    const transaction = await txRepo.getForHistory(item.id, kind);
     if (!transaction) {
       Alert.alert("Unable to edit", "This transaction is no longer available.");
       return;
