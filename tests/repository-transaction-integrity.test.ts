@@ -191,16 +191,16 @@ describe("repository transaction integrity", () => {
     assert.match(deletion, /isLinkedTransactionId\(id\)/);
   });
 
-  it("preserves linked loan and subscription transaction history when records are deleted", () => {
+  it("keeps loan and subscription records separate from ordinary transactions", () => {
     const loanSource = readSource("../src/database/repositories/loan-repository.ts");
     const subscriptionSource = readSource("../src/database/repositories/subscription-repository.ts");
     const loanDelete = getMethodBody(loanSource, "async delete(id: string)");
     const subscriptionDelete = getMethodBody(subscriptionSource, "async delete(id: string)");
 
-    assert.match(loanDelete, /UPDATE transactions SET deleted_at/);
-    assert.ok(loanDelete.indexOf("UPDATE transactions SET deleted_at") < loanDelete.indexOf("DELETE FROM loan_payments"));
-    assert.match(subscriptionDelete, /UPDATE transactions SET deleted_at/);
-    assert.ok(subscriptionDelete.indexOf("UPDATE transactions SET deleted_at") < subscriptionDelete.indexOf("DELETE FROM subscription_payments"));
+    assert.doesNotMatch(loanDelete, /UPDATE transactions SET deleted_at/);
+    assert.doesNotMatch(subscriptionDelete, /UPDATE transactions SET deleted_at/);
+    assert.doesNotMatch(loanSource, /loan-payment-/);
+    assert.doesNotMatch(subscriptionSource, /subscription-payment-/);
   });
 
 });
