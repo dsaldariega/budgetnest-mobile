@@ -136,14 +136,21 @@ export default function TransactionsScreen() {
     await loadCategories(transactionKind(transaction)); setFormOpen(true);
   };
   const remove = (item: HistoryItem) => {
-    if (item.kind !== "income" && item.kind !== "expense" && item.kind !== "transfer") return;
+    const historyTransactionKind = item.kind === "income"
+      ? "income"
+      : item.kind === "expense"
+        ? "expense"
+        : item.kind === "transfer"
+          ? "transfer"
+          : null;
+    if (!historyTransactionKind) return;
     if (isLinkedTransactionId(item.id)) return;
     Alert.alert(
       item.kind === "transfer" ? "Delete transfer?" : "Delete transaction?",
       item.kind === "transfer" ? "Both sides of this transfer will be deleted from account balances and activity." : "This transaction will be removed from balances and activity. The action will be recorded in the Activity Log.",
       [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: async () => {
         try {
-          const transaction = await txRepo.getForHistory(item.id, item.kind);
+          const transaction = await txRepo.getForHistory(item.id, historyTransactionKind);
           if (!transaction) throw new Error("This transaction is no longer available.");
           await txRepo.delete(transaction.id);
           await load();
