@@ -100,6 +100,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="goals"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
         name="more"
         options={{
           title: "More",

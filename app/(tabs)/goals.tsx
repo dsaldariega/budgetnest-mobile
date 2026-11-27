@@ -6,13 +6,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { createGoalRepository, type SavingsGoalListItem } from "@/database/repositories/goal-repository";
 import { toMinorUnits } from "@/domain/money";
-import { compareDates } from "@/domain/dates";
+import { compareDates, todayLocalDate } from "@/domain/dates";
 import { colors } from "@/theme/colors";
 import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
 
 const makeId = (p: string) => p + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 
 export default function GoalsScreen() {
