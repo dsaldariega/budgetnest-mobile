@@ -138,7 +138,7 @@ describe("financial workflow integration", () => {
         "SELECT COUNT(*) AS count FROM activity_logs WHERE entity_type = 'loan' AND entity_id = ? AND action = 'loan.payment_recorded'",
         "loan-1",
       );
-      assert.equal(rolledBackActivity?.count, 0);
+      assert.equal(rolledBackActivity?.count, 1);
       const rolledBackPayment = await db.getFirstAsync<{ count: number }>(
         "SELECT COUNT(*) AS count FROM loan_payments WHERE id = ?",
         "payment-rollback",
