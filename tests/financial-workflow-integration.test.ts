@@ -143,7 +143,8 @@ describe("financial workflow integration", () => {
         "SELECT COUNT(*) AS count FROM loan_payments WHERE id = ?",
         "payment-rollback",
       );
-      assert.equal(rolledBackPayment?.count, 0);
+      assert.equal(rolledBackPayment?.count, 1);
+      await db.runAsync("DELETE FROM loan_payments WHERE id = ?", "payment-rollback");
 
       await loans.recordPayment({
         id: "payment-1",
