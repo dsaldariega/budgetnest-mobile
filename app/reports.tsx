@@ -6,9 +6,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { createReportRepository, type ReportCurrencySummary,type ReportCategoryTotal,type ReportMonthTotal } from "@/database/repositories/report-repository";
 import { colors } from "@/theme/colors";
+import { addMonthsClamped, todayLocalDate } from "@/domain/dates";
 type Period="month"|"quarter"|"year";
-const today=()=>new Date().toISOString().slice(0,10);
-function range(period:Period){const d=new Date();const end=today();const start=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1));if(period==="quarter")start.setUTCMonth(start.getUTCMonth()-2);if(period==="year")start.setUTCMonth(0);return {from:start.toISOString().slice(0,10),to:end};}
+const today = todayLocalDate;
+function range(period:Period){const end=today();const monthStart=`${end.slice(0,7)}-01`;const start=period==="year"?`${end.slice(0,4)}-01-01`:period==="quarter"?addMonthsClamped(monthStart,-2):monthStart;return {from:start,to:end};}
 const money=(n:number,c:string)=>new Intl.NumberFormat("en-PH",{style:"currency",currency:c,maximumFractionDigits:2}).format(n/100);
 const monthName=(v:string)=>new Date(v+"-01T00:00:00").toLocaleDateString("en-PH",{month:"short",year:"2-digit"});
 export default function ReportsScreen(){

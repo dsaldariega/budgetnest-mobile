@@ -25,12 +25,10 @@ import {
   type ExportPeriod,
 } from "@/services/csv/transaction-csv";
 import { colors } from "@/theme/colors";
+import { todayLocalDate } from "@/domain/dates";
 import { DateField } from "@/components/ui/date-field";
 
-const todayLocal = () => {
-  const date = new Date();
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
-};
+const todayLocal = todayLocalDate;
 
 const PERIODS: { value: ExportPeriod; label: string }[] = [
   { value: "all", label: "All time" },
@@ -71,7 +69,7 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
   const [transactionType, setTransactionType] = useState<"both" | "income" | "expense">("both");
   const [category, setCategory] = useState("all");
   const [startDate, setStartDate] = useState(todayLocal);
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(todayLocalDate);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");

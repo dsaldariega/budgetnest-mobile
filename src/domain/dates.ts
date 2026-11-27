@@ -32,6 +32,15 @@ export function daysInMonth(dateOnly: string): number {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
 }
 
+export function todayLocalDate(): string {
+  const date = new Date();
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 export function compareDates(left: string, right: string): number {
   const a = parseDate(left).getTime();
   const b = parseDate(right).getTime();

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -16,7 +17,7 @@ import { DateField } from "@/components/ui/date-field";
 
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 const makeId = (prefix: string) => prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 
 type FormKind = "income" | "expense" | "transfer" | "loan" | "savings";
 const kindLabel: Record<FormKind, string> = { income: "Income", expense: "Expense", transfer: "Transfer", loan: "Loans", savings: "Savings" };

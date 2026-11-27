@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
@@ -13,7 +14,7 @@ import { DateField } from "@/components/ui/date-field";
 
 type Period = "weekly" | "monthly" | "yearly";
 const makeId = () => "budget-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 
 export default function BudgetsScreen() {

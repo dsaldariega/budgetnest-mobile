@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -23,7 +24,7 @@ type DashboardData = {
   activity: HistoryItem[];
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 const currentMonth = () => today().slice(0, 7);
 const money = (minor: number, currency: string) => new Intl.NumberFormat("en-PH", {
   style: "currency", currency, maximumFractionDigits: 2,
