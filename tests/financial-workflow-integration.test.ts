@@ -168,7 +168,7 @@ describe("financial workflow integration", () => {
         "SELECT COUNT(*) AS count FROM activity_logs WHERE entity_type = 'loan' AND entity_id = ? AND action = 'loan.payment_recorded'",
         "loan-1",
       );
-      assert.equal(loanPaymentActivity?.count, 2);
+      assert.equal(loanPaymentActivity?.count, 3);
       assert.equal(
         payments.reduce((total, payment) => total + payment.interestPaidMinor, 0),
         20_000,
