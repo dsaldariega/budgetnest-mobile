@@ -1,13 +1,11 @@
 import { Redirect } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useGoogleAuth } from "@/context/google-auth-context";
-import { useThemePreference } from "@/context/theme-context";
-import { colors } from "@/theme/colors";
+import { useAppTheme } from "@/theme/use-app-theme";
 
 export default function EntryRoute() {
   const { user, loading } = useGoogleAuth();
-  const { mode } = useThemePreference();
-  const palette = mode === "dark" ? colors.dark : colors.light;
+  const { palette } = useAppTheme();
 
   if (loading) {
     return (
