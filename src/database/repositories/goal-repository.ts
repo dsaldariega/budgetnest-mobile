@@ -50,6 +50,20 @@ export function createGoalRepository(db: SQLiteDatabase) {
 
   return {
     list,
+    async update(id: string, input: Omit<CreateGoalInput, "id">): Promise<void> {
+      assertPositiveMinorUnits(input.targetAmountMinor);
+      if (!input.name.trim()) throw new Error("Enter a goal name.");
+      if (input.targetDate) compareDates(input.targetDate, input.targetDate);
+      const account = await db.getFirstAsync<{ is_archived: number }>(
+        "SELECT is_archived FROM accounts WHERE id = ?", input.accountId,
+      );
+      if (!account || account.is_archived) throw new Error("Choose an active account.");
+      const result = await db.runAsync(
+        "UPDATE savings_goals SET name = ?, target_amount_minor = ?, target_date = ?, account_id = ?, updated_at = ? WHERE id = ? AND is_archived = 0",
+        input.name.trim(), input.targetAmountMinor, input.targetDate ?? null, input.accountId, new Date().toISOString(), id,
+      );
+      if (result.changes === 0) throw new Error("Goal was not found or is archived.");
+    },
     async create(input: CreateGoalInput): Promise<void> {
       assertPositiveMinorUnits(input.targetAmountMinor);
       if (!input.name.trim()) throw new Error("Enter a goal name.");

@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { useAppTheme } from "@/theme/use-app-theme";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -50,8 +51,7 @@ const SECTIONS = [
 
 export default function PrivacyScreen() {
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]} edges={["top", "left", "right"]}>
@@ -64,17 +64,18 @@ export default function PrivacyScreen() {
           </View>
         </View>
 
-        <View style={[styles.notice, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <MaterialCommunityIcons name="information-outline" size={20} color={palette.primary} />
-          <Text style={[styles.noticeText, { color: palette.textMuted }]}>
-            Last reviewed November 26, 2026. This page explains the current mobile app behavior in plain language; it is product information, not legal advice.
-          </Text>
+        <View style={[styles.importantCard, { backgroundColor: palette.warningSoft, borderColor: palette.warning }]}>
+          <View style={styles.importantHeader}>
+            <MaterialCommunityIcons name="alert-outline" size={21} color={palette.primary} />
+            <Text style={[styles.importantTitle, { color: palette.text }]}>Important to know</Text>
+          </View>
+          <Text style={[styles.importantText, { color: palette.textMuted }]}>Restoring a backup replaces your current local records. Uninstalling BudgetNest or clearing app storage can remove the local SQLite database. Back up or export your information before restoring, uninstalling, or clearing storage.</Text>
         </View>
 
         {SECTIONS.map((section) => (
           <View key={section.title} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.icon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+              <View style={[styles.icon, { backgroundColor: palette.primarySoft }]}>
                 <MaterialCommunityIcons name={section.icon as never} size={21} color={palette.primary} />
               </View>
               <Text style={[styles.sectionTitle, { color: palette.text }]}>{section.title}</Text>
@@ -84,12 +85,6 @@ export default function PrivacyScreen() {
             ))}
           </View>
         ))}
-
-        <Pressable onPress={() => router.push("/about")} style={[styles.aboutLink, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <MaterialCommunityIcons name="help-circle-outline" size={20} color={palette.primary} />
-          <Text style={[styles.aboutLinkText, { color: palette.text }]}>Back to About & Help</Text>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textMuted} />
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -97,10 +92,14 @@ export default function PrivacyScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  content: { padding: 19, paddingBottom: 38, gap: 12 },
+  content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 38, gap: 14 },
   header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 5 },
   eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
   title: { fontSize: 25, fontWeight: "900", marginTop: 2 },
+  importantCard: { borderWidth: 1, borderRadius: 15, padding: 15, gap: 9 },
+  importantHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
+  importantTitle: { fontSize: 14, fontWeight: "900" },
+  importantText: { fontSize: 11, lineHeight: 18 },
   notice: { borderWidth: 1, borderRadius: 14, padding: 13, flexDirection: "row", alignItems: "flex-start", gap: 10 },
   noticeText: { flex: 1, fontSize: 11, lineHeight: 17 },
   card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 11 },

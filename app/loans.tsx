@@ -1,19 +1,20 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { createLoanRepository, type LoanListItem, type LoanPaymentListItem } from "@/database/repositories/loan-repository";
 import { toMinorUnits } from "@/domain/money";
-import { compareDates } from "@/domain/dates";
+import { compareDates, todayLocalDate } from "@/domain/dates";
 import { colors } from "@/theme/colors";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
 
 const makeId = (prefix: string) => prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 
 function termMonths(start: string, end: string) {
@@ -26,8 +27,7 @@ function termMonths(start: string, end: string) {
 
 export default function LoansScreen() {
   const db = useSQLiteContext();
-  const dark = useColorScheme() === "dark";
-  const p = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette: p } = useAppTheme();
   const [loans, setLoans] = useState<LoanListItem[]>([]);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [selected, setSelected] = useState<LoanListItem | null>(null);
@@ -50,7 +50,7 @@ export default function LoansScreen() {
   const load = useCallback(async () => {
     try {
       const [items, acc] = await Promise.all([createLoanRepository(db).list(), createAccountRepository(db).list()]);
-      setLoans(items); setAccounts(acc.filter(a => !a.isArchived));
+      setLoans(Array.isArray(items) ? items : []); setAccounts((Array.isArray(acc) ? acc : []).filter(a => !a.isArchived));
       setAccountId(v => v || acc.find(a => !a.isArchived)?.id || "");
       if (selected) {
         const fresh = items.find(item => item.id === selected.id) ?? null;
@@ -125,19 +125,19 @@ export default function LoansScreen() {
     catch (e) { Alert.alert("Unable to update loan", e instanceof Error ? e.message : "Please try again."); }
   };
 
-  const accountOptions = accounts.map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
+  const accountOptions = (accounts ?? []).map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
 
   return <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
     <View style={s.page}>
       <View style={s.header}>
         <ScreenBackButton backgroundColor={p.surface} borderColor={p.border} color={p.text} />
         <View style={{ flex: 1 }}><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>BORROWING</Text><Text style={[s.title, { color: p.text }]}>Loans</Text></View>
-        {loans.length > 0 ? <Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.add, { backgroundColor: p.primary }]}><Text style={s.addText}>+ Add</Text></Pressable> : null}
+        {loans.length > 0 ? <Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.add, { backgroundColor: p.primary }]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable> : null}
       </View>
       <Text style={[s.sub, { color: p.textMuted }]}>Track flat-rate loans, repayments, and the account receiving the loan proceeds.</Text>
       <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }}>
-        {loans.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={[s.cardTitle, { color: p.text }]}>No loans yet</Text><Text style={{ color: p.textMuted, marginTop: 6, textAlign: "center" }}>Add a loan with its linked account and repayment dates.</Text><Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.primary, { backgroundColor: p.primary }]}><Text style={s.primaryText}>Add a loan</Text></Pressable></View> :
-        loans.map(loan => <Pressable key={loan.id} onPress={() => void openLoan(loan)} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
+        {loans.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={[s.cardTitle, { color: p.text }]}>No loans yet</Text><Text style={{ color: p.textMuted, marginTop: 6, textAlign: "center" }}>Add a loan, link an account, and set repayment dates.</Text><Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.primary, { backgroundColor: p.primary }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>Add a loan</Text></Pressable></View> :
+        (loans ?? []).map(loan => <Pressable key={loan.id} onPress={() => void openLoan(loan)} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
           <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{loan.name}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>Flat rate · {loan.monthlyInterestRateBps / 100}% monthly · {loan.accountName ?? "No account"}</Text></View><Text style={[s.status, { color: loan.status === "paid" ? p.success : loan.status === "paused" ? p.warning : p.primary }]}>{loan.status}</Text></View>
           <View style={s.moneyRow}><Text style={[s.big, { color: p.text }]}>{fmt(loan.remainingMinor, loan.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 11 }}>remaining</Text></View>
           <View style={s.moneyRow}><Text style={{ color: p.textMuted, fontSize: 12 }}>Monthly estimate</Text><Text style={{ color: p.text, fontWeight: "700" }}>{fmt(loan.scheduledPaymentMinor, loan.currencyCode)}</Text></View>
@@ -147,20 +147,23 @@ export default function LoansScreen() {
     </View>
 
     <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFormOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
-        <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{editing ? "Edit loan" : "Add loan"}</Text><Text style={{ color: p.textMuted, fontSize: 12, marginTop: 3 }}>Flat Rate Interest is the only supported interest type.</Text></View><Pressable onPress={() => setFormOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
+        <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{editing ? "Edit loan" : "Add loan"}</Text><Text style={{ color: p.textMuted, fontSize: 12, marginTop: 3 }}>Set the amount, linked account, and repayment dates.</Text></View><Pressable onPress={() => setFormOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
         <Text style={[s.label, { color: p.text }]}>Loan name or description *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Car loan" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
         <Text style={[s.label, { color: p.text }]}>Principal amount *</Text><TextInput value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
         <Text style={[s.label, { color: p.text }]}>Monthly interest rate (%) *</Text><TextInput value={rate} onChangeText={setRate} keyboardType="decimal-pad" placeholder="e.g. 2" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
         <DateField label="Start date" required value={startDate} onChange={setStartDate} />
         <DateField label="End date" required value={endDate} onChange={setEndDate} />
         <SelectField label="Linked account" required value={accountId} options={accountOptions} onChange={setAccountId} placeholder="Select account" />
-        {error ? <Text style={s.error}>{error}</Text> : null}
-        <Pressable disabled={saving} onPress={() => void saveLoan()} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={s.primaryText}>{saving ? "Saving…" : editing ? "Save changes" : "Save loan"}</Text></Pressable>
+        {error ? <Text style={[s.error, { color: p.expense }]}>{error}</Text> : null}
+        <Pressable disabled={saving} onPress={() => void saveLoan()} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving ? "Saving…" : editing ? "Save changes" : "Save loan"}</Text></Pressable>
       </ScrollView></SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
 
     <Modal visible={selected !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
         {selected ? <ScrollView contentContainerStyle={s.form}>
           <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{selected.name}</Text><Text style={{ color: p.textMuted, marginTop: 4 }}>{selected.status} · ends {selected.dueDate}</Text></View><Pressable onPress={() => setSelected(null)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
@@ -171,28 +174,31 @@ export default function LoansScreen() {
             <View style={s.moneyRow}><Text style={{ color: p.textMuted }}>Total interest</Text><Text style={{ color: p.text, fontWeight: "700" }}>{fmt(selected.totalInterestMinor, selected.currencyCode)}</Text></View>
           </View>
           <Pressable onPress={() => openEdit(selected)} style={[s.secondary, { borderColor: p.border }]}><Text style={{ color: p.text, fontWeight: "700" }}>Edit loan</Text></Pressable>
-          <Pressable disabled={selected.status === "paid"} onPress={() => { setPaymentDate(today()); setPaymentAmount(""); setPaymentNote(""); setError(""); setPaymentOpen(true); }} style={[s.primary, { backgroundColor: p.primary, opacity: selected.status === "paid" ? 0.5 : 1 }]}><Text style={s.primaryText}>Record payment</Text></Pressable>
+          <Pressable disabled={selected.status === "paid"} onPress={() => { setPaymentDate(today()); setPaymentAmount(""); setPaymentNote(""); setError(""); setPaymentOpen(true); }} style={[s.primary, { backgroundColor: p.primary, opacity: selected.status === "paid" ? 0.5 : 1 }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>Record payment</Text></Pressable>
           {selected.status !== "paid" ? <Pressable onPress={() => void togglePause(selected)} style={[s.secondary, { borderColor: p.border }]}><Text style={{ color: p.text, fontWeight: "700" }}>{selected.status === "active" ? "Pause loan" : "Resume loan"}</Text></Pressable> : null}
-          <Pressable onPress={() => deleteLoan(selected)} style={s.dangerButton}><Text style={s.dangerText}>Delete loan and history</Text></Pressable>
+          <Pressable onPress={() => deleteLoan(selected)} style={s.dangerButton}><Text style={[s.dangerText, { color: p.expense }]}>Delete loan and history</Text></Pressable>
           <Text style={[s.section, { color: p.text }]}>Payment history</Text>
-          {payments.length === 0 ? <Text style={{ color: p.textMuted }}>No payments recorded yet.</Text> : payments.map(payment => <View key={payment.id} style={[s.payment, { backgroundColor: p.surface, borderColor: p.border }]}>
+          {payments.length === 0 ? <Text style={{ color: p.textMuted }}>No payments recorded yet.</Text> : (payments ?? []).map(payment => <View key={payment.id} style={[s.payment, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{fmt(payment.amountMinor, selected.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{payment.paymentDate}</Text></View><Text style={{ color: p.textMuted, fontSize: 11 }}>Interest {fmt(payment.interestPaidMinor, selected.currencyCode)}</Text></View>
             <Text style={{ color: p.textMuted, fontSize: 11, marginTop: 5 }}>Principal {fmt(payment.principalPaidMinor, selected.currencyCode)}{payment.notes ? " · " + payment.notes : ""}</Text>
           </View>)}
         </ScrollView> : null}
       </SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
 
     <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPaymentOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Record payment</Text><Pressable onPress={() => setPaymentOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
         <Text style={[s.context, { color: p.textMuted }]}>This payment is recorded as an expense in the loan's linked account.</Text>
         <Text style={[s.label, { color: p.text }]}>Amount *</Text><TextInput value={paymentAmount} onChangeText={setPaymentAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
         <DateField label="Payment date" required value={paymentDate} onChange={setPaymentDate} />
         <Text style={[s.label, { color: p.text }]}>Note (optional)</Text><TextInput value={paymentNote} onChangeText={setPaymentNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
-        {error ? <Text style={s.error}>{error}</Text> : null}
-        <Pressable disabled={saving} onPress={() => void savePayment()} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={s.primaryText}>{saving ? "Saving…" : "Save payment"}</Text></Pressable>
+        {error ? <Text style={[s.error, { color: p.expense }]}>{error}</Text> : null}
+        <Pressable disabled={saving} onPress={() => void savePayment()} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving ? "Saving…" : "Save payment"}</Text></Pressable>
       </ScrollView></SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
   </SafeAreaView>;
 }
@@ -202,10 +208,10 @@ const s = StyleSheet.create({
   title:{fontSize:29,fontWeight:"800",marginTop:4},add:{paddingHorizontal:17,paddingVertical:11,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
   sub:{fontSize:14,lineHeight:21,marginTop:8,marginBottom:18},card:{borderWidth:1,borderRadius:18,padding:17},row:{flexDirection:"row",alignItems:"center",gap:10},
   cardTitle:{fontSize:15,fontWeight:"700"},status:{fontSize:11,fontWeight:"800",textTransform:"uppercase"},moneyRow:{flexDirection:"row",alignItems:"baseline",justifyContent:"space-between",marginTop:9},
-  big:{fontSize:21,fontWeight:"800"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{padding:15,borderRadius:13,alignItems:"center",marginTop:18},
+  big:{fontSize:21,fontWeight:"800"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{ minHeight: 48, padding: 15,borderRadius:13,alignItems:"center",marginTop:18},
   primaryText:{color:"#fff",fontWeight:"700"},secondary:{padding:14,borderWidth:1,borderRadius:13,alignItems:"center",marginTop:10},dangerButton:{padding:14,alignItems:"center",marginTop:8},
-  dangerText:{color:"#D32F2F",fontWeight:"700"},modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},
-  input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{color:"#D32F2F",fontSize:13,marginTop:12},
+  dangerText:{fontWeight:"700"},modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},
+  input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{fontSize:13,marginTop:12},
   summary:{borderWidth:1,borderRadius:18,padding:17,marginTop:18},hero:{fontSize:30,fontWeight:"800",marginTop:5},section:{fontSize:17,fontWeight:"800",marginTop:26,marginBottom:10},
   payment:{borderWidth:1,borderRadius:14,padding:14,marginBottom:8},context:{fontSize:13,lineHeight:20,marginTop:14},
 });

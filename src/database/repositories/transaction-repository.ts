@@ -14,6 +14,10 @@ export type TransactionListItem = Transaction & {
   accountName: string; currencyCode: string; categoryName: string | null;
 };
 
+export function isLinkedTransactionId(id: string): boolean {
+  return id.startsWith("loan-") || id.startsWith("loan-payment-") || id.startsWith("subscription-payment-");
+}
+
 function mapTransaction(row: TransactionRow): TransactionListItem {
   return {
     id: row.id, accountId: row.account_id, categoryId: row.category_id,
@@ -54,6 +58,16 @@ export function createTransactionRepository(db: SQLiteDatabase) {
         safeLimit,
       );
       return rows.map(mapTransaction);
+    },
+    async getForHistory(historyId: string, kind: "income" | "expense" | "transfer"): Promise<TransactionListItem | null> {
+      const where = kind === "transfer"
+        ? "t.transfer_group_id = ? AND t.transfer_direction = 'out'"
+        : "t.id = ?";
+      const row = await db.getFirstAsync<TransactionRow>(
+        `${selectSql} WHERE t.deleted_at IS NULL AND ${where}`,
+        historyId,
+      );
+      return row ? mapTransaction(row) : null;
     },
     async listCategories(type: "income" | "expense") {
       return db.getAllAsync<{ id: string; name: string }>(
@@ -167,6 +181,7 @@ export function createTransactionRepository(db: SQLiteDatabase) {
       });
     },
     async update(id: string, input: Omit<CreateSimpleTransactionInput, "id">): Promise<void> {
+      if (isLinkedTransactionId(id)) throw new Error("Linked loan or subscription transactions must be changed from their source record.");
       assertPositiveMinorUnits(input.amountMinor);
       const account = await db.getFirstAsync<{ is_archived: number }>(
         "SELECT is_archived FROM accounts WHERE id = ?", input.accountId,
@@ -190,6 +205,7 @@ export function createTransactionRepository(db: SQLiteDatabase) {
       if (result.changes === 0) throw new Error("Transaction was not found.");
     },
     async delete(id: string): Promise<void> {
+      if (isLinkedTransactionId(id)) throw new Error("Linked loan or subscription transactions must be deleted from their source record.");
       const row = await db.getFirstAsync<{ transfer_group_id: string | null }>(
         "SELECT transfer_group_id FROM transactions WHERE id = ? AND deleted_at IS NULL", id,
       );

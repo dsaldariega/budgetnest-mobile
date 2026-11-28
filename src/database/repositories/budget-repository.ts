@@ -28,15 +28,20 @@ export function createBudgetRepository(db: SQLiteDatabase) {
       "ORDER BY b.start_date DESC, c.name COLLATE NOCASE ASC",
     );
     return Promise.all(rows.map(async row => {
-      const window = getBudgetWindow({
-        period: row.period, startDate: row.start_date, endDate: row.end_date, referenceDate,
-      });
-      const spent = await db.getFirstAsync<{ spent_minor: number | null }>(
+      const isStarted = row.start_date <= referenceDate;
+      const window = isStarted
+        ? getBudgetWindow({
+            period: row.period, startDate: row.start_date, endDate: row.end_date, referenceDate,
+          })
+        : null;
+      const spent = window
+        ? await db.getFirstAsync<{ spent_minor: number | null }>(
         "SELECT COALESCE(SUM(amount_minor), 0) AS spent_minor FROM transactions " +
         "WHERE account_id = ? AND category_id = ? AND type = 'expense' " +
         "AND deleted_at IS NULL AND occurred_at BETWEEN ? AND ?",
-        row.account_id, row.category_id, window.startDate, window.endDate,
-      );
+          row.account_id, row.category_id, window.startDate, window.endDate,
+        )
+        : null;
       const spentMinor = spent?.spent_minor ?? 0;
       return {
         id: row.id, name: row.name || row.category_name, categoryId: row.category_id, categoryName: row.category_name,

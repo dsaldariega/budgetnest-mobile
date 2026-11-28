@@ -20,32 +20,19 @@ import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 
 const slides = [
   {
-    eyebrow: "WELCOME TO BUDGETNEST",
-    title: "A clearer view of your money.",
-    description: "Bring your accounts, spending, and savings goals together in one calm, easy-to-understand space.",
+    title: "Keep track of your money in one place.",
+    description: "Log daily expenses fast, check your balances, and see where your spending goes each month.",
     icon: "wallet-outline" as const,
-    points: ["See your balances at a glance", "Understand your monthly cash flow"],
   },
   {
-    eyebrow: "PLAN WITH CONFIDENCE",
-    title: "Make every peso count.",
-    description: "Build budgets, track recurring bills, manage loan obligations, and keep your savings goals moving.",
+    title: "Track at your own pace, anytime.",
+    description: "Record spending in seconds, set budgets that fit your routine, and use the app anytime—even without internet. Your records stay on your phone.",
     icon: "chart-box-outline" as const,
-    points: ["Create budgets that make sense", "Stay ahead of upcoming payments"],
   },
   {
-    eyebrow: "PRIVATE BY DESIGN",
-    title: "Your finances stay on your device.",
-    description: "BudgetNest works without an account. Your records are stored locally, and Google is optional for cloud backup and restore.",
-    icon: "shield-lock-outline" as const,
-    points: ["No account needed to get started", "Connect Google only for backup features"],
-  },
-  {
-    eyebrow: "OPTIONAL CLOUD CONNECTION",
-    title: "Keep a backup with Google.",
-    description: "Connect your Google account when you want to back up or restore your BudgetNest data. You can also skip this and start using the app right away.",
-    icon: "cloud-check-outline" as const,
-    points: ["Google Drive backup and restore", "You stay in control of the connection"],
+    title: "Want to back up your data with Google?",
+    description: "Optional: connect Google now to back up and restore on Google Drive, or jump straight in.",
+    icon: "google-drive" as const,
   },
 ];
 
@@ -82,73 +69,86 @@ export default function WelcomeScreen() {
       <View style={styles.topBar}>
         <BudgetNestBrand color={palette.text} size={30} />
         <Pressable onPress={explore} hitSlop={12} accessibilityRole="button">
-          <Text style={[styles.skipTop, { color: palette.textMuted }]}>Close</Text>
+          <Text style={[styles.skipTop, { color: palette.textMuted }]}>Skip</Text>
         </Pressable>
       </View>
 
       <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScroll}
-        style={styles.slider}
-        contentContainerStyle={styles.sliderContent}
-      >
-        {slides.map((slide, index) => (
-          <View key={slide.eyebrow} style={[styles.slide, { width }]}>
-            <View style={[styles.illustration, { backgroundColor: mode === "dark" ? "#3A2424" : "#FCE8E8" }]}>
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleScroll}
+          style={styles.slider}
+          contentContainerStyle={styles.sliderContent}
+        >
+        {(slides ?? []).map((slide, index) => (
+          <View key={slide.title} style={[styles.slide, { width }]}>
+            <View style={[styles.illustration, { backgroundColor: palette.primarySoft }]}>
               <View style={[styles.illustrationInner, { backgroundColor: palette.primary }]}>
-                <MaterialCommunityIcons name={slide.icon} size={58} color="#FFFFFF" />
-              </View>
-              <View style={[styles.sparkle, { backgroundColor: palette.surface }]}>
-                <MaterialCommunityIcons name={index === 3 ? "google" : "check"} size={18} color={palette.primary} />
+                <MaterialCommunityIcons name={slide.icon} size={58} color={palette.onPrimary} />
               </View>
             </View>
 
-            <Text style={[styles.eyebrow, { color: palette.primary }]}>{slide.eyebrow}</Text>
             <Text style={[styles.heading, { color: palette.text }]}>{slide.title}</Text>
             <Text style={[styles.description, { color: palette.textMuted }]}>{slide.description}</Text>
 
-            <View style={styles.points}>
-              {slide.points.map(point => (
-                <View key={point} style={styles.point}>
-                  <MaterialCommunityIcons name="check-circle" size={18} color={palette.success} />
-                  <Text style={[styles.pointText, { color: palette.text }]}>{point}</Text>
-                </View>
-              ))}
-            </View>
+            {index === slides.length - 1 ? (
+              <View style={styles.slideActions}>
+                <Pressable
+                  onPress={explore}
+                  style={[styles.primaryButton, { backgroundColor: palette.primary }]}
+                >
+                  <Text style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Start Without Google</Text>
+                </Pressable>
+
+                <Pressable
+                  disabled={signingIn}
+                  onPress={() => void connectGoogle()}
+                  style={styles.secondaryAction}
+                >
+                  {signingIn ? (
+                    <ActivityIndicator color={palette.primary} />
+                  ) : (
+                    <MaterialCommunityIcons name="google" size={17} color={palette.primary} />
+                  )}
+                  <Text style={[styles.secondaryActionText, { color: palette.primary }]}>
+                    {signingIn ? "Connecting…" : "Connect with Google"}
+                  </Text>
+                </Pressable>
+
+                {connectError ? <Text style={[styles.connectError, { color: palette.primary }]}>{connectError}</Text> : null}
+              </View>
+            ) : null}
           </View>
         ))}
       </ScrollView>
 
       <View style={styles.footer}>
         <View style={styles.pagination}>
-          {slides.map((slide, index) => (
-            <View key={slide.eyebrow} style={[styles.dot, { backgroundColor: index === activeIndex ? palette.primary : palette.border, width: index === activeIndex ? 22 : 7 }]} />
-          ))}
-        </View>
+          {[0, 1, 2].map(index => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: index === activeIndex ? palette.primary : palette.border,
+                    width: index === activeIndex ? 22 : 7,
+                  },
+                ]}
+              />
+            ))}
+          </View>
 
-        {lastSlide ? (
-          <>
-            <Pressable disabled={signingIn} onPress={() => void connectGoogle()} style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: signingIn ? 0.7 : 1 }]}>
-              {signingIn ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="google" size={19} color="#FFFFFF" />}
-              <Text style={styles.primaryButtonText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
-            </Pressable>
-            {connectError ? <Text style={[styles.connectError, { color: palette.primary }]}>{connectError}</Text> : null}
-            <Pressable onPress={explore} style={styles.secondaryAction}>
-              <Text style={[styles.secondaryActionText, { color: palette.textMuted }]}>Continue without Google</Text>
-            </Pressable>
-          </>
-        ) : (
+        {!lastSlide ? (
           <Pressable
             onPress={() => scrollRef.current?.scrollTo({ x: width * (activeIndex + 1), animated: true })}
             style={[styles.primaryButton, { backgroundColor: palette.primary }]}
           >
-            <Text style={styles.primaryButtonText}>Next</Text>
-            <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" />
+            <Text style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Next</Text>
+            <MaterialCommunityIcons name="arrow-right" size={18} color={palette.onPrimary} />
           </Pressable>
-        )}
+        ) : null}
         <Text style={[styles.footerNote, { color: palette.textMuted }]}>Your money. Your pace. Your privacy.</Text>
       </View>
 
@@ -163,15 +163,11 @@ const styles = StyleSheet.create({
   slider: { flex: 1 },
   sliderContent: { alignItems: "stretch" },
   slide: { flex: 1, alignItems: "center", paddingHorizontal: 30, paddingTop: 22 },
+  slideActions: { width: "100%", marginTop: 24, gap: 8 },
   illustration: { width: 188, height: 188, borderRadius: 60, alignItems: "center", justifyContent: "center", marginBottom: 34 },
   illustrationInner: { width: 132, height: 132, borderRadius: 42, alignItems: "center", justifyContent: "center" },
-  sparkle: { position: "absolute", right: 12, bottom: 15, width: 38, height: 38, borderRadius: 14, alignItems: "center", justifyContent: "center", elevation: 3 },
-  eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1.4, textAlign: "center" },
   heading: { fontSize: 29, lineHeight: 36, fontWeight: "900", letterSpacing: -0.8, textAlign: "center", marginTop: 12, maxWidth: 340 },
   description: { fontSize: 14, lineHeight: 22, textAlign: "center", marginTop: 12, maxWidth: 340 },
-  points: { alignSelf: "stretch", marginTop: 22, gap: 12, maxWidth: 330 },
-  point: { flexDirection: "row", alignItems: "center", gap: 10 },
-  pointText: { fontSize: 13, fontWeight: "600", flex: 1 },
   footer: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 16, gap: 10 },
   pagination: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7, marginBottom: 8 },
   dot: { height: 7, borderRadius: 5 },

@@ -1,5 +1,6 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -8,11 +9,11 @@ import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { colors } from "@/theme/colors";
 
 const FEATURES = [
-  { icon: "wallet-outline", title: "Accounts and transactions", detail: "Track cash, bank accounts, e-wallets, income, expenses, and transfers in one place." },
-  { icon: "chart-donut", title: "Budgets and savings goals", detail: "Set spending limits, monitor progress, and keep your savings targets visible." },
-  { icon: "bank-outline", title: "Loans and commitments", detail: "Keep loan balances, repayments, subscriptions, and recurring schedules organized." },
-  { icon: "chart-box-outline", title: "Reports and insights", detail: "Review cash flow, spending categories, and monthly trends across your currencies." },
-  { icon: "file-delimited-outline", title: "Your data, your copy", detail: "Export filtered transactions to CSV, import supported CSV files, and make optional Google Drive backups." },
+  { icon: "wallet-outline", title: "Accounts and transactions", detail: "Track accounts, income, expenses, and transfers in one place." },
+  { icon: "chart-donut", title: "Budgets and savings goals", detail: "Set spending limits and keep savings targets visible." },
+  { icon: "bank-outline", title: "Loans and commitments", detail: "Keep loans, repayments, subscriptions, and recurring schedules organized." },
+  { icon: "chart-box-outline", title: "Reports and insights", detail: "Review cash flow, spending, and monthly trends." },
+  { icon: "file-delimited-outline", title: "Your data, your copy", detail: "Export/import transactions with CSV and optionally back up to Google Drive." },
 ];
 
 const FAQS = [
@@ -44,8 +45,7 @@ const FAQS = [
 
 export default function AboutScreen() {
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
@@ -53,18 +53,18 @@ export default function AboutScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
-          <View style={{ flex: 1 }}><BudgetNestBrand color={palette.text} size={30} /><Text style={[styles.title, { color: palette.text }]}>About & Help</Text></View>
+          <BudgetNestBrand color={palette.text} size={23} /><Text style={[styles.title, { color: palette.text }]}>About & Help</Text>
         </View>
 
-        <View style={[styles.hero, { backgroundColor: dark ? "#57242C" : "#D32F2F" }]}>
+        <View style={[styles.hero, { backgroundColor: palette.primaryDark }]}>
           <Text style={styles.heroTitle}>Your money, with a little more clarity.</Text>
-          <Text style={styles.heroText}>A personal finance workspace for accounts, spending, budgets, savings, and recurring commitments.</Text>
+          <Text style={styles.heroText}>Track accounts, spending, plans, and recurring commitments locally.</Text>
         </View>
 
         <Text style={[styles.sectionTitle, { color: palette.text }]}>What you can do</Text>
         {FEATURES.map((feature) => (
           <View key={feature.title} style={[styles.feature, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <View style={[styles.featureIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+            <View style={[styles.featureIcon, { backgroundColor: palette.primarySoft }]}>
               <MaterialCommunityIcons name={feature.icon as never} size={21} color={palette.primary} />
             </View>
             <View style={{ flex: 1, gap: 3 }}>
@@ -77,13 +77,13 @@ export default function AboutScreen() {
         <Text style={[styles.sectionTitle, { color: palette.text, marginTop: 8 }]}>Getting started</Text>
         <View style={[styles.steps, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           {[
-            ["01", "Create your accounts", "Add the cash, bank, or e-wallet accounts you want to track."],
-            ["02", "Record what happens", "Add income and expenses, and use transfers when moving money between accounts."],
-            ["03", "Set your plans", "Create budgets and savings goals, then add loans or recurring commitments when needed."],
-            ["04", "Review and adjust", "Use your dashboard and reports to understand your financial picture."],
+            ["01", "Create your accounts", "Add the accounts you want to track."],
+            ["02", "Record what happens", "Record income and expenses; use transfers between accounts."],
+            ["03", "Set your plans", "Set budgets and goals, then add commitments as needed."],
+            ["04", "Review and adjust", "Use Home and Reports to review your finances."],
           ].map(([number, title, detail]) => (
             <View key={number} style={styles.step}>
-              <View style={[styles.stepNumber, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={[styles.stepNumberText, { color: palette.primary }]}>{number}</Text></View>
+              <View style={[styles.stepNumber, { backgroundColor: palette.primarySoft }]}><Text style={[styles.stepNumberText, { color: palette.primaryText }]}>{number}</Text></View>
               <View style={{ flex: 1, gap: 3 }}>
                 <Text style={[styles.featureTitle, { color: palette.text }]}>{title}</Text>
                 <Text style={[styles.featureText, { color: palette.textMuted }]}>{detail}</Text>

@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { assertPositiveMinorUnits } from "@/domain/money";
 import { compareDates } from "@/domain/dates";
-import { advanceRecurringDate, getDueRecurringDates, type RecurringFrequency } from "@/domain/recurring";
+import { advanceRecurringDateFromAnchor, getDueRecurringDates, type RecurringFrequency } from "@/domain/recurring";
 export type RecurringRule = {
   id: string; name: string; type: "income" | "expense"; amountMinor: number; accountId: string;
   accountName: string; currencyCode: string; categoryId: string; categoryName: string;
@@ -69,11 +69,11 @@ export function createRecurringRepository(db: SQLiteDatabase) {
       compareDates(throughDate,throughDate);
       let generatedCount=0,skippedCount=0;
       await db.withTransactionAsync(async()=>{
-        const rules=await db.getAllAsync<{id:string;name:string;type:"income"|"expense";amount_minor:number;account_id:string;category_id:string;frequency:RecurringFrequency;interval_count:number;next_occurrence_date:string;end_date:string|null}>(
-          "SELECT id,name,type,amount_minor,account_id,category_id,frequency,interval_count,next_occurrence_date,end_date FROM recurring_rules WHERE is_active=1 ORDER BY next_occurrence_date ASC");
+        const rules=await db.getAllAsync<{id:string;name:string;type:"income"|"expense";amount_minor:number;account_id:string;category_id:string;frequency:RecurringFrequency;interval_count:number;start_date:string;next_occurrence_date:string;end_date:string|null}>(
+          "SELECT id,name,type,amount_minor,account_id,category_id,frequency,interval_count,start_date,next_occurrence_date,end_date FROM recurring_rules WHERE is_active=1 ORDER BY next_occurrence_date ASC");
         const now=new Date().toISOString();
         for(const rule of rules) {
-          const dates=getDueRecurringDates({nextOccurrenceDate:rule.next_occurrence_date,frequency:rule.frequency,intervalCount:rule.interval_count,throughDate,endDate:rule.end_date,maxOccurrences:500});
+          const dates=getDueRecurringDates({nextOccurrenceDate:rule.next_occurrence_date,frequency:rule.frequency,intervalCount:rule.interval_count,throughDate,endDate:rule.end_date,anchorDate:rule.start_date,maxOccurrences:500});
           if(!dates.length) {
             if(rule.end_date&&compareDates(rule.next_occurrence_date,rule.end_date)>0) await db.runAsync("UPDATE recurring_rules SET is_active=0,updated_at=? WHERE id=?",now,rule.id);
             continue;
@@ -89,7 +89,7 @@ export function createRecurringRepository(db: SQLiteDatabase) {
               id,rule.account_id,rule.category_id,rule.type,rule.amount_minor,rule.name,"Generated from recurring schedule",occurrenceDate,now,now,rule.id,occurrenceDate);
             if(result.changes>0) generatedCount++; else skippedCount++;
           }
-          const next=advanceRecurringDate(dates[dates.length-1],rule.frequency,rule.interval_count);
+          const next=advanceRecurringDateFromAnchor(rule.start_date,dates[dates.length-1],rule.frequency,rule.interval_count);
           const complete=rule.end_date&&compareDates(next,rule.end_date)>0;
           await db.runAsync("UPDATE recurring_rules SET next_occurrence_date=?,is_active=?,updated_at=? WHERE id=?",next,complete?0:1,now,rule.id);
         }

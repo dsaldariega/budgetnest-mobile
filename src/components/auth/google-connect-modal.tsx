@@ -55,15 +55,15 @@ export function GoogleConnectModal({ visible, onClose, onConnected }: GoogleConn
           ) : null}
 
           {error ? (
-            <View style={[styles.errorBox, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+            <View style={[styles.errorBox, { backgroundColor: palette.dangerSoft }]}>
               <Text style={[styles.errorText, { color: palette.primary }]}>{error}</Text>
             </View>
           ) : null}
 
           {isGoogleAuthAvailable ? (
             <Pressable disabled={signingIn} onPress={() => void connect()} style={[styles.connectButton, { backgroundColor: palette.primary, opacity: signingIn ? 0.7 : 1 }]}>
-              {signingIn ? <ActivityIndicator color="#FFFFFF" /> : <MaterialCommunityIcons name="google" size={19} color="#FFFFFF" />}
-              <Text style={styles.connectText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
+              {signingIn ? <ActivityIndicator color={palette.onPrimary} /> : <MaterialCommunityIcons name="google" size={19} color={palette.onPrimary} />}
+              <Text style={[styles.connectText, { color: palette.onPrimary }]}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
             </Pressable>
           ) : null}
           <Pressable disabled={signingIn} onPress={onClose} style={styles.cancelButton}>

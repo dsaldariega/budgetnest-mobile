@@ -8,6 +8,7 @@ import {
   type BudgetNestBackup,
 } from "./backup-format";
 import { verifyBackupChecksum } from "./backup-integrity";
+import { SYSTEM_CATEGORIES } from "@/database/system-category-seed";
 
 const restoreOrder = [
   "activity_logs",
@@ -114,6 +115,19 @@ export function createBackupRepository(db: SQLiteDatabase, appVersion = "unknown
               values,
             );
           }
+        }
+
+        for (const category of SYSTEM_CATEGORIES) {
+          await db.runAsync(
+            "INSERT OR IGNORE INTO categories (id, name, type, icon, is_system, source_name, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)",
+            category.id,
+            category.name,
+            category.type,
+            category.icon,
+            category.sourceName ?? null,
+            "2026-11-26T00:00:00.000Z",
+            "2026-11-26T00:00:00.000Z",
+          );
         }
 
         await db.runAsync("DELETE FROM app_settings WHERE key = ?", "backup_restore_in_progress");

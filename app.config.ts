@@ -17,10 +17,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "react-native-nitro-google-signin",
       {
         iosUrlScheme,
+        androidGoogleServicesFile: googleServicesFile,
       },
     ]);
   } else {
-    plugins.push("react-native-nitro-google-signin");
+    plugins.push([
+      "react-native-nitro-google-signin",
+      {
+        androidGoogleServicesFile: googleServicesFile,
+      },
+    ]);
   }
 
   return {

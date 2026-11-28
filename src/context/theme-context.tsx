@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Appearance, useColorScheme } from "react-native";
 import { useSQLiteContext } from "expo-sqlite";
+import { resolveThemeMode } from "@/theme/mode";
 import {
   createSettingsRepository,
   type ThemePreference,
@@ -61,7 +62,7 @@ export function ThemePreferenceProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<ThemePreferenceContextValue>(() => ({
     preference,
-    mode: systemMode === "dark" ? "dark" : "light",
+    mode: resolveThemeMode(preference, systemMode),
     loading,
     setPreference,
   }), [preference, systemMode, loading, setPreference]);

@@ -136,10 +136,6 @@ export function createLoanRepository(db: SQLiteDatabase) {
           input.id, input.name.trim(), input.principalMinor, input.monthlyInterestRateBps, input.interestType,
           input.termMonths, input.startDate, dueDate, input.accountId, input.notes?.trim() || null, now, now,
         );
-        await db.runAsync(
-          "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-income-loan', NULL, NULL, 'income', ?, ?, ?, ?, ?, ?)",
-          "loan-" + input.id, input.accountId, input.principalMinor, input.name.trim(), input.notes?.trim() || null, input.startDate, now, now,
-        );
       });
     },
     async update(input: CreateLoanInput): Promise<void> {
@@ -162,7 +158,6 @@ export function createLoanRepository(db: SQLiteDatabase) {
       await db.withTransactionAsync(async () => {
         const result = await db.runAsync("UPDATE loans SET name=?, principal_minor=?, monthly_interest_rate_bps=?, interest_type=?, term_months=?, start_date=?, due_date=?, account_id=?, notes=?, updated_at=? WHERE id=?", input.name.trim(), input.principalMinor, input.monthlyInterestRateBps, input.interestType, input.termMonths, input.startDate, input.dueDate, input.accountId, input.notes?.trim() || null, now, input.id);
         if (result.changes === 0) throw new Error("Loan was not found.");
-        await db.runAsync("UPDATE transactions SET account_id=?, amount_minor=?, description=?, notes=?, occurred_at=?, updated_at=? WHERE id=? AND deleted_at IS NULL", input.accountId, input.principalMinor, input.name.trim(), input.notes?.trim() || null, input.startDate, now, "loan-" + input.id);
       });
     },
     async deletePayment(paymentId: string): Promise<void> {
@@ -174,7 +169,6 @@ export function createLoanRepository(db: SQLiteDatabase) {
 
       await db.withTransactionAsync(async () => {
         const now = new Date().toISOString();
-        await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "loan-payment-" + paymentId);
         await db.runAsync("DELETE FROM loan_payments WHERE id = ?", paymentId);
 
         const loan = await getLoanRow(payment.loan_id);
@@ -274,11 +268,6 @@ export function createLoanRepository(db: SQLiteDatabase) {
           "UPDATE loans SET status = ?, updated_at = ? WHERE id = ?",
           nextStatus, now, input.loanId,
         );
-        await db.runAsync(
-          "INSERT INTO transactions (id, account_id, category_id, transfer_group_id, transfer_direction, type, amount_minor, description, notes, occurred_at, created_at, updated_at) VALUES (?, ?, 'cat-expense-loan-payment', NULL, NULL, 'expense', ?, ?, ?, ?, ?, ?)",
-          "loan-payment-" + input.id, loan.account_id, input.amountMinor,
-          loan.name + " payment", input.notes?.trim() || null, input.paymentDate, now, now,
-        );
       });
     },
     async delete(id: string): Promise<void> {
@@ -286,9 +275,6 @@ export function createLoanRepository(db: SQLiteDatabase) {
       if (!loan) throw new Error("Loan was not found.");
       await db.withTransactionAsync(async () => {
         const now = new Date().toISOString();
-        await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "loan-" + id);
-        const paymentRows = await db.getAllAsync<{ id: string }>("SELECT id FROM loan_payments WHERE loan_id = ?", id);
-        for (const payment of paymentRows) await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL", now, now, "loan-payment-" + payment.id);
         await db.runAsync("DELETE FROM loan_payments WHERE loan_id = ?", id);
         const result = await db.runAsync("DELETE FROM loans WHERE id = ?", id);
         if (result.changes === 0) throw new Error("Loan was not found.");

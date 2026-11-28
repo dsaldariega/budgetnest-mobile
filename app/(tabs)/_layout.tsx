@@ -1,15 +1,16 @@
 import { Tabs } from "expo-router";
-import { Text, useColorScheme, useWindowDimensions } from "react-native";
+import { Text, useWindowDimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/theme/colors";
+import { useAppTheme } from "@/theme/use-app-theme";
 
 function TabLabel({ label, focused, dark }: { label: string; focused: boolean; dark: boolean }) {
   return (
     <Text
       style={{
         color: focused
-          ? dark ? colors.dark.primary : colors.light.primary
+          ? dark ? colors.dark.primaryText : colors.light.primaryText
           : dark ? colors.dark.textMuted : colors.light.textMuted,
         fontSize: 11,
         fontWeight: focused ? "700" : "500",
@@ -21,8 +22,7 @@ function TabLabel({ label, focused, dark }: { label: string; focused: boolean; d
 }
 
 export default function TabLayout() {
-  const isDark = useColorScheme() === "dark";
-  const palette = isDark ? colors.dark : colors.light;
+  const { isDark, palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   // Keep the bottom bar on phones, including landscape. Use a side rail only
@@ -50,11 +50,12 @@ export default function TabLayout() {
           : {
               backgroundColor: palette.surface,
               borderTopColor: palette.border,
-              height: 64 + insets.bottom,
-              paddingTop: 7,
-              paddingBottom: 7 + insets.bottom,
+              height: 62 + insets.bottom,
+              paddingTop: 6,
+              paddingBottom: 6 + insets.bottom,
+              paddingHorizontal: 2,
             },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "700" },
         tabBarItemStyle: useNavigationRail ? { minHeight: 66 } : undefined,
         tabBarHideOnKeyboard: true,
       }}
@@ -82,20 +83,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: "Transactions",
-          tabBarLabel: ({ focused }) => <TabLabel label="Transactions" focused={focused} dark={isDark} />,
+          title: "Activity",
+          tabBarLabel: ({ focused }) => <TabLabel label="Activity" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="receipt-text-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="budgets"
-        options={{
-          title: "Budgets",
-          tabBarLabel: ({ focused }) => <TabLabel label="Budgets" focused={focused} dark={isDark} />,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chart-donut" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
           ),
         }}
       />

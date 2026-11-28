@@ -61,6 +61,8 @@ export function createHistoryRepository(db: SQLiteDatabase) {
       JOIN accounts a ON a.id = t.account_id
       LEFT JOIN categories c ON c.id = t.category_id
       WHERE t.deleted_at IS NULL AND t.type IN ('income', 'expense')
+        AND t.id NOT LIKE 'loan-payment-%'
+        AND t.id NOT LIKE 'subscription-payment-%'
 
       UNION ALL
 

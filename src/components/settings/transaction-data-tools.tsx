@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useMemo, useState } from "react";
 import {
   Modal,
@@ -7,7 +8,6 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -25,12 +25,10 @@ import {
   type ExportPeriod,
 } from "@/services/csv/transaction-csv";
 import { colors } from "@/theme/colors";
+import { todayLocalDate } from "@/domain/dates";
 import { DateField } from "@/components/ui/date-field";
 
-const todayLocal = () => {
-  const date = new Date();
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
-};
+const todayLocal = todayLocalDate;
 
 const PERIODS: { value: ExportPeriod; label: string }[] = [
   { value: "all", label: "All time" },
@@ -61,8 +59,7 @@ async function shareCsvFile(filename: string, content: string): Promise<void> {
 
 export function TransactionDataTools({ onImported }: { onImported?: () => void }) {
   const db = useSQLiteContext();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const repository = createTransactionCsvRepository(db);
 
   const [exportOpen, setExportOpen] = useState(false);
@@ -71,7 +68,7 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
   const [transactionType, setTransactionType] = useState<"both" | "income" | "expense">("both");
   const [category, setCategory] = useState("all");
   const [startDate, setStartDate] = useState(todayLocal);
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(todayLocalDate);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -80,7 +77,7 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
     () => getExportDateRange(period, startDate, endDate),
     [period, startDate, endDate],
   );
-  const validDate = (value: string) => /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+  const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(value + "T00:00:00.000Z")) &&
     new Date(value + "T00:00:00.000Z").toISOString().slice(0, 10) === value;
   const dateInvalid = period === "custom" &&
@@ -184,7 +181,7 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
   const chipStyle = (selected: boolean) => [
     styles.chip,
     {
-      backgroundColor: selected ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface,
+      backgroundColor: selected ? palette.primarySoft : palette.surface,
       borderColor: selected ? palette.primary : palette.border,
     },
   ];
@@ -192,21 +189,21 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
   return (
     <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <View style={styles.heading}>
-        <View style={[styles.headingIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+        <View style={[styles.headingIcon, { backgroundColor: palette.primarySoft }]}>
           <MaterialCommunityIcons name="file-delimited-outline" size={22} color={palette.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: palette.text }]}>Transaction data</Text>
           <Text style={[styles.description, { color: palette.textMuted }]}>
-            Move income and expense records between BudgetNest and a spreadsheet.
+            Export or import your income and expense records as CSV files.
           </Text>
         </View>
       </View>
 
       <View style={styles.toolRow}>
         <Pressable disabled={busy} onPress={() => void openExport()} style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}>
-          <MaterialCommunityIcons name="download-outline" size={18} color="#fff" />
-          <Text style={styles.primaryText}>{busy ? "Working…" : "Export CSV"}</Text>
+          <MaterialCommunityIcons name="download-outline" size={18} color={palette.onPrimary} />
+          <Text style={[styles.primaryText, { color: palette.onPrimary }]}>{busy ? "Working…" : "Export CSV"}</Text>
         </Pressable>
         <Pressable disabled={busy} onPress={() => void importCsv()} style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}>
           <MaterialCommunityIcons name="upload-outline" size={18} color={palette.primary} />
@@ -219,17 +216,13 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
         <Text style={[styles.templateText, { color: palette.primary }]}>Share CSV import template</Text>
       </Pressable>
 
-      <Text style={[styles.note, { color: palette.textMuted }]}>
-        CSV import matches active accounts by name and currency, creates missing categories, and skips duplicate transactions. Transfers are not included. Maximum: 5 MB and 5,000 rows.
-      </Text>
-
       {notice ? (
-        <View style={[styles.message, { backgroundColor: dark ? "#203528" : "#E8F5E9" }]}>
+        <View style={[styles.message, { backgroundColor: palette.successSoft }]}>
           <Text style={{ color: palette.success, fontSize: 12, lineHeight: 18 }}>{notice}</Text>
         </View>
       ) : null}
       {error ? (
-        <View style={[styles.message, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+        <View style={[styles.message, { backgroundColor: palette.primarySoft }]}>
           <Text style={{ color: palette.expense, fontSize: 12, lineHeight: 18 }}>{error}</Text>
         </View>
       ) : null}
@@ -290,7 +283,7 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
               ))}
             </ScrollView>
 
-            {dateInvalid ? <Text style={styles.errorText}>Choose a valid date range. The end date must be on or after the start date.</Text> : null}
+            {dateInvalid ? <Text style={[styles.errorText, { color: palette.expense }]}>Choose a valid date range. The end date must be on or after the start date.</Text> : null}
 
             <View style={[styles.countCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <Text style={[styles.fieldCaption, { color: palette.textMuted }]}>MATCHING TRANSACTIONS</Text>
@@ -299,8 +292,8 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
             </View>
 
             <Pressable disabled={busy || dateInvalid || filteredRows.length === 0} onPress={() => void exportCsv()} style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy || dateInvalid || filteredRows.length === 0 ? 0.5 : 1 }]}>
-              <MaterialCommunityIcons name="share-outline" size={18} color="#fff" />
-              <Text style={styles.primaryText}>{busy ? "Preparing…" : "Share CSV file"}</Text>
+              <MaterialCommunityIcons name="share-outline" size={18} color={palette.onPrimary} />
+              <Text style={[styles.primaryText, { color: palette.onPrimary }]}>{busy ? "Preparing…" : "Share CSV file"}</Text>
             </Pressable>
           </ScrollView>
         </SafeAreaView>
@@ -322,7 +315,6 @@ const styles = StyleSheet.create({
   secondaryText: { fontSize: 12, fontWeight: "800" },
   templateButton: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingVertical: 11 },
   templateText: { fontSize: 11, fontWeight: "800" },
-  note: { fontSize: 10, lineHeight: 16, marginTop: 2 },
   message: { borderRadius: 12, padding: 11, marginTop: 12 },
   modal: { flex: 1 },
   modalContent: { padding: 20, paddingBottom: 40 },
@@ -335,7 +327,7 @@ const styles = StyleSheet.create({
   fieldCaption: { fontSize: 10, lineHeight: 15 },
   input: { borderWidth: 1, borderRadius: 11, paddingHorizontal: 10, paddingVertical: 11, fontSize: 12, marginTop: 5 },
   categoryChips: { gap: 7, paddingVertical: 2 },
-  errorText: { color: "#D32F2F", fontSize: 11, lineHeight: 16, marginTop: 12 },
+  errorText: { fontSize: 11, lineHeight: 16, marginTop: 12 },
   countCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 26, gap: 4 },
-  count: { fontSize: 28, fontWeight: "900" },
+  count: { fontSize: 24, fontWeight: "900", fontVariant: ["tabular-nums"] },
 });

@@ -2,16 +2,25 @@ export type ThemeColors = {
   primary: string;
   primaryLight: string;
   primaryDark: string;
+  onPrimary: string;
+  primaryText: string;
+  primarySoft: string;
   secondary: string;
   background: string;
   surface: string;
+  surfaceElevated: string;
   text: string;
   textMuted: string;
   border: string;
+  disabled: string;
   income: string;
   expense: string;
   success: string;
+  successSoft: string;
+  dangerSoft: string;
   warning: string;
+  warningSoft: string;
+  overlay: string;
 };
 
 export const colors: Record<"light" | "dark", ThemeColors> = {
@@ -19,30 +28,48 @@ export const colors: Record<"light" | "dark", ThemeColors> = {
     primary: "#D32F2F",
     primaryLight: "#EF5350",
     primaryDark: "#B71C1C",
-    secondary: "#455A64",
-    background: "#F7F8FA",
+    onPrimary: "#FFFFFF",
+    primaryText: "#C62828",
+    primarySoft: "#FDECEC",
+    secondary: "#596575",
+    background: "#F5F6F8",
     surface: "#FFFFFF",
-    text: "#1F2937",
-    textMuted: "#64748B",
-    border: "rgba(15, 23, 42, 0.10)",
-    income: "#2E7D32",
-    expense: "#ED6C02",
-    success: "#2E7D32",
-    warning: "#ED6C02",
+    surfaceElevated: "#F0F2F5",
+    text: "#20242A",
+    textMuted: "#68717D",
+    border: "#E1E5EA",
+    disabled: "#AAB1BA",
+    income: "#21845D",
+    expense: "#C83F45",
+    success: "#21845D",
+    successSoft: "#E7F4EE",
+    dangerSoft: "#FCEBEC",
+    warning: "#94651C",
+    warningSoft: "#FBF1DF",
+    overlay: "rgba(18, 22, 28, 0.48)",
   },
   dark: {
     primary: "#EF5350",
-    primaryLight: "#FF867C",
-    primaryDark: "#B71C1C",
-    secondary: "#90A4AE",
-    background: "#121212",
-    surface: "#1E1E1E",
-    text: "rgba(255, 255, 255, 0.92)",
-    textMuted: "rgba(255, 255, 255, 0.62)",
-    border: "rgba(255, 255, 255, 0.12)",
-    income: "#66BB6A",
-    expense: "#FFB74D",
-    success: "#66BB6A",
-    warning: "#FFB74D",
+    primaryLight: "#FF796D",
+    primaryDark: "#C62828",
+    onPrimary: "#FFFFFF",
+    primaryText: "#FF796D",
+    primarySoft: "#3A2224",
+    secondary: "#A7AFB8",
+    background: "#101214",
+    surface: "#181B1F",
+    surfaceElevated: "#22262B",
+    text: "#F4F6F8",
+    textMuted: "#A7AFB8",
+    border: "#30363D",
+    disabled: "#68717B",
+    income: "#35A879",
+    expense: "#D95757",
+    success: "#35A879",
+    successSoft: "#20372F",
+    dangerSoft: "#382326",
+    warning: "#D6A24A",
+    warningSoft: "#382F20",
+    overlay: "rgba(0, 0, 0, 0.68)",
   },
 } as const;

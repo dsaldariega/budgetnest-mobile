@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
@@ -6,7 +7,6 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -34,11 +34,11 @@ const ENTITY_FILTERS: { value: ActivityEntityFilter; label: string }[] = [
 ];
 
 const PERIOD_FILTERS: { value: ActivityPeriod; label: string }[] = [
-  { value: "7", label: "7 days" },
-  { value: "30", label: "30 days" },
-  { value: "90", label: "90 days" },
-  { value: "365", label: "1 year" },
-  { value: "all", label: "All time" },
+  { value: "7", label: "7d" },
+  { value: "30", label: "30d" },
+  { value: "90", label: "90d" },
+  { value: "365", label: "1y" },
+  { value: "all", label: "All" },
 ];
 
 const formatDate = (value: string) => new Date(value).toLocaleString("en-PH", {
@@ -48,8 +48,7 @@ const formatDate = (value: string) => new Date(value).toLocaleString("en-PH", {
 
 export default function ActivityLogScreen() {
   const db = useSQLiteContext();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const [items, setItems] = useState<ActivityLogItem[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   const [entityFilter, setEntityFilter] = useState<ActivityEntityFilter>("all");
@@ -67,7 +66,7 @@ export default function ActivityLogScreen() {
         repository.list({ entityType: entityFilter, period: periodFilter, limit: 500 }),
         repository.countToday(),
       ]);
-      setItems(activities);
+      setItems(Array.isArray(activities) ? activities : []);
       setTodayCount(today);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load activity.");
@@ -94,7 +93,7 @@ export default function ActivityLogScreen() {
   const chipStyle = (active: boolean) => [
     styles.chip,
     {
-      backgroundColor: active ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface,
+      backgroundColor: active ? palette.primary : palette.surface,
       borderColor: active ? palette.primary : palette.border,
     },
   ];
@@ -105,7 +104,7 @@ export default function ActivityLogScreen() {
         <View style={styles.header}>
           <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.primary }]}>YOUR HISTORY</Text>
+            <Text style={[styles.eyebrow, { color: palette.primaryText }]}>YOUR HISTORY</Text>
             <Text style={[styles.title, { color: palette.text }]}>Activity Log</Text>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Refresh activity" onPress={() => void load()} disabled={loading} style={styles.refresh}>
@@ -135,24 +134,24 @@ export default function ActivityLogScreen() {
         </View>
 
         <Text style={[styles.filterLabel, { color: palette.textMuted }]}>ACTIVITY TYPE</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {ENTITY_FILTERS.map((item) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow} style={styles.filterScroll}>
+          {(ENTITY_FILTERS ?? []).map((item) => (
             <Pressable key={item.value} onPress={() => setEntityFilter(item.value)} style={chipStyle(entityFilter === item.value)}>
-              <Text style={{ color: entityFilter === item.value ? palette.primary : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
+              <Text numberOfLines={1} allowFontScaling={false} style={{ color: entityFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, lineHeight: 14, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         <Text style={[styles.filterLabel, { color: palette.textMuted }]}>DATE RANGE</Text>
-        <View style={styles.filterRow}>
-          {PERIOD_FILTERS.map((item) => (
+        <View style={styles.dateFilterRow}>
+          {(PERIOD_FILTERS ?? []).map((item) => (
             <Pressable key={item.value} onPress={() => setPeriodFilter(item.value)} style={chipStyle(periodFilter === item.value)}>
-              <Text style={{ color: periodFilter === item.value ? palette.primary : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
+              <Text style={{ color: periodFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
           ))}
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, { color: palette.expense }]}>{error}</Text> : null}
 
         {loading ? (
           <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -172,9 +171,9 @@ export default function ActivityLogScreen() {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-            {filtered.map((item) => (
+            {(filtered ?? []).map((item) => (
               <View key={item.id} style={[styles.activityCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                <View style={[styles.activityIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+                <View style={[styles.activityIcon, { backgroundColor: palette.primarySoft }]}>
                   <MaterialCommunityIcons name={activityIconName(item.entityType) as never} size={20} color={palette.primary} />
                 </View>
                 <View style={styles.activityCopy}>
@@ -210,8 +209,10 @@ const styles = StyleSheet.create({
   searchBox: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 9 },
   searchInput: { flex: 1, paddingVertical: 9, fontSize: 13 },
   filterLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8, marginTop: 14, marginBottom: 7 },
-  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  chip: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 10, paddingVertical: 8 },
+  filterScroll: { flexGrow: 0 },
+  filterRow: { flexDirection: "row", gap: 7, paddingRight: 18 },
+  dateFilterRow: { flexDirection: "row", gap: 7 },
+  chip: { minHeight: 36, borderWidth: 1, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   list: { gap: 9, paddingTop: 14, paddingBottom: 30 },
   activityCard: { borderWidth: 1, borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "flex-start", gap: 11 },
   activityIcon: { width: 39, height: 39, borderRadius: 12, alignItems: "center", justifyContent: "center" },
@@ -225,5 +226,5 @@ const styles = StyleSheet.create({
   empty: { borderWidth: 1, borderRadius: 16, padding: 24, alignItems: "center", marginTop: 13 },
   emptyIcon: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   emptyText: { textAlign: "center", fontSize: 11, lineHeight: 17, marginTop: 7 },
-  error: { color: "#D32F2F", fontSize: 11, marginTop: 10 },
+  error: { fontSize: 11, marginTop: 10 },
 });

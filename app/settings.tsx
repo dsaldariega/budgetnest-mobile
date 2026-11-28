@@ -38,6 +38,7 @@ export default function SettingsScreen() {
   const [restoreAppVersion, setRestoreAppVersion] = useState("");
   const [restoreRecordCount, setRestoreRecordCount] = useState(0);
   const [confirmRestore, setConfirmRestore] = useState(false);
+  const [expandedDataSection, setExpandedDataSection] = useState<"csv" | "technical" | null>(null);
 
   const changeThemePreference = async (next: ThemePreference) => {
     if (next === preference) return;
@@ -161,17 +162,17 @@ export default function SettingsScreen() {
           </View>
         </View>
         <Text style={[styles.subtitle, { color: palette.textMuted }]}>
-          Manage appearance, currency, transaction files, and optional Google backup.
+          Simple controls for how BudgetNest looks and how your data is stored.
         </Text>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <View style={styles.appearanceHeader}>
-            <View style={[styles.appearanceIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+            <View style={[styles.appearanceIcon, { backgroundColor: palette.primarySoft }]}>
               <MaterialCommunityIcons name="palette-outline" size={21} color={palette.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.cardTitle, { color: palette.text }]}>Appearance</Text>
-              <Text style={[styles.cardDescription, { color: palette.textMuted }]}>Choose how BudgetNest looks on this device.</Text>
+              <Text style={[styles.cardDescription, { color: palette.textMuted }]}>Choose how BudgetNest looks.</Text>
             </View>
           </View>
           <View style={styles.appearanceOptions}>
@@ -182,7 +183,7 @@ export default function SettingsScreen() {
             ] as const).map((option) => {
               const selected = preference === option.value;
               return (
-                <Pressable key={option.value} disabled={savingTheme} onPress={() => void changeThemePreference(option.value)} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: savingTheme }} style={[styles.appearanceOption, { borderColor: selected ? palette.primary : palette.border, backgroundColor: selected ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface }]}>
+                <Pressable key={option.value} disabled={savingTheme} onPress={() => void changeThemePreference(option.value)} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: savingTheme }} style={[styles.appearanceOption, { borderColor: selected ? palette.primary : palette.border, backgroundColor: selected ? (palette.primarySoft) : palette.surface }]}>
                   <MaterialCommunityIcons name={option.icon} size={19} color={selected ? palette.primary : palette.textMuted} />
                   <Text style={{ color: selected ? palette.primary : palette.text, fontSize: 11, fontWeight: "800", marginTop: 5 }}>{option.label}</Text>
                 </Pressable>
@@ -197,7 +198,7 @@ export default function SettingsScreen() {
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>Default currency</Text>
           <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-            Used as the starting currency when you create a new account. Existing balances are not converted.
+            Starting currency for new accounts.
           </Text>
           <SelectField
             label="Preferred currency"
@@ -216,10 +217,19 @@ export default function SettingsScreen() {
               <Text style={{ color: "#4285F4", fontSize: 18, fontWeight: "900" }}>G</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: palette.text }]}>Google account</Text>
-              <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-                {user ? "Connected as " + (user.user.email ?? user.user.id) : "Optional. Sign in only when you want cloud backup."}
+              <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>GOOGLE DRIVE BACKUP (OPTIONAL)</Text>
+              <Text style={[styles.cardTitle, { color: palette.text, marginTop: 4 }]}>
+                {user ? "Connected" : "Not connected"}
               </Text>
+              {user ? (
+                <Text style={[styles.cardDescription, { color: palette.textMuted }]} numberOfLines={1}>
+                  {user.user.email ?? user.user.id}
+                </Text>
+              ) : (
+                <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
+                  Connect Google to back up or restore records.
+                </Text>
+              )}
             </View>
           </View>
 
@@ -227,9 +237,9 @@ export default function SettingsScreen() {
             <Pressable
               disabled={authLoading || signingIn}
               onPress={() => { setError(""); void signIn().catch(e => setError(e instanceof Error ? e.message : "Unable to connect with Google.")); }}
-              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: authLoading || signingIn ? 0.6 : 1 }]}
+              style={[styles.secondaryButton, { borderColor: palette.primary, opacity: authLoading || signingIn ? 0.6 : 1 }]}
             >
-              <Text style={styles.primaryText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
+              <Text style={[styles.secondaryText, { color: palette.primary }]}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -241,60 +251,50 @@ export default function SettingsScreen() {
             </Pressable>
           )}
 
-          <Text style={[styles.note, { color: palette.textMuted }]}>
-            BudgetNest remains fully usable without a Google account. Google access is only used for the optional backup and restore feature.
-          </Text>
-        </View>
+          <View style={styles.googleActions}>
+            <Pressable
+              disabled={busy || !user}
+              onPress={() => void exportBackupToGoogle()}
+              style={[styles.primaryButton, styles.halfButton, { backgroundColor: palette.primary, opacity: busy || !user ? 0.42 : 1 }]}
+            >
+              <Text style={[styles.primaryText, { color: palette.onPrimary }]}>{busy ? "Working…" : "Back up"}</Text>
+            </Pressable>
+            <Pressable
+              disabled={busy || !user}
+              onPress={() => void selectGoogleRestore()}
+              style={[styles.secondaryButton, styles.halfButton, { borderColor: palette.border, opacity: busy || !user ? 0.42 : 1 }]}
+            >
+              <Text style={[styles.secondaryText, { color: palette.text }]}>Restore</Text>
+            </Pressable>
+          </View>
 
-        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.cardTitle, { color: palette.text }]}>Google Backup & Restore</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-            {user
-              ? "Store one private BudgetNest backup in your Google Drive app data and restore it on another signed-in device."
-              : "Connect your Google account to unlock cloud backup and restore. Your local data stays available without signing in."}
-          </Text>
-          <Pressable
-            disabled={busy}
-            onPress={() => void exportBackupToGoogle()}
-            style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}
-          >
-            <Text style={styles.primaryText}>{busy ? "Working…" : "Back up to Google Drive"}</Text>
-          </Pressable>
-          <Pressable
-            disabled={busy}
-            onPress={() => void selectGoogleRestore()}
-            style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}
-          >
-            <Text style={[styles.secondaryText, { color: palette.text }]}>Restore from Google Drive</Text>
-          </Pressable>
           <Text style={[styles.note, { color: palette.textMuted }]}>
-            {user
-              ? "Backup and restore use the existing integrity-checked JSON format. Restoring replaces the current local data."
-              : "Sign-in is only requested when you choose one of these cloud features."}
+            {user ? "Backup and restore replace the local records when restored." : "Connect Google to enable cloud backup and restore."}
           </Text>
         </View>
 
         <TransactionDataTools onImported={() => void loadSettings()} />
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.cardTitle, { color: palette.text }]}>Data on this device</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-            A quick overview of records currently stored in your local database.
-          </Text>
-          <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Total records</Text><Text style={[styles.overviewValue, { color: palette.text }]}>{overview ? formatCount(totalRecords) : "—"}</Text></View>
-          <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Database version</Text><Text style={[styles.overviewValue, { color: palette.text }]}>{overview?.schemaVersion ?? "—"}</Text></View>
-          <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Storage</Text><Text style={[styles.overviewValue, { color: palette.text }]}>This device only</Text></View>
-        </View>
 
-        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <BudgetNestBrand color={palette.text} size={38} />
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-            A private, local-first personal finance tracker. No account or cloud connection is required for normal use.
+          <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>YOUR DATA ON THIS DEVICE</Text>
+          <Text style={[styles.dataSummary, { color: palette.text }]}>
+            Records on this device: {overview ? formatCount(totalRecords) : "—"} · Local storage
           </Text>
+          <Pressable onPress={() => setExpandedDataSection(expandedDataSection === "csv" ? null : "csv")} style={styles.expandRow}>
+            <View style={{ flex: 1 }}><Text style={[styles.expandTitle, { color: palette.text }]}>CSV import rules & template</Text><Text style={[styles.expandHint, { color: palette.textMuted }]}>Columns, matching, duplicates, and limits</Text></View>
+            <MaterialCommunityIcons name={expandedDataSection === "csv" ? "chevron-up" : "chevron-down"} size={20} color={palette.textMuted} />
+          </Pressable>
+          {expandedDataSection === "csv" ? <Text style={[styles.expandBody, { color: palette.textMuted }]}>Required columns: account_name, currency, transaction_type, amount, category, description, and transaction_date. Active accounts match by name and currency. Missing categories can be created; duplicates are skipped. Transfers are excluded. Maximum: 5 MB and 5,000 rows. Use the Share CSV import template action above.</Text> : null}
+          <Pressable onPress={() => setExpandedDataSection(expandedDataSection === "technical" ? null : "technical")} style={styles.expandRow}>
+            <View style={{ flex: 1 }}><Text style={[styles.expandTitle, { color: palette.text }]}>Technical details</Text><Text style={[styles.expandHint, { color: palette.textMuted }]}>Local SQLite and database version</Text></View>
+            <MaterialCommunityIcons name={expandedDataSection === "technical" ? "chevron-up" : "chevron-down"} size={20} color={palette.textMuted} />
+          </Pressable>
+          {expandedDataSection === "technical" ? <View style={styles.expandBody}><Text style={[styles.expandLine, { color: palette.textMuted }]}>Storage: Local SQLite on this device</Text><Text style={[styles.expandLine, { color: palette.textMuted }]}>Records: {overview ? formatCount(totalRecords) : "—"}</Text><Text style={[styles.expandLine, { color: palette.textMuted }]}>Database version: {overview?.schemaVersion ?? "—"}</Text></View> : null}
         </View>
 
         {error ? (
-          <View style={[styles.errorCard, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+          <View style={[styles.errorCard, { backgroundColor: palette.dangerSoft }]}>
             <Text style={[styles.errorTitle, { color: palette.primary }]}>Settings action failed</Text>
             <Text style={[styles.errorText, { color: palette.text }]}>{error}</Text>
           </View>
@@ -317,7 +317,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.secondaryText, { color: palette.text }]}>Cancel</Text>
               </Pressable>
               <Pressable disabled={busy} onPress={() => void restoreBackup()} style={[styles.dangerButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}>
-                <Text style={styles.primaryText}>{busy ? "Restoring…" : "Restore data"}</Text>
+                <Text style={[styles.primaryText, { color: palette.onPrimary }]}>{busy ? "Restoring…" : "Restore data"}</Text>
               </Pressable>
             </View>
           </View>
@@ -336,6 +336,8 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: -8, marginBottom: 4 },
   card: { borderWidth: 1, borderRadius: 18, padding: 18 },
   cardTitle: { fontSize: 17, fontWeight: "800" },
+  sectionLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 0.8 },
+  dataSummary: { fontSize: 13, fontWeight: "800", marginTop: 8 },
   cardDescription: { fontSize: 13, lineHeight: 20, marginTop: 7 },
   googleHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   appearanceHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
@@ -343,11 +345,18 @@ const styles = StyleSheet.create({
   appearanceOptions: { flexDirection: "row", gap: 9, marginTop: 16 },
   appearanceOption: { flex: 1, minHeight: 68, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   googleIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  googleActions: { flexDirection: "row", gap: 9, marginTop: 10 },
+  halfButton: { flex: 1 },
   note: { fontSize: 11, lineHeight: 17, marginTop: 12 },
   primaryButton: { padding: 15, borderRadius: 13, alignItems: "center", marginTop: 16 },
   primaryText: { color: "#fff", fontWeight: "700" },
   secondaryButton: { padding: 15, borderRadius: 13, borderWidth: 1, alignItems: "center", marginTop: 10 },
   secondaryText: { fontWeight: "700" },
+  expandRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(15, 23, 42, 0.08)", marginTop: 6 },
+  expandTitle: { fontSize: 12, fontWeight: "800" },
+  expandHint: { fontSize: 10, lineHeight: 15, marginTop: 3 },
+  expandBody: { fontSize: 11, lineHeight: 17, paddingBottom: 10, paddingTop: 2 },
+  expandLine: { fontSize: 11, lineHeight: 18 },
   overviewRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(15, 23, 42, 0.08)" },
   overviewLabel: { fontSize: 12 },
   overviewValue: { fontSize: 13, fontWeight: "800" },

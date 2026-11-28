@@ -171,16 +171,36 @@ describe("repository transaction integrity", () => {
     assert.doesNotMatch(deletion, /DELETE FROM activity_logs/);
   });
 
-  it("preserves linked loan and subscription transaction history when records are deleted", () => {
+  it("excludes linked loan and subscription payment transactions from unified history", () => {
+    const historySource = readSource("../src/database/repositories/history-repository.ts");
+    const transactionSource = readSource("../src/database/repositories/transaction-repository.ts");
+
+    assert.match(historySource, /t\.id NOT LIKE 'loan-payment-%'/);
+    assert.match(historySource, /t\.id NOT LIKE 'subscription-payment-%'/);
+    assert.match(transactionSource, /export function isLinkedTransactionId/);
+    assert.match(transactionSource, /id\.startsWith\("loan-"\)/);
+    assert.match(transactionSource, /id\.startsWith\("subscription-payment-"\)/);
+  });
+
+  it("protects linked loan and subscription transactions from direct edits and deletes", () => {
+    const source = readSource("../src/database/repositories/transaction-repository.ts");
+    const update = getMethodBody(source, "async update(id: string");
+    const deletion = getMethodBody(source, "async delete(id: string)");
+
+    assert.match(update, /isLinkedTransactionId\(id\)/);
+    assert.match(deletion, /isLinkedTransactionId\(id\)/);
+  });
+
+  it("keeps loan and subscription records separate from ordinary transactions", () => {
     const loanSource = readSource("../src/database/repositories/loan-repository.ts");
     const subscriptionSource = readSource("../src/database/repositories/subscription-repository.ts");
     const loanDelete = getMethodBody(loanSource, "async delete(id: string)");
     const subscriptionDelete = getMethodBody(subscriptionSource, "async delete(id: string)");
 
-    assert.match(loanDelete, /UPDATE transactions SET deleted_at/);
-    assert.ok(loanDelete.indexOf("UPDATE transactions SET deleted_at") < loanDelete.indexOf("DELETE FROM loan_payments"));
-    assert.match(subscriptionDelete, /UPDATE transactions SET deleted_at/);
-    assert.ok(subscriptionDelete.indexOf("UPDATE transactions SET deleted_at") < subscriptionDelete.indexOf("DELETE FROM subscription_payments"));
+    assert.doesNotMatch(loanDelete, /UPDATE transactions SET deleted_at/);
+    assert.doesNotMatch(subscriptionDelete, /UPDATE transactions SET deleted_at/);
+    assert.doesNotMatch(loanSource, /loan-payment-/);
+    assert.doesNotMatch(subscriptionSource, /subscription-payment-/);
   });
 
 });

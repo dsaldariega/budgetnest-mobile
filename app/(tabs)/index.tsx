@@ -1,47 +1,36 @@
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme, useWindowDimensions } from "react-native";
+import { useAppTheme } from "@/theme/use-app-theme";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { createBudgetRepository, type BudgetListItem } from "@/database/repositories/budget-repository";
-import { createGoalRepository, type SavingsGoalListItem } from "@/database/repositories/goal-repository";
 import { createHistoryRepository, type HistoryItem } from "@/database/repositories/history-repository";
-import { createLoanRepository, type LoanListItem } from "@/database/repositories/loan-repository";
-import { createSubscriptionRepository, type SubscriptionListItem } from "@/database/repositories/subscription-repository";
-import { colors } from "@/theme/colors";
+import { EmptyState } from "@/components/EmptyState";
+import { SectionHeader } from "@/components/ui/section-header";
 
 type CurrencySummary = { currencyCode: string; balanceMinor: number; incomeMinor: number; expenseMinor: number };
-type DashboardData = {
-  accounts: AccountWithBalance[];
-  currencies: CurrencySummary[];
-  budgets: BudgetListItem[];
-  goals: SavingsGoalListItem[];
-  subscriptions: SubscriptionListItem[];
-  loans: LoanListItem[];
-  activity: HistoryItem[];
-};
+type DashboardData = { accounts: AccountWithBalance[]; currencies: CurrencySummary[]; budgets: BudgetListItem[]; activity: HistoryItem[] };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 const currentMonth = () => today().slice(0, 7);
-const money = (minor: number, currency: string) => new Intl.NumberFormat("en-PH", {
-  style: "currency", currency, maximumFractionDigits: 2,
-}).format(minor / 100);
-const shortDate = (value: string) => new Date(value + "T00:00:00").toLocaleDateString("en-PH", {
-  month: "short", day: "numeric",
-});
-
-function SectionHeading({ title, action, onPress, palette }: {
-  title: string; action?: string; onPress?: () => void; palette: typeof colors.light;
-}) {
-  return (
-    <View style={s.sectionHeading}>
-      <Text style={[s.sectionTitle, { color: palette.text }]}>{title}</Text>
-      {action && onPress ? <Pressable onPress={onPress} hitSlop={8}><Text style={[s.actionText, { color: palette.primary }]}>{action}</Text></Pressable> : null}
-    </View>
-  );
-}
+const monthDate = (month: string) => new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1);
+const shiftMonth = (month: string, offset: number) => {
+  const date = monthDate(month);
+  date.setMonth(date.getMonth() + offset);
+  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+};
+const monthBounds = (month: string) => {
+  const next = shiftMonth(month, 1);
+  const lastDay = new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)) - 1, 0).getDate();
+  return { start: month + "-01", end: month + "-" + String(lastDay).padStart(2, "0") + "T23:59:59.999" };
+};
+const money = (minor: number, currency: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency, maximumFractionDigits: 2 }).format(minor / 100);
+const monthTitle = (month: string) => monthDate(month).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
+const shortDate = (value: string) => new Date(value.slice(0, 10) + "T00:00:00").toLocaleDateString("en-PH", { month: "short", day: "numeric" });
 
 function ProgressBar({ progress, color, track }: { progress: number; color: string; track: string }) {
   return <View style={[s.progressTrack, { backgroundColor: track }]}><View style={[s.progressFill, { width: `${Math.max(0, Math.min(1, progress)) * 100}%`, backgroundColor: color }]} /></View>;
@@ -50,28 +39,22 @@ function ProgressBar({ progress, color, track }: { progress: number; color: stri
 export default function DashboardScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const p = dark ? colors.dark : colors.light;
-  const { width, height } = useWindowDimensions();
-  const wideLayout = width >= 720 || width > height;
-  const [data, setData] = useState<DashboardData>({
-    accounts: [], currencies: [], budgets: [], goals: [], subscriptions: [], loans: [], activity: [],
-  });
+  const { isDark: dark, palette: p } = useAppTheme();
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [data, setData] = useState<DashboardData>({ accounts: [], currencies: [], budgets: [], activity: [] });
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const date = today();
-      const month = currentMonth();
-      const [accounts, budgets, goals, subscriptions, loans, activity, monthlyRows] = await Promise.all([
+      const bounds = monthBounds(selectedMonth);
+      const [accounts, budgets, activity, monthlyRows] = await Promise.all([
         createAccountRepository(db).list(),
         createBudgetRepository(db).list(date),
-        createGoalRepository(db).list(),
-        createSubscriptionRepository(db).list(),
-        createLoanRepository(db).list(),
-        createHistoryRepository(db).list({ limit: 5 }),
+        createHistoryRepository(db).list({ limit: 200, fromDate: bounds.start, toDate: bounds.end }),
         db.getAllAsync<{ currency_code: string; income_minor: number; expense_minor: number }>(
           "SELECT a.currency_code, " +
           "COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE 0 END), 0) AS income_minor, " +
@@ -79,186 +62,166 @@ export default function DashboardScreen() {
           "FROM transactions t JOIN accounts a ON a.id = t.account_id " +
           "WHERE t.deleted_at IS NULL AND t.type IN ('income', 'expense') AND substr(t.occurred_at, 1, 7) = ? " +
           "GROUP BY a.currency_code ORDER BY a.currency_code",
-          month,
+          selectedMonth,
         ),
       ]);
 
-      const currencyCodes = new Set([...accounts.map(a => a.currencyCode), ...monthlyRows.map(row => row.currency_code)]);
+      const safeAccounts = Array.isArray(accounts) ? accounts : [];
+      const activeAccounts = safeAccounts.filter(account => !account.isArchived);
+      const safeMonthlyRows = Array.isArray(monthlyRows) ? monthlyRows : [];
+      const currencyCodes = new Set([...activeAccounts.map(a => a.currencyCode), ...safeMonthlyRows.map(row => row.currency_code)]);
       const currencies = [...currencyCodes].sort().map(currencyCode => {
-        const monthly = monthlyRows.find(row => row.currency_code === currencyCode);
+        const monthly = safeMonthlyRows.find(row => row.currency_code === currencyCode);
         return {
           currencyCode,
-          balanceMinor: accounts.filter(account => account.currencyCode === currencyCode).reduce((sum, account) => sum + account.balanceMinor, 0),
+          balanceMinor: activeAccounts.filter(account => account.currencyCode === currencyCode).reduce((sum, account) => sum + account.balanceMinor, 0),
           incomeMinor: monthly?.income_minor ?? 0,
           expenseMinor: monthly?.expense_minor ?? 0,
         };
       });
-
+      const safeBudgets = (Array.isArray(budgets) ? budgets : [])
+        .filter(item => item.startDate <= date && (!item.endDate || item.endDate >= date))
+        .slice(0, 3);
       setData({
-        accounts,
+        accounts: safeAccounts,
         currencies,
-        budgets: budgets.filter(item => item.startDate <= date && (!item.endDate || item.endDate >= date)).slice(0, 3),
-        goals: goals.filter(item => !item.isArchived && item.progress < 1).slice(0, 3),
-        subscriptions: subscriptions.filter(item => item.isActive).sort((a, b) => a.nextBillingDate.localeCompare(b.nextBillingDate)).slice(0, 3),
-        loans: loans.filter(item => item.status === "active" || item.status === "paused").slice(0, 3),
-        activity,
+        budgets: safeBudgets,
+        activity: (Array.isArray(activity) ? activity : []).slice(0, 5),
       });
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load your financial overview.");
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
-  }, [db]);
+  }, [db, selectedMonth]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
-  const monthLabel = useMemo(() => new Date().toLocaleDateString("en-PH", { month: "long", year: "numeric" }), []);
-  const totalAccounts = data.accounts.length;
-
-  const quickLinks = [
-    { label: "Activity", icon: "receipt-text-outline" as const, route: "/(tabs)/transactions" as const },
-    { label: "Accounts", icon: "wallet-outline" as const, route: "/accounts" as const },
-    { label: "Budgets", icon: "chart-donut" as const, route: "/(tabs)/budgets" as const },
-    { label: "Savings", icon: "target" as const, route: "/(tabs)/goals" as const },
-    { label: "Recurring", icon: "autorenew" as const, route: "/recurring" as const },
-    { label: "Reports", icon: "chart-box-outline" as const, route: "/reports" as const },
-  ];
+  const activeAccounts = data.accounts.filter(account => !account.isArchived).length;
+  const monthLabel = monthTitle(selectedMonth);
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
-      <ScrollView contentContainerStyle={[s.content, wideLayout && s.contentWide]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
           <View>
-            <Text style={[s.brand, { color: p.primary }]}>BudgetNest</Text>
+            <Text style={[s.brand, { color: p.primaryText }]}>BUDGETNEST</Text>
             <Text style={[s.greeting, { color: p.text }]}>Your overview</Text>
-            <Text style={[s.dateText, { color: p.textMuted }]}>{monthLabel}</Text>
           </View>
-          <Pressable onPress={() => router.push("/settings")} style={[s.headerButton, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <MaterialCommunityIcons name="cog-outline" size={22} color={p.text} />
+          <Pressable onPress={() => router.push("/(tabs)/accounts")} style={[s.headerAction, { borderColor: p.border, backgroundColor: p.surface }]}
+            accessibilityRole="button" accessibilityLabel="View accounts">
+            <MaterialCommunityIcons name="wallet-outline" size={19} color={p.primaryText} />
           </Pressable>
         </View>
 
-        <View style={[s.heroCard, { backgroundColor: dark ? "#352020" : "#B71C1C" }]}>
+        <View style={[s.heroCard, { backgroundColor: p.primaryDark }]}>
           <View style={s.heroTop}>
-            <View style={s.heroLabelRow}>
-              <MaterialCommunityIcons name="wallet-outline" size={17} color="#FFFFFF" />
-              <Text style={s.heroEyebrow}>TOTAL ACCOUNT BALANCE</Text>
+            <View>
+              <Text style={s.heroEyebrow}>TOTAL BALANCE</Text>
+              {initialLoading ? <Text style={s.heroBalance}>Loading…</Text> : data.currencies.length ? data.currencies.map(item => (
+                <View key={item.currencyCode} style={s.balanceLine}>
+                  <Text style={s.currencyCode}>{item.currencyCode}</Text>
+                  <Text style={s.heroBalance}>{money(item.balanceMinor, item.currencyCode)}</Text>
+                </View>
+              )) : <Text style={s.heroBalance}>No accounts yet</Text>}
             </View>
-            <View style={s.heroMark}><MaterialCommunityIcons name="sprout" size={22} color="#FFFFFF" /></View>
+            <MaterialCommunityIcons name="wallet-outline" size={27} color="rgba(255,255,255,0.82)" />
           </View>
-          {loading ? <Text style={s.heroAmount}>Loading…</Text> : data.currencies.length === 0
-            ? <Text style={s.heroAmount}>No accounts yet</Text>
-            : data.currencies.map(item => (
-              <View key={item.currencyCode} style={s.balanceLine}>
-                <Text style={s.currencyCode}>{item.currencyCode}</Text>
-                <Text style={s.heroAmount}>{money(item.balanceMinor, item.currencyCode)}</Text>
+          <View style={s.heroDivider} />
+          <View style={s.monthHeader}>
+            <Text style={s.monthEyebrow}>THIS MONTH</Text>
+            <View style={s.monthPicker}>
+              <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, -1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Previous month">
+                <MaterialCommunityIcons name="chevron-left" size={21} color="#FFFFFF" />
+              </Pressable>
+              <Text style={s.monthLabel}>{monthLabel}</Text>
+              <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, 1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Next month">
+                <MaterialCommunityIcons name="chevron-right" size={21} color="#FFFFFF" />
+              </Pressable>
+            </View>
+          </View>
+          <View style={s.cashFlowGrid}>
+            {data.currencies.length ? data.currencies.map(item => (
+              <View key={item.currencyCode} style={s.cashFlowCurrency}>
+                <Text style={s.cashFlowCode}>{item.currencyCode}</Text>
+                <View style={s.cashFlowRow}>
+                  <View style={s.cashFlowMetric}>
+                    <Text style={s.cashFlowLabel}>Income</Text>
+                    <Text style={s.cashFlowValue}>{money(item.incomeMinor, item.currencyCode)}</Text>
+                  </View>
+                  <View style={s.cashFlowMetric}>
+                    <Text style={s.cashFlowLabel}>Expenses</Text>
+                    <Text style={s.cashFlowValue}>{money(item.expenseMinor, item.currencyCode)}</Text>
+                  </View>
+                </View>
+                <View style={s.netRow}>
+                  <Text style={s.netLabel}>Net</Text>
+                  <Text style={s.netValue}>{money(item.incomeMinor - item.expenseMinor, item.currencyCode)}</Text>
+                </View>
               </View>
-            ))}
+            )) : <Text style={s.heroHint}>{initialLoading ? "Loading this month’s activity…" : "Your income and expenses will appear here."}</Text>}
+          </View>
           <View style={s.heroFooter}>
-            <Text style={s.heroFootText}>{totalAccounts} active {totalAccounts === 1 ? "account" : "accounts"}</Text>
-            <Pressable onPress={() => router.push("/accounts")} style={s.heroLink}>
-              <Text style={s.heroLinkText}>View accounts</Text>
-              <MaterialCommunityIcons name="arrow-right" size={15} color="#FFFFFF" />
-            </Pressable>
+            <Text style={s.heroHint}>{activeAccounts} active {activeAccounts === 1 ? "account" : "accounts"}</Text>
+            {selectedMonth !== currentMonth() ? <Pressable onPress={() => setSelectedMonth(currentMonth())}><Text style={s.currentMonthLink}>Back to this month</Text></Pressable> : null}
           </View>
         </View>
 
-        <SectionHeading title="This month" palette={p} />
-        {data.currencies.length === 0 ? (
-          <View style={[s.emptyCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <Text style={[s.mutedText, { color: p.textMuted }]}>Add an account to start tracking your cash flow.</Text>
-          </View>
-        ) : data.currencies.map(item => (
-          <View key={item.currencyCode} style={[s.cashFlowCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <Text style={[s.currencyHeading, { color: p.text }]}>{item.currencyCode} cash flow</Text>
-            <View style={s.cashFlowRow}>
-              <View style={s.cashFlowMetric}>
-                <View style={s.metricLabelRow}><MaterialCommunityIcons name="arrow-down-circle-outline" size={17} color={p.income} /><Text style={[s.metricLabel, { color: p.textMuted }]}>Income</Text></View>
-                <Text style={[s.metricValue, { color: p.income }]}>{money(item.incomeMinor, item.currencyCode)}</Text>
-              </View>
-              <View style={[s.metricDivider, { backgroundColor: p.border }]} />
-              <View style={s.cashFlowMetric}>
-                <View style={s.metricLabelRow}><MaterialCommunityIcons name="arrow-up-circle-outline" size={17} color={p.expense} /><Text style={[s.metricLabel, { color: p.textMuted }]}>Expenses</Text></View>
-                <Text style={[s.metricValue, { color: p.expense }]}>{money(item.expenseMinor, item.currencyCode)}</Text>
-              </View>
-            </View>
-            <View style={[s.netRow, { borderTopColor: p.border }]}>
-              <Text style={[s.netLabel, { color: p.textMuted }]}>Net cash flow</Text>
-              <Text style={[s.netValue, { color: item.incomeMinor - item.expenseMinor >= 0 ? p.income : p.expense }]}>{money(item.incomeMinor - item.expenseMinor, item.currencyCode)}</Text>
-            </View>
-          </View>
-        ))}
+        <Pressable onPress={() => router.push("/(tabs)/transactions?quick=expense")}
+          style={[s.logExpenseButton, { backgroundColor: p.primary }]} accessibilityRole="button" accessibilityLabel="Log an expense">
+          <MaterialCommunityIcons name="plus-circle-outline" size={21} color={p.onPrimary} />
+          <Text style={[s.logExpenseText, { color: p.onPrimary }]}>Log Expense</Text>
+          <MaterialCommunityIcons name="arrow-right" size={18} color={p.onPrimary} />
+        </Pressable>
 
-        <SectionHeading title="Quick access" palette={p} />
-        <View style={s.quickGrid}>
-          {quickLinks.map(link => (
-            <Pressable key={link.label} onPress={() => router.push(link.route)} style={[s.quickCard, wideLayout && s.quickCardWide, { backgroundColor: p.surface, borderColor: p.border }]}>
-              <View style={[s.quickIcon, { backgroundColor: dark ? "#432727" : "#FCE8E8" }]}>
-                <MaterialCommunityIcons name={link.icon} size={22} color={p.primary} />
+        <SectionHeader title="Budgets" actionLabel="See all" onAction={() => router.push("/budgets")} />
+        {data.budgets.length ? data.budgets.map(item => {
+          const over = item.spentMinor > item.amountMinor;
+          const progress = item.amountMinor > 0 ? item.spentMinor / item.amountMinor : 0;
+          return (
+            <View key={item.id} style={[s.budgetCard, { backgroundColor: p.surface, borderColor: p.border }]}>
+              <View style={s.budgetTop}>
+                <View style={[s.smallIcon, { backgroundColor: p.primarySoft }]}>
+                  <MaterialCommunityIcons name="chart-donut" size={18} color={p.primaryText} />
+                </View>
+                <View style={s.itemMain}>
+                  <Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.categoryName}</Text>
+                  <Text style={[s.itemSub, { color: p.textMuted }]} numberOfLines={1}>{item.accountName} · {item.period}</Text>
+                </View>
+                <Text style={[s.itemAmount, { color: over ? p.expense : p.text }]}>{money(item.spentMinor, item.currencyCode)}</Text>
               </View>
-              <Text style={[s.quickLabel, { color: p.text }]}>{link.label}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={p.textMuted} />
+              <ProgressBar progress={progress} color={over ? p.expense : p.primary} track={p.border} />
+              <View style={s.budgetFoot}>
+                <Text style={[s.progressCaption, { color: p.textMuted }]}>{money(item.amountMinor, item.currencyCode)} limit</Text>
+                <Text style={[s.progressCaption, { color: over ? p.expense : p.textMuted }]}>{over ? money(item.spentMinor - item.amountMinor, item.currencyCode) + " over" : money(item.amountMinor - item.spentMinor, item.currencyCode) + " left"}</Text>
+              </View>
+            </View>
+          );
+        }) : <EmptyState icon="chart-donut" title="No budgets yet" message="Create a spending limit to keep your expenses on track." actionLabel="Create a budget" onAction={() => router.push("/budgets")} palette={p} dark={dark} />}
+
+        <SectionHeader title="Recent Activity" actionLabel="See all" onAction={() => router.push("/(tabs)/transactions")} />
+        {data.activity.length ? data.activity.map(item => {
+          const icon = item.kind === "income" ? "arrow-down-circle-outline" : item.kind === "expense" ? "arrow-up-circle-outline" : item.kind === "transfer" ? "swap-horizontal" : item.kind === "savings" ? "piggy-bank-outline" : item.kind === "loan" ? "hand-coin-outline" : "calendar-check-outline";
+          const amountColor = item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.text;
+          const prefix = item.kind === "income" ? "+" : item.kind === "expense" ? "−" : "";
+          return (
+            <Pressable key={item.kind + "-" + item.id} onPress={() => router.push("/(tabs)/transactions")} style={[s.activityRow, { backgroundColor: p.surface, borderColor: p.border }]}>
+              <View style={[s.smallIcon, { backgroundColor: dark ? p.surfaceElevated : "#F1F3F7" }]}>
+                <MaterialCommunityIcons name={icon} size={19} color={amountColor} />
+              </View>
+              <View style={s.itemMain}>
+                <Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.title}</Text>
+                <Text style={[s.itemSub, { color: p.textMuted }]} numberOfLines={1}>{item.subtitle} · {shortDate(item.occurredAt)}</Text>
+              </View>
+              <Text style={[s.itemAmount, { color: amountColor }]}>{prefix}{money(item.amountMinor, item.currencyCode)}</Text>
             </Pressable>
-          ))}
-        </View>
-
-        <SectionHeading title="Budgets" action="See all" onPress={() => router.push("/(tabs)/budgets")} palette={p} />
-        {data.budgets.length ? data.budgets.map(item => (
-          <View key={item.id} style={[s.listCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={s.listTop}>
-              <View style={[s.smallIcon, { backgroundColor: dark ? "#263B35" : "#E8F5E9" }]}><MaterialCommunityIcons name="chart-donut" size={19} color={p.success} /></View>
-              <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.categoryName}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.accountName} · {item.period}</Text></View>
-              <Text style={[s.itemAmount, { color: item.spentMinor > item.amountMinor ? p.expense : p.text }]}>{money(item.spentMinor, item.currencyCode)}</Text>
-            </View>
-            <ProgressBar progress={item.progress} color={item.progress >= 1 ? p.expense : p.primary} track={p.border} />
-            <Text style={[s.progressCaption, { color: p.textMuted }]}>{money(item.spentMinor, item.currencyCode)} of {money(item.amountMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <Text style={[s.emptyText, { color: p.textMuted }]}>No active budgets to show.</Text>}
-
-        <SectionHeading title="Savings goals" action="See all" onPress={() => router.push("/(tabs)/goals")} palette={p} />
-        {data.goals.length ? data.goals.map(item => (
-          <View key={item.id} style={[s.listCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={s.listTop}>
-              <View style={[s.smallIcon, { backgroundColor: dark ? "#263B35" : "#E8F5E9" }]}><MaterialCommunityIcons name="bullseye-arrow" size={19} color={p.success} /></View>
-              <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.name}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.targetDate ? `Target ${shortDate(item.targetDate)}` : "No target date"}</Text></View>
-              <Text style={[s.itemAmount, { color: p.text }]}>{Math.round(item.progress * 100)}%</Text>
-            </View>
-            <ProgressBar progress={item.progress} color={p.success} track={p.border} />
-            <Text style={[s.progressCaption, { color: p.textMuted }]}>{money(item.currentAmountMinor, item.currencyCode)} of {money(item.targetAmountMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <Text style={[s.emptyText, { color: p.textMuted }]}>No active savings goals to show.</Text>}
-
-        <SectionHeading title="Upcoming bills" action="See all" onPress={() => router.push("/subscriptions")} palette={p} />
-        {data.subscriptions.length ? data.subscriptions.map(item => {
-          const overdue = item.nextBillingDate < today();
-          return <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={[s.smallIcon, { backgroundColor: dark ? "#3C3323" : "#FFF3E0" }]}><MaterialCommunityIcons name="calendar-clock" size={19} color={p.warning} /></View>
-            <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.name}</Text><Text style={[s.itemSub, { color: overdue ? p.expense : p.textMuted }]}>{overdue ? "Overdue" : "Due"} · {shortDate(item.nextBillingDate)}</Text></View>
-            <Text style={[s.itemAmount, { color: p.text }]}>{money(item.amountMinor, item.currencyCode)}</Text>
-          </View>;
-        }) : <Text style={[s.emptyText, { color: p.textMuted }]}>No upcoming subscription bills.</Text>}
-
-        <SectionHeading title="Loan obligations" action="See all" onPress={() => router.push("/loans")} palette={p} />
-        {data.loans.length ? data.loans.map(item => (
-          <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={[s.smallIcon, { backgroundColor: dark ? "#2B3443" : "#EAF0FA" }]}><MaterialCommunityIcons name="bank-outline" size={19} color={p.secondary} /></View>
-            <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.name}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.status === "paused" ? "Paused" : `Due ${shortDate(item.dueDate)}`}</Text></View>
-            <Text style={[s.itemAmount, { color: p.text }]}>{money(item.remainingMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <Text style={[s.emptyText, { color: p.textMuted }]}>No active loan obligations.</Text>}
-
-        <SectionHeading title="Recent activity" action="See all" onPress={() => router.push("/(tabs)/transactions")} palette={p} />
-        {data.activity.length ? data.activity.map(item => (
-          <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={[s.smallIcon, { backgroundColor: dark ? "#30303A" : "#F1F3F7" }]}><MaterialCommunityIcons name={item.kind === "income" ? "arrow-down-circle-outline" : item.kind === "expense" ? "arrow-up-circle-outline" : item.kind === "savings" ? "piggy-bank-outline" : "swap-horizontal"} size={19} color={item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.secondary} /></View>
-            <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.title}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.subtitle} · {new Date(item.occurredAt).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}</Text></View>
-            <Text style={[s.itemAmount, { color: item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.text }]}>{money(item.amountMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <Text style={[s.emptyText, { color: p.textMuted }]}>Your recent financial activity will appear here.</Text>}
+          );
+        }) : <EmptyState icon="receipt-text-outline" title="No recent activity" message="Your recorded income, expenses, and transfers will appear here." actionLabel="Log an expense" onAction={() => router.push("/(tabs)/transactions?quick=expense")} palette={p} dark={dark} />}
 
         {error ? <Text style={[s.errorText, { color: p.expense }]}>{error}</Text> : null}
-        {loading ? <Text style={[s.loadingText, { color: p.textMuted }]}>Refreshing your overview…</Text> : null}
+        {loading && !initialLoading ? <View style={s.loadingRow}><ActivityIndicator size="small" color={p.primary} /><Text style={[s.loadingText, { color: p.textMuted }]}>Updating overview…</Text></View> : null}
         <Text style={[s.footerText, { color: p.textMuted }]}>Your financial data stays on this device.</Text>
       </ScrollView>
     </SafeAreaView>
@@ -267,59 +230,52 @@ export default function DashboardScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1 },
-  content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 36 },
-  contentWide: { width: "100%", maxWidth: 1160, alignSelf: "center" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  brand: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
+  content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, gap: 12 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
+  brand: { fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
   greeting: { fontSize: 27, fontWeight: "800", letterSpacing: -0.7, marginTop: 3 },
-  dateText: { fontSize: 13, marginTop: 3 },
-  headerButton: { width: 44, height: 44, borderRadius: 15, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  heroCard: { borderRadius: 22, padding: 20, marginBottom: 26 },
-  heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
-  heroLabelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  heroEyebrow: { color: "#FFFFFF", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  heroMark: { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" },
-  balanceLine: { marginBottom: 8 },
-  currencyCode: { color: "rgba(255,255,255,0.72)", fontSize: 11, fontWeight: "700", marginBottom: 2 },
-  heroAmount: { color: "#FFFFFF", fontSize: 27, fontWeight: "800", letterSpacing: -0.5 },
-  heroFooter: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.22)", marginTop: 12, paddingTop: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  heroFootText: { color: "rgba(255,255,255,0.76)", fontSize: 12 },
-  heroLink: { flexDirection: "row", alignItems: "center", gap: 5 },
-  heroLinkText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  sectionHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, marginBottom: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
-  actionText: { fontSize: 12, fontWeight: "700" },
-  cashFlowCard: { borderWidth: 1, borderRadius: 17, padding: 16, marginBottom: 12 },
-  currencyHeading: { fontSize: 13, fontWeight: "800", marginBottom: 14 },
-  cashFlowRow: { flexDirection: "row", alignItems: "center" },
-  cashFlowMetric: { flex: 1, gap: 7 },
-  metricLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  metricLabel: { fontSize: 12, fontWeight: "600" },
-  metricValue: { fontSize: 17, fontWeight: "800" },
-  metricDivider: { width: 1, height: 40, marginHorizontal: 12 },
-  netRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, marginTop: 14, paddingTop: 12 },
-  netLabel: { fontSize: 12, fontWeight: "600" },
-  netValue: { fontSize: 14, fontWeight: "800" },
-  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },
-  quickCard: { width: "48%", minHeight: 88, borderWidth: 1, borderRadius: 16, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 },
-  quickCardWide: { width: "31.5%" },
-  quickIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  quickLabel: { flex: 1, fontSize: 13, fontWeight: "700" },
-  listCard: { borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 10, gap: 12 },
-  listTop: { flexDirection: "row", alignItems: "center", gap: 10 },
-  smallIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  listMain: { flex: 1, minWidth: 0 },
+  headerAction: { width: 44, height: 44, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  heroCard: { borderRadius: 20, padding: 18, marginTop: 2 },
+  heroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  heroEyebrow: { color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  balanceLine: { marginTop: 7 },
+  currencyCode: { color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: "700", marginBottom: 2 },
+  heroBalance: { color: "#FFFFFF", fontSize: 25, fontWeight: "800", letterSpacing: -0.5, fontVariant: ["tabular-nums"] },
+  heroDivider: { height: 1, backgroundColor: "rgba(255,255,255,0.22)", marginTop: 16, marginBottom: 13 },
+  monthHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  monthEyebrow: { color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
+  monthPicker: { flexDirection: "row", alignItems: "center", gap: 5 },
+  monthArrow: { width: 32, height: 34, alignItems: "center", justifyContent: "center" },
+  monthLabel: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+  cashFlowGrid: { marginTop: 10, gap: 9 },
+  cashFlowCurrency: { backgroundColor: "rgba(0,0,0,0.10)", borderRadius: 12, padding: 11 },
+  cashFlowCode: { color: "rgba(255,255,255,0.72)", fontSize: 9, fontWeight: "800", letterSpacing: 0.5, marginBottom: 7 },
+  cashFlowRow: { flexDirection: "row", gap: 12 },
+  cashFlowMetric: { flex: 1, minWidth: 0, gap: 3 },
+  cashFlowLabel: { color: "rgba(255,255,255,0.70)", fontSize: 10, fontWeight: "600" },
+  cashFlowValue: { color: "#FFFFFF", fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  netRow: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.18)", marginTop: 9, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
+  netLabel: { color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: "700" },
+  netValue: { color: "#FFFFFF", fontSize: 12, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  heroFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
+  heroHint: { color: "rgba(255,255,255,0.72)", fontSize: 11 },
+  currentMonthLink: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
+  logExpenseButton: { minHeight: 54, borderRadius: 15, paddingHorizontal: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 1, marginBottom: 3 },
+  logExpenseText: { fontSize: 14, fontWeight: "800", flex: 1 },
+  budgetCard: { borderWidth: 1, borderRadius: 15, padding: 13, marginBottom: 8, gap: 10 },
+  budgetTop: { flexDirection: "row", alignItems: "center", gap: 9 },
+  smallIcon: { width: 35, height: 35, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  itemMain: { flex: 1, minWidth: 0 },
   itemTitle: { fontSize: 13, fontWeight: "700" },
-  itemSub: { fontSize: 11, marginTop: 4 },
-  itemAmount: { fontSize: 12, fontWeight: "800" },
+  itemSub: { fontSize: 11, marginTop: 3 },
+  itemAmount: { fontSize: 12, fontWeight: "800", fontVariant: ["tabular-nums"] },
   progressTrack: { height: 7, borderRadius: 5, overflow: "hidden" },
   progressFill: { height: 7, borderRadius: 5 },
-  progressCaption: { fontSize: 10, marginTop: -5 },
-  compactCard: { borderWidth: 1, borderRadius: 15, padding: 12, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 10 },
-  emptyCard: { borderWidth: 1, borderRadius: 15, padding: 16, marginBottom: 12 },
-  emptyText: { fontSize: 12, paddingVertical: 8 },
-  mutedText: { fontSize: 12, lineHeight: 18 },
-  errorText: { fontSize: 12, marginTop: 14 },
-  loadingText: { fontSize: 11, textAlign: "center", marginTop: 16 },
-  footerText: { fontSize: 10, textAlign: "center", marginTop: 24 },
+  budgetFoot: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
+  progressCaption: { fontSize: 10, fontWeight: "600" },
+  activityRow: { borderWidth: 1, borderRadius: 14, padding: 11, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 9 },
+  errorText: { fontSize: 12, marginTop: 10 },
+  loadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 8 },
+  loadingText: { fontSize: 11 },
+  footerText: { fontSize: 10, textAlign: "center", marginTop: 14 },
 });

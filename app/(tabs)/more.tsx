@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,85 +15,34 @@ import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 
 const MENU_GROUPS = [
   {
-    title: "Financial Planning",
+    title: "Planning & Commitments",
     items: [
-      {
-        label: "Goals",
-        description: "Plan and track progress toward your savings targets.",
-        icon: "bullseye-arrow",
-        route: "/(tabs)/goals",
-      },
+      { label: "Goals", icon: "bullseye-arrow", route: "/goals" },
+      { label: "Loans", icon: "bank-outline", route: "/loans" },
+      { label: "Subscriptions", icon: "calendar-clock", route: "/subscriptions" },
+      { label: "Recurring", icon: "repeat", route: "/recurring" },
     ],
   },
   {
-    title: "Commitments",
+    title: "Insights & History",
     items: [
-      {
-        label: "Loans",
-        description: "Track loan balances, terms, and repayments.",
-        icon: "bank-outline",
-        route: "/loans",
-      },
-      {
-        label: "Subscriptions",
-        description: "Keep track of recurring bills and payments.",
-        icon: "calendar-clock",
-        route: "/subscriptions",
-      },
-      {
-        label: "Recurring",
-        description: "Plan regular income and expense entries.",
-        icon: "repeat",
-        route: "/recurring",
-      },
+      { label: "Reports", icon: "chart-box-outline", route: "/reports" },
+      { label: "Activity Log", icon: "history", route: "/activity-log" },
     ],
   },
   {
-    title: "Insights & Reports",
+    title: "App & Data",
     items: [
-      {
-        label: "Reports",
-        description: "Review cash flow, spending, and monthly trends.",
-        icon: "chart-box-outline",
-        route: "/reports",
-      },
-    ],
-  },
-  {
-    title: "Preferences & Support",
-    items: [
-      {
-        label: "Activity Log",
-        description: "Review changes made across your financial records.",
-        icon: "history",
-        route: "/activity-log",
-      },
-      {
-        label: "Settings",
-        description: "Manage currency, appearance, backup, and data.",
-        icon: "cog-outline",
-        route: "/settings",
-      },
-      {
-        label: "About & Help",
-        description: "Learn how BudgetNest works and find answers.",
-        icon: "help-circle-outline",
-        route: "/about",
-      },
-      {
-        label: "Privacy",
-        description: "Understand where your financial data is stored.",
-        icon: "shield-lock-outline",
-        route: "/privacy",
-      },
+      { label: "Settings", icon: "cog-outline", route: "/settings" },
+      { label: "About & Help", icon: "help-circle-outline", route: "/about" },
+      { label: "Privacy", icon: "shield-lock-outline", route: "/privacy" },
     ],
   },
 ] as const;
 
 export default function MoreScreen() {
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const { width, height } = useWindowDimensions();
   const useColumns = width >= 720 || width > height;
 
@@ -109,9 +58,7 @@ export default function MoreScreen() {
         <View style={styles.intro}>
           <BudgetNestBrand color={palette.text} size={38} />
           <Text style={[styles.title, { color: palette.text }]}>More</Text>
-          <Text style={[styles.subtitle, { color: palette.textMuted }]}>
-            Explore the rest of your financial workspace.
-          </Text>
+
         </View>
 
         {MENU_GROUPS.map((group) => (
@@ -139,7 +86,7 @@ export default function MoreScreen() {
                     <View
                       style={[
                         styles.icon,
-                        { backgroundColor: dark ? "#3A2424" : "#FCE8E8" },
+                        { backgroundColor: palette.primarySoft },
                       ]}
                     >
                       <MaterialCommunityIcons
@@ -151,11 +98,6 @@ export default function MoreScreen() {
                     <View style={styles.itemCopy}>
                       <Text style={[styles.itemTitle, { color: palette.text }]}>
                         {item.label}
-                      </Text>
-                      <Text
-                        style={[styles.itemDescription, { color: palette.textMuted }]}
-                      >
-                        {item.description}
                       </Text>
                     </View>
                     <MaterialCommunityIcons
@@ -184,42 +126,40 @@ export default function MoreScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36 },
+  content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 32 },
   contentWide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", maxWidth: 1160, width: "100%", alignSelf: "center" },
   intro: { width: "100%" },
   eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
-  title: { fontSize: 30, fontWeight: "800", marginTop: 4 },
-  subtitle: { fontSize: 14, lineHeight: 21, marginTop: 7, marginBottom: 22 },
-  group: { marginBottom: 19 },
+  title: { fontSize: 28, fontWeight: "800", marginTop: 4, marginBottom: 16 },
+  group: { marginBottom: 16 },
   groupWide: { width: "48%" },
   groupTitle: {
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
-    marginBottom: 9,
+    marginBottom: 7,
     marginLeft: 3,
   },
   groupCard: {
     borderWidth: 1,
     borderRadius: 16,
-    paddingHorizontal: 13,
+    paddingHorizontal: 10,
   },
   menuItem: {
-    minHeight: 74,
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   icon: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  itemCopy: { flex: 1, gap: 3 },
-  itemTitle: { fontSize: 14, fontWeight: "800" },
-  itemDescription: { fontSize: 11, lineHeight: 16 },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 54 },
+  itemCopy: { flex: 1, minWidth: 0 },
+  itemTitle: { fontSize: 13, fontWeight: "800" },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: 46 },
 });
