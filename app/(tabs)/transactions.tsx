@@ -206,7 +206,7 @@ export default function TransactionsScreen() {
       <View style={s.page}>
         <View style={s.header}>
           <View><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>FINANCIAL HISTORY</Text><Text style={[s.title, { color: p.text }]}>Activity</Text></View>
-          <Pressable onPress={openNew} style={[s.add, { backgroundColor: p.primary }]}><MaterialCommunityIcons name="plus" size={18} color={p.onPrimary} /><Text style={[s.addText, { color: p.onPrimary }]}>Add</Text></Pressable>
+          <Pressable onPress={() => void openNew()} style={[s.add, { backgroundColor: p.primary }]}><MaterialCommunityIcons name="plus" size={18} color={p.onPrimary} /><Text style={[s.addText, { color: p.onPrimary }]}>Add</Text></Pressable>
         </View>
         <Text style={[s.sub, { color: p.textMuted }]}>Create and manage transactions, while keeping loans, subscriptions, and savings activity in the same history.</Text>
 
@@ -227,7 +227,7 @@ export default function TransactionsScreen() {
 
         {error ? <View style={[s.error, { backgroundColor: p.dangerSoft }]}><Text style={{ color: p.expense, fontWeight: "800", fontSize: 12 }}>{error}</Text></View> : null}
         <ScrollView contentContainerStyle={s.list}>
-          {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><MaterialCommunityIcons name="receipt-text-outline" size={34} color={p.primary}/><Text style={[s.itemTitle, { color: p.text, marginTop: 10 }]}>No activity found</Text><Text style={{ color: p.textMuted, fontSize: 13, marginTop: 6, textAlign: "center" }}>Try a different filter, or add your first transaction.</Text><Pressable onPress={openNew} style={[s.primaryButton, { backgroundColor: p.primary }]}><Text style={[s.primaryButtonText, { color: p.onPrimary }]}>Add transaction</Text></Pressable></View> :
+          {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><MaterialCommunityIcons name="receipt-text-outline" size={34} color={p.primary}/><Text style={[s.itemTitle, { color: p.text, marginTop: 10 }]}>No activity found</Text><Text style={{ color: p.textMuted, fontSize: 13, marginTop: 6, textAlign: "center" }}>Try a different filter, or add your first transaction.</Text><Pressable onPress={() => void openNew()} style={[s.primaryButton, { backgroundColor: p.primary }]}><Text style={[s.primaryButtonText, { color: p.onPrimary }]}>Add transaction</Text></Pressable></View> :
           items.map(item => {
             const prefix = historyAmountPrefix(item.kind);
             const editable = (item.kind === "income" || item.kind === "expense" || item.kind === "transfer") && !isLinkedTransactionId(item.id);
