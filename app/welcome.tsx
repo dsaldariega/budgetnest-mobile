@@ -82,7 +82,7 @@ export default function WelcomeScreen() {
           style={styles.slider}
           contentContainerStyle={styles.sliderContent}
         >
-        {slides.map((slide, index) => (
+        {(slides ?? []).map((slide, index) => (
           <View key={slide.title} style={[styles.slide, { width }]}>
             <View style={[styles.illustration, { backgroundColor: mode === "dark" ? "#3A2424" : "#FCE8E8" }]}>
               <View style={[styles.illustrationInner, { backgroundColor: palette.primary }]}>
@@ -93,7 +93,7 @@ export default function WelcomeScreen() {
             <Text style={[styles.heading, { color: palette.text }]}>{slide.title}</Text>
             <Text style={[styles.description, { color: palette.textMuted }]}>{slide.description}</Text>
 
-            {lastSlide ? (
+            {index === slides.length - 1 ? (
               <View style={styles.slideActions}>
                 <Pressable
                   onPress={explore}
