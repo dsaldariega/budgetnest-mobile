@@ -1,6 +1,6 @@
 import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
@@ -118,7 +118,7 @@ export default function DashboardScreen() {
           <View style={s.heroTop}>
             <View>
               <Text style={s.heroEyebrow}>TOTAL BALANCE</Text>
-              {loading ? <Text style={s.heroBalance}>Loading…</Text> : data.currencies.length ? data.currencies.map(item => (
+              {initialLoading ? <Text style={s.heroBalance}>Loading…</Text> : data.currencies.length ? data.currencies.map(item => (
                 <View key={item.currencyCode} style={s.balanceLine}>
                   <Text style={s.currencyCode}>{item.currencyCode}</Text>
                   <Text style={s.heroBalance}>{money(item.balanceMinor, item.currencyCode)}</Text>
@@ -159,7 +159,7 @@ export default function DashboardScreen() {
                   <Text style={s.netValue}>{money(item.incomeMinor - item.expenseMinor, item.currencyCode)}</Text>
                 </View>
               </View>
-            )) : <Text style={s.heroHint}>{loading ? "Loading this month’s activity…" : "Your income and expenses will appear here."}</Text>}
+            )) : <Text style={s.heroHint}>{initialLoading ? "Loading this month’s activity…" : "Your income and expenses will appear here."}</Text>}
           </View>
           <View style={s.heroFooter}>
             <Text style={s.heroHint}>{activeAccounts} active {activeAccounts === 1 ? "account" : "accounts"}</Text>
@@ -174,7 +174,7 @@ export default function DashboardScreen() {
           <MaterialCommunityIcons name="arrow-right" size={18} color={p.onPrimary} />
         </Pressable>
 
-        <SectionHeader title="Budgets" actionLabel="See all" onAction={() => router.push("/(tabs)/budgets")} />
+        <SectionHeader title="Budgets" actionLabel="See all" onAction={() => router.push("/budgets")} />
         {data.budgets.length ? data.budgets.map(item => {
           const over = item.spentMinor > item.amountMinor;
           const progress = item.amountMinor > 0 ? item.spentMinor / item.amountMinor : 0;
@@ -219,7 +219,7 @@ export default function DashboardScreen() {
         }) : <EmptyState icon="receipt-text-outline" title="No recent activity" message="Your recorded income, expenses, and transfers will appear here." actionLabel="Log an expense" onAction={() => router.push("/(tabs)/transactions?quick=expense")} palette={p} dark={dark} />}
 
         {error ? <Text style={[s.errorText, { color: p.expense }]}>{error}</Text> : null}
-        {loading ? <Text style={[s.loadingText, { color: p.textMuted }]}>Refreshing your overview…</Text> : null}
+        {loading && !initialLoading ? <View style={s.loadingRow}><ActivityIndicator size="small" color={p.primary} /><Text style={[s.loadingText, { color: p.textMuted }]}>Updating overview…</Text></View> : null}
         <Text style={[s.footerText, { color: p.textMuted }]}>Your financial data stays on this device.</Text>
       </ScrollView>
     </SafeAreaView>
@@ -273,6 +273,6 @@ const s = StyleSheet.create({
   progressCaption: { fontSize: 10, fontWeight: "600" },
   activityRow: { borderWidth: 1, borderRadius: 14, padding: 11, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 9 },
   errorText: { fontSize: 12, marginTop: 10 },
-  loadingText: { fontSize: 11, textAlign: "center", marginTop: 8 },
+  loadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 8 },\n  loadingText: { fontSize: 11 },
   footerText: { fontSize: 10, textAlign: "center", marginTop: 14 },
 });

@@ -92,7 +92,7 @@ export default function PrivacyScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  content: { padding: 19, paddingBottom: 38, gap: 12 },
+  content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 38, gap: 14 },
   header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 5 },
   eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
   title: { fontSize: 25, fontWeight: "900", marginTop: 2 },
