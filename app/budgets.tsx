@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
+import { spacing, typography, radius } from "@/theme/tokens";
 import { useCallback, useState } from "react";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -97,8 +98,8 @@ export default function BudgetsScreen() {
   </SafeAreaView>;
 }
 const s=StyleSheet.create({
- safe:{flex:1},page:{flex:1,paddingHorizontal:20,paddingTop:18},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12},title:{fontSize:29,fontWeight:"800",marginTop:4},add:{paddingHorizontal:17,paddingVertical:11,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
+ safe:{flex:1},page:{flex:1,paddingHorizontal:20,paddingTop:18},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12},title: {fontSize: typography.screenTitle,fontWeight:"800",marginTop:4},add:{paddingHorizontal:17,paddingVertical:11,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
  sub:{fontSize:14,lineHeight:21,marginTop:8,marginBottom:18},card:{borderWidth:1,borderRadius:18,padding:17},row:{flexDirection:"row",alignItems:"center",gap:10},rowActions:{flexDirection:"row",alignItems:"center",gap:14},cardTitle:{fontSize:15,fontWeight:"700"},delete:{fontSize:12,fontWeight:"700"},
- moneyRow:{flexDirection:"row",alignItems:"baseline",justifyContent:"space-between",marginBottom:8},spent:{fontSize:20,fontWeight:"800"},track:{height:8,borderRadius:8,overflow:"hidden"},fill:{height:8,borderRadius:8},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{ minHeight: 48, padding: 15,borderRadius:13,alignItems:"center",marginTop:18},primaryText:{color:"#fff",fontWeight:"700"},
- modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:13,paddingVertical:10},input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{fontSize:13,marginTop:12}
+ moneyRow:{flexDirection:"row",alignItems:"baseline",justifyContent:"space-between",marginBottom:8},spent:{fontSize:20,fontWeight:"800"},track:{height:8,borderRadius:8,overflow:"hidden"},fill:{height:8,borderRadius:8},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{ minHeight: 48, padding: 15,borderRadius: radius.md,alignItems:"center",marginTop:18},primaryText:{color:"#fff",fontWeight:"700"},
+ modal:{flex:1},form: { padding: spacing.page,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:13,paddingVertical:10},input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{fontSize:13,marginTop:12}
 });
