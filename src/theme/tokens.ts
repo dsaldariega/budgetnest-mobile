@@ -9,6 +9,7 @@ export const spacing = {
   page: 20,
   section: 16,
   card: 14,
+  form: { padding: 20, fieldTop: 16, labelGap: 8, actionTop: 24 },
 } as const;
 
 export const radius = {
@@ -25,6 +26,7 @@ export const typography = {
   body: 15,
   bodySmall: 13,
   caption: 12,
+  label: 13,
 } as const;
 
 export const controlSize = {
