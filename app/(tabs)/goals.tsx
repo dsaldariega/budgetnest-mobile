@@ -90,7 +90,8 @@ export default function GoalsScreen() {
         </View>)}
       </ScrollView>
     </View>
-    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
+    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
+      onRequestClose={() => setOpen(false)}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
       <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>{editingGoal ? "Edit savings goal" : "Add savings goal"}</Text><Pressable onPress={() => setOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
       <Text style={[s.label, { color: p.text }]}>Goal name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Emergency fund" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
@@ -100,7 +101,8 @@ export default function GoalsScreen() {
       {error ? <Text style={[s.error, { color: p.expense }]}>{error}</Text> : null}<Pressable disabled={saving} onPress={save} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving ? "Saving…" : editingGoal ? "Save changes" : "Save goal"}</Text></Pressable>
     </ScrollView></SafeAreaView></KeyboardAvoidingView>
     </Modal>
-    <Modal visible={!!contributeGoal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setContributeGoal(null)}>
+    <Modal visible={!!contributeGoal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
+      onRequestClose={() => setContributeGoal(null)}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
       <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Add contribution</Text><Pressable onPress={() => setContributeGoal(null)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
       {contributeGoal ? <Text style={[s.context, { color: p.textMuted }]}>Adding progress to <Text style={{ fontWeight: "800", color: p.text }}>{contributeGoal.name}</Text>. This does not create a spending transaction.</Text> : null}
