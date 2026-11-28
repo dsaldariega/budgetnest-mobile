@@ -9,6 +9,7 @@ import { createBudgetRepository, type BudgetListItem } from "@/database/reposito
 import { toMinorUnits } from "@/domain/money";
 import { compareDates } from "@/domain/dates";
 import { colors } from "@/theme/colors";
+import { EmptyState } from "@/components/EmptyState";
 import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
 
@@ -67,7 +68,7 @@ export default function BudgetsScreen() {
       <View style={s.header}><View><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>PLAN YOUR SPENDING</Text><Text style={[s.title,{color:p.text}]}>Budgets</Text></View>{items.length>0?<Pressable onPress={()=>{reset();setOpen(true)}} style={[s.add,{backgroundColor:p.primary}]}><Text style={s.addText}>+ Add</Text></Pressable>:null}</View>
       <Text style={[s.sub,{color:p.textMuted}]}>Set spending limits by category and period, then monitor actual spending against each limit.</Text>
       <ScrollView contentContainerStyle={{gap:12,paddingBottom:30}}>
-        {items.length===0?<View style={[s.empty,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={[s.cardTitle,{color:p.text}]}>No budgets yet</Text><Text style={{color:p.textMuted,marginTop:6,textAlign:"center"}}>Create a weekly, monthly, or yearly spending limit.</Text><Pressable onPress={()=>{reset();setOpen(true)}} style={[s.primary,{backgroundColor:p.primary}]}><Text style={s.primaryText}>Create a budget</Text></Pressable></View>:
+        {items.length===0?<EmptyState icon="chart-donut" title="No budgets yet" message="Create a weekly, monthly, or yearly spending limit." actionLabel="Create a budget" onAction={()=>{reset();setOpen(true)}} palette={p} dark={dark} />:
         items.map(item=><View key={item.id} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>
           <View style={s.row}><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{item.name}</Text><Text style={{color:p.textMuted,fontSize:11,marginTop:3}}>{item.categoryName} · {item.accountName} · {item.period}</Text></View><View style={s.rowActions}><Pressable onPress={()=>openEdit(item)}><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>Edit</Text></Pressable><Pressable onPress={()=>remove(item)}><Text style={s.delete}>Delete</Text></Pressable></View></View>
           <View style={s.moneyRow}><Text style={[s.spent,{color:p.text}]}>{fmt(item.spentMinor,item.currencyCode)}</Text><Text style={{color:p.textMuted,fontSize:12}}>of {fmt(item.amountMinor,item.currencyCode)}</Text></View>
