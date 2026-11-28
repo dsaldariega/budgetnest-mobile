@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
-import { spacing, typography } from "@/theme/tokens";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
