@@ -38,6 +38,7 @@ export default function SettingsScreen() {
   const [restoreAppVersion, setRestoreAppVersion] = useState("");
   const [restoreRecordCount, setRestoreRecordCount] = useState(0);
   const [confirmRestore, setConfirmRestore] = useState(false);
+  const [expandedDataSection, setExpandedDataSection] = useState<"csv" | "technical" | null>(null);
 
   const changeThemePreference = async (next: ThemePreference) => {
     if (next === preference) return;
@@ -218,7 +219,7 @@ export default function SettingsScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.cardTitle, { color: palette.text }]}>Google account</Text>
               <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-                {user ? "Connected as " + (user.user.email ?? user.user.id) : "Optional. Sign in only when you want cloud backup."}
+                {user ? "Connected · " + (user.user.email ?? user.user.id) : "Not connected · Sign in only when you want cloud backup."}
               </Text>
             </View>
           </View>
@@ -254,14 +255,14 @@ export default function SettingsScreen() {
               : "Connect your Google account to unlock cloud backup and restore. Your local data stays available without signing in."}
           </Text>
           <Pressable
-            disabled={busy}
+            disabled={busy || !user}
             onPress={() => void exportBackupToGoogle()}
             style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}
           >
             <Text style={styles.primaryText}>{busy ? "Working…" : "Back up to Google Drive"}</Text>
           </Pressable>
           <Pressable
-            disabled={busy}
+            disabled={busy || !user}
             onPress={() => void selectGoogleRestore()}
             style={[styles.secondaryButton, { borderColor: palette.border, opacity: busy ? 0.6 : 1 }]}
           >
@@ -277,13 +278,19 @@ export default function SettingsScreen() {
         <TransactionDataTools onImported={() => void loadSettings()} />
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.cardTitle, { color: palette.text }]}>Data on this device</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-            A quick overview of records currently stored in your local database.
-          </Text>
-          <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Total records</Text><Text style={[styles.overviewValue, { color: palette.text }]}>{overview ? formatCount(totalRecords) : "—"}</Text></View>
-          <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Database version</Text><Text style={[styles.overviewValue, { color: palette.text }]}>{overview?.schemaVersion ?? "—"}</Text></View>
-          <View style={styles.overviewRow}><Text style={[styles.overviewLabel, { color: palette.textMuted }]}>Storage</Text><Text style={[styles.overviewValue, { color: palette.text }]}>This device only</Text></View>
+
+          <Text style={[styles.cardTitle, { color: palette.text }]}>CSV & device data</Text>
+          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>Records stay in local SQLite. CSV tools above move transaction data between BudgetNest and a spreadsheet.</Text>
+          <Pressable onPress={() => setExpandedDataSection(expandedDataSection === "csv" ? null : "csv")} style={styles.expandRow}>
+            <View style={{ flex: 1 }}><Text style={[styles.expandTitle, { color: palette.text }]}>CSV import rules & template</Text><Text style={[styles.expandHint, { color: palette.textMuted }]}>Columns, matching, duplicates, and limits</Text></View>
+            <MaterialCommunityIcons name={expandedDataSection === "csv" ? "chevron-up" : "chevron-down"} size={20} color={palette.textMuted} />
+          </Pressable>
+          {expandedDataSection === "csv" ? <Text style={[styles.expandBody, { color: palette.textMuted }]}>Import requires account_name, currency, transaction_type, amount, category, description, and transaction_date. Active accounts must match by name and currency. Missing categories can be created; duplicates are skipped. Transfers are excluded. Maximum: 5 MB and 5,000 rows. Use the CSV template above.</Text> : null}
+          <Pressable onPress={() => setExpandedDataSection(expandedDataSection === "technical" ? null : "technical")} style={styles.expandRow}>
+            <View style={{ flex: 1 }}><Text style={[styles.expandTitle, { color: palette.text }]}>Technical details</Text><Text style={[styles.expandHint, { color: palette.textMuted }]}>Local SQLite and database version</Text></View>
+            <MaterialCommunityIcons name={expandedDataSection === "technical" ? "chevron-up" : "chevron-down"} size={20} color={palette.textMuted} />
+          </Pressable>
+          {expandedDataSection === "technical" ? <View style={styles.expandBody}><Text style={[styles.expandLine, { color: palette.textMuted }]}>Storage: Local SQLite on this device</Text><Text style={[styles.expandLine, { color: palette.textMuted }]}>Records: {overview ? formatCount(totalRecords) : "—"}</Text><Text style={[styles.expandLine, { color: palette.textMuted }]}>Database version: {overview?.schemaVersion ?? "—"}</Text></View> : null}
         </View>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -348,6 +355,11 @@ const styles = StyleSheet.create({
   primaryText: { color: "#fff", fontWeight: "700" },
   secondaryButton: { padding: 15, borderRadius: 13, borderWidth: 1, alignItems: "center", marginTop: 10 },
   secondaryText: { fontWeight: "700" },
+  expandRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 13, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(15, 23, 42, 0.08)", marginTop: 6 },
+  expandTitle: { fontSize: 12, fontWeight: "800" },
+  expandHint: { fontSize: 10, lineHeight: 15, marginTop: 3 },
+  expandBody: { fontSize: 11, lineHeight: 17, paddingBottom: 10, paddingTop: 2 },
+  expandLine: { fontSize: 11, lineHeight: 18 },
   overviewRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(15, 23, 42, 0.08)" },
   overviewLabel: { fontSize: 12 },
   overviewValue: { fontSize: 13, fontWeight: "800" },
