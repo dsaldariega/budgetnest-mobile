@@ -2,7 +2,9 @@ import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,8 +26,8 @@ import {
 import type { AccountType, CreateAccountInput } from "@/database/types";
 import { toMinorUnits } from "@/domain/money";
 import { createSettingsRepository } from "@/database/repositories/settings-repository";
-import { colors } from "@/theme/colors";
 import { EmptyState } from "@/components/EmptyState";
+import { Button, ChipGroup, TextField } from "@/components/ui";
 
 const TYPES: { value: AccountType; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
   { value: "cash", label: "Cash", icon: "cash-multiple" },
@@ -86,12 +88,14 @@ export default function AccountsScreen() {
   const activeRows = rows.filter((account) => !account.isArchived);
   const visibleRows = showArchived ? rows : activeRows;
   const activeBalanceSummary = useMemo(() => {
-    const currencies = new Set(activeRows.map((account) => account.currencyCode));
-    if (currencies.size > 1) return "Multiple currencies";
-    if (currencies.size === 0) return formatMoney(0, "PHP");
-    const currencyCode = activeRows[0].currencyCode;
-    const total = activeRows.reduce((sum, account) => sum + account.balanceMinor, 0);
-    return formatMoney(total, currencyCode);
+    const totals = new Map<string, number>();
+    for (const account of activeRows) {
+      totals.set(account.currencyCode, (totals.get(account.currencyCode) ?? 0) + account.balanceMinor);
+    }
+    if (totals.size === 0) return formatMoney(0, "PHP");
+    return Array.from(totals.entries())
+      .map(([currencyCode, total]) => formatMoney(total, currencyCode))
+      .join(" · ");
   }, [activeRows]);
 
   const load = useCallback(async () => {
@@ -151,15 +155,19 @@ export default function AccountsScreen() {
       setError("Enter a valid starting balance.");
       return;
     }
+    if (!editing && !/^[A-Za-z]{3}$/.test(currency.trim())) {
+      setError("Enter a valid 3-letter currency code, such as PHP or USD.");
+      return;
+    }
 
     setSaving(true);
     try {
       const input: CreateAccountInput = {
         id: editing?.id ?? makeId(),
-        name,
+        name: name.trim(),
         type,
         sourceType: editing?.sourceType ?? null,
-        currencyCode: editing?.currencyCode ?? currency,
+        currencyCode: editing?.currencyCode ?? currency.trim().toUpperCase(),
         openingBalanceMinor: toMinorUnits(amount),
       };
 
@@ -350,7 +358,10 @@ export default function AccountsScreen() {
                         <Text style={[styles.archivedText, { color: palette.textMuted }]}>Archived</Text>
                       </View>
                     ) : null}
-                    <Pressable accessibilityRole="button" accessibilityLabel={`Actions for ${account.name}`} onPress={() => void openActions(account)} hitSlop={10} style={styles.moreButton}>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${account.name}`} onPress={() => openEdit(account)} hitSlop={10} style={styles.moreButton}>
+                      <MaterialCommunityIcons name="pencil-outline" size={18} color={palette.primary} />
+                    </Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`More actions for ${account.name}`} onPress={() => void openActions(account)} hitSlop={10} style={styles.moreButton}>
                       <MaterialCommunityIcons name="dots-horizontal" size={22} color={palette.textMuted} />
                     </Pressable>
                   </View>
@@ -367,6 +378,7 @@ export default function AccountsScreen() {
 
       <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFormOpen(false)}>
         <SafeAreaView style={[styles.modal, { backgroundColor: palette.background }]} edges={["top", "left", "right"]}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
@@ -380,33 +392,35 @@ export default function AccountsScreen() {
               </Pressable>
             </View>
 
-            <Text style={[styles.fieldLabel, { color: palette.text }]}>Account name</Text>
-            <TextInput value={name} onChangeText={setName} maxLength={80} placeholder="e.g. Main Savings, GCash, Wallet" placeholderTextColor={palette.textMuted} style={[styles.input, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border }]} />
+            <TextField label="Account name" required value={name} onChangeText={setName} maxLength={80} placeholder="e.g. Main Savings, GCash, Wallet" />
 
-            <Text style={[styles.fieldLabel, { color: palette.text }]}>Account type</Text>
-            <View style={styles.chips}>
-              {TYPES.map((item) => {
-                const active = type === item.value;
-                return (
-                  <Pressable key={item.value} onPress={() => setType(item.value)} style={[styles.chip, { borderColor: active ? palette.primary : palette.border, backgroundColor: active ? (palette.primarySoft) : palette.surface }]}>
-                    <Text style={{ color: active ? palette.primary : palette.text, fontSize: 12, fontWeight: "700" }}>{item.label}</Text>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: palette.text }]}>Account type</Text>
+              <ChipGroup
+                options={TYPES.map((item) => ({ value: item.value, label: item.label }))}
+                value={type}
+                onChange={(value) => setType(value as AccountType)}
+              />
             </View>
 
-            <Text style={[styles.fieldLabel, { color: palette.text }]}>Currency code</Text>
-            <TextInput value={currency} onChangeText={setCurrency} editable={!editing} autoCapitalize="characters" maxLength={3} placeholder="PHP" placeholderTextColor={palette.textMuted} style={[styles.input, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border, opacity: editing ? 0.65 : 1 }]} />
-            {editing ? <Text style={[styles.helperText, { color: palette.textMuted }]}>Currency is kept unchanged so existing transactions retain their original value.</Text> : null}
+            <TextField
+              label="Currency code"
+              required
+              value={currency}
+              onChangeText={setCurrency}
+              editable={!editing}
+              autoCapitalize="characters"
+              maxLength={3}
+              placeholder="PHP"
+              helperText={editing ? "Currency stays unchanged so existing transactions retain their original value." : "Use a 3-letter code, for example PHP or USD."}
+            />
 
-            <Text style={[styles.fieldLabel, { color: palette.text }]}>Starting balance</Text>
-            <TextInput value={opening} onChangeText={setOpening} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={palette.textMuted} style={[styles.input, styles.amountInput, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border }]} />
+            <TextField label="Starting balance" value={opening} onChangeText={setOpening} keyboardType="decimal-pad" placeholder="0.00" style={styles.amountInput} />
 
             {error ? <Text style={[styles.error, { color: palette.expense }]}>{error}</Text> : null}
-            <Pressable disabled={saving} onPress={() => void save()} style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: saving ? 0.6 : 1 }]}>
-              <Text style={[styles.primaryButtonText, { color: palette.onPrimary }]}>{saving ? "Saving…" : editing ? "Save changes" : "Save account"}</Text>
-            </Pressable>
+            <Button label={editing ? "Save changes" : "Save account"} onPress={() => void save()} loading={saving} fullWidth />
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -467,11 +481,11 @@ const styles = StyleSheet.create({
   addButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12 },
   addButtonText: { color: "#fff", fontSize: 12, fontWeight: "800" },
   subtitle: { fontSize: 13, lineHeight: 20, marginTop: 8, marginBottom: 17 },
-  summaryRow: { flexDirection: "row", gap: 10, marginBottom: 21 },
-  summaryCard: { flex: 1, minWidth: 0, borderWidth: 1, borderRadius: 14, padding: 13, gap: 5 },
-  summaryLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 0.6 },
-  summaryValue: { fontSize: 23, fontWeight: "900" },
-  summaryBalance: { fontSize: 15, fontWeight: "900" },
+  summaryRow: { flexDirection: "row", gap: 9, marginBottom: 18 },
+  summaryCard: { flex: 1, minWidth: 0, borderWidth: 1, borderRadius: 13, padding: 11, gap: 4 },
+  summaryLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 0.5 },
+  summaryValue: { fontSize: 21, fontWeight: "900", fontVariant: ["tabular-nums"] },
+  summaryBalance: { fontSize: 13, lineHeight: 19, fontWeight: "800", fontVariant: ["tabular-nums"] },
   listHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: "800" },
   listCaption: { fontSize: 11, marginTop: 3 },
@@ -502,7 +516,8 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: "row", alignItems: "flex-start", gap: 14, marginBottom: 8 },
   modalTitle: { fontSize: 22, fontWeight: "900" },
   modalSubtitle: { fontSize: 12, lineHeight: 18, marginTop: 5 },
-  fieldLabel: { fontSize: 12, fontWeight: "800", marginTop: 17, marginBottom: 8 },
+  fieldGroup: { gap: 8, marginTop: 17 },
+  fieldLabel: { fontSize: 12, fontWeight: "800" },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 12, fontSize: 14 },
   amountInput: { fontSize: 19, fontWeight: "800" },
   helperText: { fontSize: 10, lineHeight: 15, marginTop: 6 },

@@ -1,6 +1,6 @@
 import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
@@ -12,9 +12,10 @@ import { createAccountRepository, type AccountWithBalance } from "@/database/rep
 import { historyAmountPrefix, historyKindLabel } from "@/domain/history";
 import { getTransferDestinationAccountId } from "@/domain/accounts";
 import { toMinorUnits } from "@/domain/money";
-import { colors } from "@/theme/colors";
 import { SelectField, type SelectOption } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
+import { Button, ChipGroup, TextField } from "@/components/ui";
+import { colors } from "@/theme/colors";
 
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 const makeId = (prefix: string) => prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
@@ -30,12 +31,14 @@ function transactionKind(item: TransactionListItem): FormKind {
   return item.type;
 }
 
-function KindSelector({ value, onChange, palette }: { value: FormKind; onChange: (value: FormKind) => void; palette: typeof colors.light }) {
-  return <View style={s.kindRow}>{(Object.keys(kindLabel) as FormKind[]).map(kind => (
-    <Pressable key={kind} onPress={() => onChange(kind)} style={[s.kindChip, { backgroundColor: value === kind ? palette.primary : palette.surface, borderColor: value === kind ? palette.primary : palette.border }]}>
-      <Text style={{ color: value === kind ? "#fff" : palette.text, fontSize: 11, fontWeight: "800" }}>{kindLabel[kind]}</Text>
-    </Pressable>
-  ))}</View>;
+function KindSelector({ value, onChange }: { value: FormKind; onChange: (value: FormKind) => void }) {
+  return (
+    <ChipGroup
+      options={(Object.keys(kindLabel) as FormKind[]).map((kind) => ({ value: kind, label: kindLabel[kind] }))}
+      value={value}
+      onChange={(kind) => onChange(kind as FormKind)}
+    />
+  );
 }
 
 export default function TransactionsScreen() {
@@ -242,30 +245,42 @@ export default function TransactionsScreen() {
 
       <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFormOpen(false)}>
         <SafeAreaView style={[s.modal, { backgroundColor: p.background }]} edges={["top","left","right"]}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
             <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{editing ? "Edit transaction" : "Add transaction"}</Text><Text style={{ color: p.textMuted, fontSize: 12, marginTop: 3 }}>{editing ? "Update the linked account, amount, category, or date." : "Record money moving in, out, or between accounts."}</Text></View><Pressable onPress={() => setFormOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
             <Text style={[s.label, { color: p.text }]}>Transaction type</Text>
-            <KindSelector value={formKind} onChange={kind => { setFormKind(kind); setEditing(formKind === kind ? editing : editing && transactionKind(editing) === kind ? editing : null); void loadCategories(kind); }} palette={p} />
+            <KindSelector value={formKind} onChange={kind => { setFormKind(kind); setEditing(formKind === kind ? editing : editing && transactionKind(editing) === kind ? editing : null); void loadCategories(kind); }} />
             {formKind === "transfer" ? <>
+              <TextField label="Amount" required value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" style={s.amount} />
               <SelectField label="From account" required value={accountId} options={accountOptions} onChange={value => { setAccountId(value); setDestinationAccountId(current => getTransferDestinationAccountId(accounts.map(account => account.id), value, current)); }} placeholder="Select source account" />
               <SelectField label="To account" required value={destinationAccountId} options={accountOptions.filter(o => o.value !== accountId)} onChange={setDestinationAccountId} placeholder="Select destination account" />
-              <Text style={[s.label, { color: p.text }]}>Amount *</Text><TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
-              <Text style={[s.label, { color: p.text }]}>Transaction name *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Move money" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+              <TextField label="Transaction name" required value={name} onChangeText={setName} placeholder="e.g. Move money" />
               <DateField label="Date" required value={occurredAt} onChange={setOccurredAt} />
               <Pressable onPress={() => setShowNote(v => !v)} style={s.noteToggle}><MaterialCommunityIcons name={showNote ? "minus-circle-outline" : "plus-circle-outline"} size={18} color={p.primary} /><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>{showNote ? "Hide note" : "Add note"}{showNote ? "" : " (optional)"}</Text></Pressable>
               {showNote ? <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input, {color:p.text,backgroundColor:p.surface,borderColor:p.border}]} /> : null}
             </> : <>
-              <Text style={[s.label, { color: p.text }]}>Amount *</Text><TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
-              <View style={s.quickAmounts}>{[50,100,200,500].map(value=><Pressable key={value} onPress={()=>setAmount(current=>String((Number(current)||0)+value))} style={[s.quickChip,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={{color:p.primary,fontWeight:"800",fontSize:12}}>+{value}</Text></Pressable>)}</View>
-              <Text style={[s.label,{color:p.text}]}>Category</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categoryScroll}>{categoryOptions.slice(0,9).map(option=><Pressable key={option.value} onPress={()=>{setCategoryId(option.value);if(!name.trim())setName(option.label)}} style={[s.categoryChip,{backgroundColor:categoryId===option.value?p.primary:p.surface,borderColor:categoryId===option.value?p.primary:p.border}]}><Text numberOfLines={1} style={{color:categoryId===option.value?"#fff":p.text,fontSize:12,fontWeight:"700"}}>{option.label}</Text></Pressable>)}</ScrollView>
+              <TextField label="Amount" required value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" style={s.amount} />
+              <View style={s.quickAmounts}>{[50, 100, 200, 500].map(value => <Pressable key={value} onPress={() => setAmount(current => String((Number(current) || 0) + value))} style={[s.quickChip, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={{ color: p.primary, fontWeight: "800", fontSize: 12 }}>+{value}</Text></Pressable>)}</View>
+              <Text style={[s.label, { color: p.text }]}>Category</Text>
+              <ChipGroup
+                options={categoryOptions.slice(0, 9)}
+                value={categoryId}
+                onChange={(value) => {
+                  setCategoryId(value);
+                  const selectedCategory = categoryOptions.find(option => option.value === value);
+                  if (!name.trim() && selectedCategory) setName(selectedCategory.label);
+                }}
+                scrollable
+              />
               <View style={s.compactRow}><View style={{flex:1}}><SelectField label="Account" required value={accountId} options={accountOptions} onChange={setAccountId} placeholder="Account" /></View><View style={{flex:1}}><DateField label="Date" required value={occurredAt} onChange={setOccurredAt} /></View></View>
-              <Text style={[s.label,{color:p.text}]}>Transaction name</Text><TextInput value={name} onChangeText={setName} placeholder="Auto-filled from category" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]} />
+              <TextField label="Transaction name" required value={name} onChangeText={setName} placeholder="Auto-filled from category" />
               <Pressable onPress={()=>setShowNote(v=>!v)} style={s.noteToggle}><MaterialCommunityIcons name={showNote?"minus-circle-outline":"plus-circle-outline"} size={18} color={p.primary}/><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>{showNote?"Hide note":"Add note"}{showNote?"":" (optional)"}</Text></Pressable>
               {showNote ? <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]} /> : null}
             </>}
             {error ? <Text style={[s.errorText, { color: p.expense }]}>{error}</Text> : null}
-            <Pressable disabled={saving} onPress={() => void save()} style={[s.primaryButton, { backgroundColor: p.primary, opacity: saving ? 0.65 : 1 }]}><Text style={[s.primaryButtonText, { color: p.onPrimary }]}>{saving ? "Saving…" : editing ? "Save changes" : "Save transaction"}</Text></Pressable>
+            <Button label={saving ? "Saving…" : editing ? "Save changes" : "Save transaction"} onPress={() => void save()} loading={saving} fullWidth />
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
