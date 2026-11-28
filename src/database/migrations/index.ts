@@ -1006,6 +1006,14 @@ export const migrations: DatabaseMigration[] = [
     `,
   },
 
+  {
+    version: 11,
+    description: "Add a neutral subscription category for quick setup defaults",
+    sql: `
+      INSERT OR IGNORE INTO categories (id, name, type, icon, is_system, source_name, created_at, updated_at)
+      VALUES ('cat-sub-general', 'General', 'expense', 'tag-outline', 1, 'subscription', '2026-11-28T00:00:00.000Z', '2026-11-28T00:00:00.000Z');
+    `,
+  },
 ];
 
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {

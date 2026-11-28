@@ -61,6 +61,7 @@ export default function TransactionsScreen() {
   const [note, setNote] = useState("");
   const [occurredAt, setOccurredAt] = useState(today());
   const [categories, setCategories] = useState<SelectOption[]>([]);
+  const [showNote, setShowNote] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -103,7 +104,7 @@ export default function TransactionsScreen() {
 
   const resetForm = () => {
     setEditing(null); setFormKind("expense"); setName(""); setAmount(""); setAccountId(accounts[0]?.id ?? "");
-    setDestinationAccountId(accounts.find(a => a.id !== accounts[0]?.id)?.id ?? ""); setCategoryId(""); setNote(""); setOccurredAt(today()); setError("");
+    setDestinationAccountId(accounts.find(a => a.id !== accounts[0]?.id)?.id ?? ""); setCategoryId(""); setNote(""); setShowNote(false); setOccurredAt(today()); setError("");
     void loadCategories("expense");
   };
   const openEdit = async (item: HistoryItem) => {
@@ -188,7 +189,7 @@ export default function TransactionsScreen() {
       setSaving(false);
     }
   };
-  const openNew = () => { resetForm(); setFormOpen(true); };
+  const openNew = async () => { resetForm(); try { const recent = await txRepo.listRecent(1); const recentAccountId = recent[0]?.accountId; if (recentAccountId && accounts.some(account => account.id === recentAccountId)) setAccountId(recentAccountId); } catch {} setFormOpen(true); };
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
@@ -228,15 +229,20 @@ export default function TransactionsScreen() {
             {formKind === "transfer" ? <>
               <SelectField label="From account" required value={accountId} options={accountOptions} onChange={value => { setAccountId(value); setDestinationAccountId(current => getTransferDestinationAccountId(accounts.map(account => account.id), value, current)); }} placeholder="Select source account" />
               <SelectField label="To account" required value={destinationAccountId} options={accountOptions.filter(o => o.value !== accountId)} onChange={setDestinationAccountId} placeholder="Select destination account" />
-            </> : <SelectField label="Account" required value={accountId} options={accountOptions} onChange={setAccountId} placeholder="Select account" />}
-            {formKind !== "transfer" ? <SelectField label={formKind === "loan" ? "Loan category" : formKind === "savings" ? "Savings category" : "Category"} required value={categoryId} options={categoryOptions} onChange={setCategoryId} placeholder="Select category" /> : null}
-            <Text style={[s.label, { color: p.text }]}>Transaction name *</Text>
-            <TextInput value={name} onChangeText={setName} placeholder="e.g. Salary, Groceries, Rent" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
-            <Text style={[s.label, { color: p.text }]}>Amount *</Text>
-            <TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
-            <DateField label="Date" required value={occurredAt} onChange={setOccurredAt} />
-            <Text style={[s.label, { color: p.text }]}>Note (optional)</Text>
-            <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+              <Text style={[s.label, { color: p.text }]}>Amount *</Text><TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+              <Text style={[s.label, { color: p.text }]}>Transaction name *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Move money" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+              <DateField label="Date" required value={occurredAt} onChange={setOccurredAt} />
+              <Pressable onPress={() => setShowNote(v => !v)} style={s.noteToggle}><MaterialCommunityIcons name={showNote ? "minus-circle-outline" : "plus-circle-outline"} size={18} color={p.primary} /><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>{showNote ? "Hide note" : "Add note"}{showNote ? "" : " (optional)"}</Text></Pressable>
+              {showNote ? <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input, {color:p.text,backgroundColor:p.surface,borderColor:p.border}]} /> : null}
+            </> : <>
+              <Text style={[s.label, { color: p.text }]}>Amount *</Text><TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
+              <View style={s.quickAmounts}>{[50,100,200,500].map(value=><Pressable key={value} onPress={()=>setAmount(current=>String((Number(current)||0)+value))} style={[s.quickChip,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={{color:p.primary,fontWeight:"800",fontSize:12}}>+{value}</Text></Pressable>)}</View>
+              <Text style={[s.label,{color:p.text}]}>Category</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categoryScroll}>{categoryOptions.slice(0,9).map(option=><Pressable key={option.value} onPress={()=>{setCategoryId(option.value);if(!name.trim())setName(option.label)}} style={[s.categoryChip,{backgroundColor:categoryId===option.value?p.primary:p.surface,borderColor:categoryId===option.value?p.primary:p.border}]}><Text numberOfLines={1} style={{color:categoryId===option.value?"#fff":p.text,fontSize:12,fontWeight:"700"}}>{option.label}</Text></Pressable>)}</ScrollView>
+              <View style={s.compactRow}><View style={{flex:1}}><SelectField label="Account" required value={accountId} options={accountOptions} onChange={setAccountId} placeholder="Account" /></View><View style={{flex:1}}><DateField label="Date" required value={occurredAt} onChange={setOccurredAt} /></View></View>
+              <Text style={[s.label,{color:p.text}]}>Transaction name</Text><TextInput value={name} onChangeText={setName} placeholder="Auto-filled from category" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]} />
+              <Pressable onPress={()=>setShowNote(v=>!v)} style={s.noteToggle}><MaterialCommunityIcons name={showNote?"minus-circle-outline":"plus-circle-outline"} size={18} color={p.primary}/><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>{showNote?"Hide note":"Add note"}{showNote?"":" (optional)"}</Text></Pressable>
+              {showNote ? <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]} /> : null}
+            </>}
             {error ? <Text style={s.errorText}>{error}</Text> : null}
             <Pressable disabled={saving} onPress={() => void save()} style={[s.primaryButton, { backgroundColor: p.primary, opacity: saving ? 0.65 : 1 }]}><Text style={s.primaryButtonText}>{saving ? "Saving…" : editing ? "Save changes" : "Save transaction"}</Text></Pressable>
           </ScrollView>
@@ -275,7 +281,7 @@ const s = StyleSheet.create({
   title:{fontSize:29,fontWeight:"800",marginTop:4},add:{flexDirection:"row",alignItems:"center",gap:5,paddingHorizontal:15,paddingVertical:11,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
   sub:{fontSize:14,lineHeight:21,marginTop:8,marginBottom:15},filters:{flexDirection:"row",flexWrap:"wrap",gap:6,paddingBottom:8},filter:{borderWidth:1,borderRadius:16,paddingHorizontal:10,paddingVertical:7},
   searchBox:{minHeight:46,borderWidth:1,borderRadius:13,flexDirection:"row",alignItems:"center",paddingHorizontal:13},searchInput:{flex:1,paddingVertical:10,fontSize:13},
-  dateRow:{flexDirection:"row",gap:8},filterInput:{flex:1,borderWidth:1,borderRadius:12,paddingHorizontal:12,paddingVertical:10,fontSize:11,marginTop:8},
+  dateRow:{flexDirection:"row",gap:8}, compactRow:{flexDirection:"row",gap:8,alignItems:"flex-start"}, quickAmounts:{flexDirection:"row",gap:8,marginTop:8}, quickChip:{borderWidth:1,borderRadius:18,paddingHorizontal:14,paddingVertical:9}, categoryScroll:{gap:8,paddingVertical:2}, categoryChip:{borderWidth:1,borderRadius:18,paddingHorizontal:13,paddingVertical:9,maxWidth:130}, noteToggle:{flexDirection:"row",alignItems:"center",gap:7,marginTop:15,paddingVertical:4},filterInput:{flex:1,borderWidth:1,borderRadius:12,paddingHorizontal:12,paddingVertical:10,fontSize:11,marginTop:8},
   list:{gap:10,paddingTop:10,paddingBottom:40},card:{borderWidth:1,borderRadius:16,padding:14},itemRow:{flexDirection:"row",alignItems:"center",gap:10},dot:{width:9,height:9,borderRadius:5},
   itemTitle:{fontSize:14,fontWeight:"700"},bottom:{flexDirection:"row",justifyContent:"space-between",gap:10,marginTop:12},rowActions:{flexDirection:"row",justifyContent:"flex-end",gap:18,marginTop:12,paddingTop:10,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:"rgba(100,116,139,0.18)"},
   empty:{borderWidth:1,borderRadius:16,padding:22,marginTop:12,alignItems:"center"},primaryButton:{minHeight:48,borderRadius:13,alignItems:"center",justifyContent:"center",paddingHorizontal:16,marginTop:16},primaryButtonText:{color:"#fff",fontSize:13,fontWeight:"800"},

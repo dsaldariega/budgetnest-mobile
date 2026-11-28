@@ -48,7 +48,7 @@ export default function SubscriptionsScreen() {
       ]);
       setItems(subs); setAccounts(acc.filter(a => !a.isArchived)); setCategories(cats);
       setAccountId(v => v || acc.find(a => !a.isArchived)?.id || "");
-      setCategoryId(v => v || cats[0]?.id || "");
+      setCategoryId(v => v || cats.find(c => /general|other|misc/i.test(c.name) && !/cloud services/i.test(c.name))?.id || cats[0]?.id || "");
       if (selected) {
         const fresh = subs.find(item => item.id === selected.id) ?? null;
         setSelected(fresh);
@@ -62,7 +62,7 @@ export default function SubscriptionsScreen() {
 
   const reset = () => {
     setEditing(null); setName(""); setAmount(""); setCycle("monthly"); setNextBillingDate(today());
-    setAccountId(accounts[0]?.id ?? ""); setCategoryId(categories[0]?.id ?? ""); setError("");
+    setAccountId(accounts[0]?.id ?? ""); setCategoryId(categories.find(c => /general|other|misc/i.test(c.name) && !/cloud services/i.test(c.name))?.id ?? categories[0]?.id ?? ""); setError("");
   };
 
   const openEdit = (item: SubscriptionListItem) => {
