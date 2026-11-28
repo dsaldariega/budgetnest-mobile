@@ -32,7 +32,9 @@ function RootNavigator() {
         <Stack.Screen name="index" />
         <Stack.Screen name="welcome" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="budgets" options={slideScreenOptions} />\n        <Stack.Screen name="goals" options={slideScreenOptions} />\n        <Stack.Screen name="loans" options={slideScreenOptions} />
+        <Stack.Screen name="budgets" options={slideScreenOptions} />
+        <Stack.Screen name="goals" options={slideScreenOptions} />
+        <Stack.Screen name="loans" options={slideScreenOptions} />
         <Stack.Screen name="subscriptions" options={slideScreenOptions} />
         <Stack.Screen name="settings" options={slideScreenOptions} />
         <Stack.Screen name="recurring" options={slideScreenOptions} />
