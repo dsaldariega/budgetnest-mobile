@@ -212,7 +212,7 @@ const s = StyleSheet.create({
   heroAmount: { color: "#FFFFFF", fontSize: 27, fontWeight: "800", letterSpacing: -0.5 },
   heroFooter: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.22)", marginTop: 12, paddingTop: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   heroFootText: { color: "rgba(255,255,255,0.76)", fontSize: 12 },
-  heroLink: { flexDirection: "row", alignItems: "center", gap: 5 },
+  heroLink: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 3, paddingRight: 5, paddingLeft: 4 },
   heroLinkText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   monthSummary: { marginTop: 16, paddingTop: 15, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.22)" },
   monthSummaryTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "800", marginBottom: 10 },
