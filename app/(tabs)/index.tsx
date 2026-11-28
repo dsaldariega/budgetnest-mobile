@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { todayLocalDate } from "@/domain/dates";
@@ -13,12 +13,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/ui/section-header";
 
 type CurrencySummary = { currencyCode: string; balanceMinor: number; incomeMinor: number; expenseMinor: number };
-type DashboardData = {
-  accounts: AccountWithBalance[];
-  currencies: CurrencySummary[];
-  budgets: BudgetListItem[];
-  activity: HistoryItem[];
-};
+type DashboardData = { accounts: AccountWithBalance[]; currencies: CurrencySummary[]; budgets: BudgetListItem[]; activity: HistoryItem[] };
 
 const today = todayLocalDate;
 const currentMonth = () => today().slice(0, 7);
@@ -29,38 +24,16 @@ const shiftMonth = (month: string, offset: number) => {
   return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
 };
 const monthBounds = (month: string) => {
-  const start = month + "-01";
-  const next = shiftMonth(month, 1) + "-01";
-  const endDate = new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)) - 1, 0);
-  const end = month + "-" + String(endDate.getDate()).padStart(2, "0") + "T23:59:59.999";
-  return { start, end };
+  const next = shiftMonth(month, 1);
+  const lastDay = new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)) - 1, 0).getDate();
+  return { start: month + "-01", end: month + "-" + String(lastDay).padStart(2, "0") + "T23:59:59.999" };
 };
-const money = (minor: number, currency: string) => new Intl.NumberFormat("en-PH", {
-  style: "currency", currency, maximumFractionDigits: 2,
-}).format(minor / 100);
+const money = (minor: number, currency: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency, maximumFractionDigits: 2 }).format(minor / 100);
 const monthTitle = (month: string) => monthDate(month).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
-const shortDate = (value: string) => new Date(value.slice(0, 10) + "T00:00:00").toLocaleDateString("en-PH", {
-  month: "short", day: "numeric",
-});
+const shortDate = (value: string) => new Date(value.slice(0, 10) + "T00:00:00").toLocaleDateString("en-PH", { month: "short", day: "numeric" });
 
 function ProgressBar({ progress, color, track }: { progress: number; color: string; track: string }) {
   return <View style={[s.progressTrack, { backgroundColor: track }]}><View style={[s.progressFill, { width: `${Math.max(0, Math.min(1, progress)) * 100}%`, backgroundColor: color }]} /></View>;
-}
-
-function QuickAction({ label, icon, onPress, palette, tone = "primary" }: {
-  label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; onPress: () => void;
-  palette: ReturnType<typeof useAppTheme>["palette"]; tone?: "primary" | "income" | "neutral";
-}) {
-  const tint = tone === "income" ? palette.income : tone === "neutral" ? palette.secondary : palette.primary;
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
-      style={[s.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <View style={[s.quickIcon, { backgroundColor: tone === "income" ? palette.successSoft : tone === "neutral" ? palette.surfaceElevated : palette.primarySoft }]}>
-        <MaterialCommunityIcons name={icon} size={19} color={tint} />
-      </View>
-      <Text style={[s.quickLabel, { color: palette.text }]}>{label}</Text>
-    </Pressable>
-  );
 }
 
 export default function DashboardScreen() {
@@ -76,8 +49,7 @@ export default function DashboardScreen() {
     setLoading(true);
     try {
       const date = today();
-      const month = selectedMonth;
-      const bounds = monthBounds(month);
+      const bounds = monthBounds(selectedMonth);
       const [accounts, budgets, activity, monthlyRows] = await Promise.all([
         createAccountRepository(db).list(),
         createBudgetRepository(db).list(date),
@@ -89,28 +61,32 @@ export default function DashboardScreen() {
           "FROM transactions t JOIN accounts a ON a.id = t.account_id " +
           "WHERE t.deleted_at IS NULL AND t.type IN ('income', 'expense') AND substr(t.occurred_at, 1, 7) = ? " +
           "GROUP BY a.currency_code ORDER BY a.currency_code",
-          month,
+          selectedMonth,
         ),
       ]);
 
       const safeAccounts = Array.isArray(accounts) ? accounts : [];
+      const activeAccounts = safeAccounts.filter(account => !account.isArchived);
       const safeMonthlyRows = Array.isArray(monthlyRows) ? monthlyRows : [];
-      const currencyCodes = new Set([...safeAccounts.map(a => a.currencyCode), ...safeMonthlyRows.map(row => row.currency_code)]);
+      const currencyCodes = new Set([...activeAccounts.map(a => a.currencyCode), ...safeMonthlyRows.map(row => row.currency_code)]);
       const currencies = [...currencyCodes].sort().map(currencyCode => {
         const monthly = safeMonthlyRows.find(row => row.currency_code === currencyCode);
         return {
           currencyCode,
-          balanceMinor: safeAccounts.filter(account => account.currencyCode === currencyCode).reduce((sum, account) => sum + account.balanceMinor, 0),
+          balanceMinor: activeAccounts.filter(account => account.currencyCode === currencyCode).reduce((sum, account) => sum + account.balanceMinor, 0),
           incomeMinor: monthly?.income_minor ?? 0,
           expenseMinor: monthly?.expense_minor ?? 0,
         };
       });
-
       const safeBudgets = (Array.isArray(budgets) ? budgets : [])
         .filter(item => item.startDate <= date && (!item.endDate || item.endDate >= date))
         .slice(0, 3);
-      const safeActivity = (Array.isArray(activity) ? activity : []).slice(0, 5);
-      setData({ accounts: safeAccounts, currencies, budgets: safeBudgets, activity: safeActivity });
+      setData({
+        accounts: safeAccounts,
+        currencies,
+        budgets: safeBudgets,
+        activity: (Array.isArray(activity) ? activity : []).slice(0, 5),
+      });
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load your financial overview.");
@@ -121,9 +97,8 @@ export default function DashboardScreen() {
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
-  const monthLabel = useMemo(() => monthTitle(selectedMonth), [selectedMonth]);
-  const totalAccounts = data.accounts.filter(account => !account.isArchived).length;
-  const hasCurrencies = data.currencies.length > 0;
+  const activeAccounts = data.accounts.filter(account => !account.isArchived).length;
+  const monthLabel = monthTitle(selectedMonth);
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
@@ -139,79 +114,65 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
-        <View style={[s.monthSelector, { backgroundColor: p.surface, borderColor: p.border }]}>
-          <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, -1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Previous month">
-            <MaterialCommunityIcons name="chevron-left" size={22} color={p.text} />
-          </Pressable>
-          <View style={s.monthCenter}>
-            <Text style={[s.monthLabel, { color: p.text }]}>{monthLabel}</Text>
-            {selectedMonth !== currentMonth() ? <Pressable onPress={() => setSelectedMonth(currentMonth())}><Text style={[s.todayLink, { color: p.primaryText }]}>Back to this month</Text></Pressable> : null}
-          </View>
-          <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, 1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Next month">
-            <MaterialCommunityIcons name="chevron-right" size={22} color={p.text} />
-          </Pressable>
-        </View>
-
-        <View style={[s.balanceCard, { backgroundColor: p.primaryDark }]}>
-          <View style={s.balanceHeading}>
-            <View style={s.balanceLabelRow}>
-              <MaterialCommunityIcons name="wallet-outline" size={17} color="#FFFFFF" />
-              <Text style={s.balanceEyebrow}>TOTAL BALANCE</Text>
-            </View>
-            <MaterialCommunityIcons name="sprout" size={23} color="rgba(255,255,255,0.8)" />
-          </View>
-          {loading ? <Text style={s.balanceAmount}>Loading…</Text> : !hasCurrencies
-            ? <Text style={s.balanceAmount}>No accounts yet</Text>
-            : data.currencies.map(item => (
-              <View key={item.currencyCode} style={s.balanceLine}>
-                <Text style={s.currencyCode}>{item.currencyCode}</Text>
-                <Text style={s.balanceAmount}>{money(item.balanceMinor, item.currencyCode)}</Text>
-              </View>
-            ))}
-          <View style={s.balanceFooter}>
-            <Text style={s.balanceFootText}>{totalAccounts} active {totalAccounts === 1 ? "account" : "accounts"}</Text>
-            <Pressable onPress={() => router.push("/(tabs)/accounts")} style={s.balanceLink}>
-              <Text style={s.balanceLinkText}>View accounts</Text>
-              <MaterialCommunityIcons name="arrow-right" size={15} color="#FFFFFF" />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={s.sectionHeading}>
-          <Text style={[s.sectionTitle, { color: p.text }]}>Cash flow</Text>
-          <Text style={[s.sectionCaption, { color: p.textMuted }]}>{monthLabel}</Text>
-        </View>
-        <View style={s.metricsGrid}>
-          {data.currencies.length ? data.currencies.map(item => (
-            <View key={item.currencyCode} style={[s.metricCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-              <Text style={[s.metricCurrency, { color: p.textMuted }]}>{item.currencyCode}</Text>
-              <View style={s.metricRow}>
-                <View style={s.metricBlock}>
-                  <Text style={[s.metricLabel, { color: p.textMuted }]}>Income</Text>
-                  <Text style={[s.metricValue, { color: p.income }]}>{money(item.incomeMinor, item.currencyCode)}</Text>
+        <View style={[s.heroCard, { backgroundColor: p.primaryDark }]}>
+          <View style={s.heroTop}>
+            <View>
+              <Text style={s.heroEyebrow}>TOTAL BALANCE</Text>
+              {loading ? <Text style={s.heroBalance}>Loading…</Text> : data.currencies.length ? data.currencies.map(item => (
+                <View key={item.currencyCode} style={s.balanceLine}>
+                  <Text style={s.currencyCode}>{item.currencyCode}</Text>
+                  <Text style={s.heroBalance}>{money(item.balanceMinor, item.currencyCode)}</Text>
                 </View>
-                <View style={s.metricBlock}>
-                  <Text style={[s.metricLabel, { color: p.textMuted }]}>Expenses</Text>
-                  <Text style={[s.metricValue, { color: p.expense }]}>{money(item.expenseMinor, item.currencyCode)}</Text>
+              )) : <Text style={s.heroBalance}>No accounts yet</Text>}
+            </View>
+            <MaterialCommunityIcons name="wallet-outline" size={27} color="rgba(255,255,255,0.82)" />
+          </View>
+          <View style={s.heroDivider} />
+          <View style={s.monthHeader}>
+            <Text style={s.monthEyebrow}>THIS MONTH</Text>
+            <View style={s.monthPicker}>
+              <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, -1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Previous month">
+                <MaterialCommunityIcons name="chevron-left" size={21} color="#FFFFFF" />
+              </Pressable>
+              <Text style={s.monthLabel}>{monthLabel}</Text>
+              <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, 1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Next month">
+                <MaterialCommunityIcons name="chevron-right" size={21} color="#FFFFFF" />
+              </Pressable>
+            </View>
+          </View>
+          <View style={s.cashFlowGrid}>
+            {data.currencies.length ? data.currencies.map(item => (
+              <View key={item.currencyCode} style={s.cashFlowCurrency}>
+                <Text style={s.cashFlowCode}>{item.currencyCode}</Text>
+                <View style={s.cashFlowRow}>
+                  <View style={s.cashFlowMetric}>
+                    <Text style={s.cashFlowLabel}>Income</Text>
+                    <Text style={s.cashFlowValue}>{money(item.incomeMinor, item.currencyCode)}</Text>
+                  </View>
+                  <View style={s.cashFlowMetric}>
+                    <Text style={s.cashFlowLabel}>Expenses</Text>
+                    <Text style={s.cashFlowValue}>{money(item.expenseMinor, item.currencyCode)}</Text>
+                  </View>
+                </View>
+                <View style={s.netRow}>
+                  <Text style={s.netLabel}>Net</Text>
+                  <Text style={s.netValue}>{money(item.incomeMinor - item.expenseMinor, item.currencyCode)}</Text>
                 </View>
               </View>
-              <View style={[s.netRow, { borderTopColor: p.border }]}>
-                <Text style={[s.netLabel, { color: p.textMuted }]}>Net cash flow</Text>
-                <Text style={[s.netValue, { color: item.incomeMinor - item.expenseMinor >= 0 ? p.income : p.expense }]}>{money(item.incomeMinor - item.expenseMinor, item.currencyCode)}</Text>
-              </View>
-            </View>
-          )) : (
-            <View style={[s.noMetrics, { backgroundColor: p.surface, borderColor: p.border }]}>
-              <Text style={[s.noMetricsText, { color: p.textMuted }]}>{loading ? "Loading monthly totals…" : "No income or expenses recorded for this month."}</Text>
-            </View>
-          )}
+            )) : <Text style={s.heroHint}>{loading ? "Loading this month’s activity…" : "Your income and expenses will appear here."}</Text>}
+          </View>
+          <View style={s.heroFooter}>
+            <Text style={s.heroHint}>{activeAccounts} active {activeAccounts === 1 ? "account" : "accounts"}</Text>
+            {selectedMonth !== currentMonth() ? <Pressable onPress={() => setSelectedMonth(currentMonth())}><Text style={s.currentMonthLink}>Back to this month</Text></Pressable> : null}
+          </View>
         </View>
 
-        <View style={s.quickActions}>
-          <QuickAction label="Income" icon="arrow-down-left" tone="income" palette={p} onPress={() => router.push("/(tabs)/transactions?quick=income")} />
-          <QuickAction label="Expense" icon="arrow-up-right" palette={p} onPress={() => router.push("/(tabs)/transactions?quick=expense")} />
-          <QuickAction label="Transfer" icon="swap-horizontal" tone="neutral" palette={p} onPress={() => router.push("/(tabs)/transactions?quick=transfer")} />
-        </View>
+        <Pressable onPress={() => router.push("/(tabs)/transactions?quick=expense")}
+          style={[s.logExpenseButton, { backgroundColor: p.primary }]} accessibilityRole="button" accessibilityLabel="Log an expense">
+          <MaterialCommunityIcons name="plus-circle-outline" size={21} color={p.onPrimary} />
+          <Text style={[s.logExpenseText, { color: p.onPrimary }]}>Log Expense</Text>
+          <MaterialCommunityIcons name="arrow-right" size={18} color={p.onPrimary} />
+        </Pressable>
 
         <SectionHeader title="Budgets" actionLabel="See all" onAction={() => router.push("/(tabs)/budgets")} />
         {data.budgets.length ? data.budgets.map(item => {
@@ -236,9 +197,9 @@ export default function DashboardScreen() {
               </View>
             </View>
           );
-        }) : <EmptyState icon="chart-donut" title="No active budgets" message="Create a budget to set a spending limit and track progress." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
+        }) : <EmptyState icon="chart-donut" title="No budgets yet" message="Create a spending limit to keep your expenses on track." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
 
-        <SectionHeader title="Recent transactions" actionLabel="See all" onAction={() => router.push("/(tabs)/transactions")} />
+        <SectionHeader title="Recent Activity" actionLabel="See all" onAction={() => router.push("/(tabs)/transactions")} />
         {data.activity.length ? data.activity.map(item => {
           const icon = item.kind === "income" ? "arrow-down-circle-outline" : item.kind === "expense" ? "arrow-up-circle-outline" : item.kind === "transfer" ? "swap-horizontal" : item.kind === "savings" ? "piggy-bank-outline" : item.kind === "loan" ? "hand-coin-outline" : "calendar-check-outline";
           const amountColor = item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.text;
@@ -255,7 +216,7 @@ export default function DashboardScreen() {
               <Text style={[s.itemAmount, { color: amountColor }]}>{prefix}{money(item.amountMinor, item.currencyCode)}</Text>
             </Pressable>
           );
-        }) : <EmptyState icon="receipt-text-outline" title="No transactions this month" message="Your income and expenses will appear here once recorded." actionLabel="Add transaction" onAction={() => router.push("/(tabs)/transactions?quick=expense")} palette={p} dark={dark} />}
+        }) : <EmptyState icon="receipt-text-outline" title="No recent activity" message="Your recorded income, expenses, and transfers will appear here." actionLabel="Log an expense" onAction={() => router.push("/(tabs)/transactions?quick=expense")} palette={p} dark={dark} />}
 
         {error ? <Text style={[s.errorText, { color: p.expense }]}>{error}</Text> : null}
         {loading ? <Text style={[s.loadingText, { color: p.textMuted }]}>Refreshing your overview…</Text> : null}
@@ -272,41 +233,33 @@ const s = StyleSheet.create({
   brand: { fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
   greeting: { fontSize: 27, fontWeight: "800", letterSpacing: -0.7, marginTop: 3 },
   headerAction: { width: 44, height: 44, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  monthSelector: { minHeight: 52, borderWidth: 1, borderRadius: 15, flexDirection: "row", alignItems: "center", paddingHorizontal: 8 },
-  monthArrow: { width: 40, height: 44, alignItems: "center", justifyContent: "center" },
-  monthCenter: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44 },
-  monthLabel: { fontSize: 14, fontWeight: "800" },
-  todayLink: { fontSize: 10, fontWeight: "700", marginTop: 2 },
-  balanceCard: { borderRadius: 20, padding: 18, marginTop: 2 },
-  balanceHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  balanceLabelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  balanceEyebrow: { color: "#FFFFFF", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  balanceLine: { marginBottom: 9 },
+  heroCard: { borderRadius: 20, padding: 18, marginTop: 2 },
+  heroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  heroEyebrow: { color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  balanceLine: { marginTop: 7 },
   currencyCode: { color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: "700", marginBottom: 2 },
-  balanceAmount: { color: "#FFFFFF", fontSize: 26, fontWeight: "800", letterSpacing: -0.5, fontVariant: ["tabular-nums"] },
-  balanceFooter: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.22)", marginTop: 8, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  balanceFootText: { color: "rgba(255,255,255,0.76)", fontSize: 12 },
-  balanceLink: { minHeight: 32, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 4 },
-  balanceLinkText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  sectionHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, marginBottom: -2 },
-  sectionTitle: { fontSize: 17, fontWeight: "800" },
-  sectionCaption: { fontSize: 11, fontWeight: "600" },
-  metricsGrid: { gap: 9 },
-  metricCard: { borderWidth: 1, borderRadius: 15, padding: 14, gap: 10 },
-  metricCurrency: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
-  metricRow: { flexDirection: "row", gap: 12 },
-  metricBlock: { flex: 1, minWidth: 0, gap: 4 },
-  metricLabel: { fontSize: 11, fontWeight: "600" },
-  metricValue: { fontSize: 15, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  netRow: { borderTopWidth: 1, paddingTop: 9, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  netLabel: { fontSize: 11, fontWeight: "600" },
-  netValue: { fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  noMetrics: { borderWidth: 1, borderRadius: 14, padding: 15 },
-  noMetricsText: { fontSize: 12, lineHeight: 18 },
-  quickActions: { flexDirection: "row", gap: 9, marginTop: 1, marginBottom: 3 },
-  quickAction: { flex: 1, minHeight: 76, borderWidth: 1, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 7, alignItems: "center", justifyContent: "center", gap: 6 },
-  quickIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  quickLabel: { fontSize: 11, fontWeight: "800" },
+  heroBalance: { color: "#FFFFFF", fontSize: 25, fontWeight: "800", letterSpacing: -0.5, fontVariant: ["tabular-nums"] },
+  heroDivider: { height: 1, backgroundColor: "rgba(255,255,255,0.22)", marginTop: 16, marginBottom: 13 },
+  monthHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  monthEyebrow: { color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
+  monthPicker: { flexDirection: "row", alignItems: "center", gap: 5 },
+  monthArrow: { width: 32, height: 34, alignItems: "center", justifyContent: "center" },
+  monthLabel: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+  cashFlowGrid: { marginTop: 10, gap: 9 },
+  cashFlowCurrency: { backgroundColor: "rgba(0,0,0,0.10)", borderRadius: 12, padding: 11 },
+  cashFlowCode: { color: "rgba(255,255,255,0.72)", fontSize: 9, fontWeight: "800", letterSpacing: 0.5, marginBottom: 7 },
+  cashFlowRow: { flexDirection: "row", gap: 12 },
+  cashFlowMetric: { flex: 1, minWidth: 0, gap: 3 },
+  cashFlowLabel: { color: "rgba(255,255,255,0.70)", fontSize: 10, fontWeight: "600" },
+  cashFlowValue: { color: "#FFFFFF", fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  netRow: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.18)", marginTop: 9, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
+  netLabel: { color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: "700" },
+  netValue: { color: "#FFFFFF", fontSize: 12, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  heroFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 },
+  heroHint: { color: "rgba(255,255,255,0.72)", fontSize: 11 },
+  currentMonthLink: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
+  logExpenseButton: { minHeight: 54, borderRadius: 15, paddingHorizontal: 17, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 1, marginBottom: 3 },
+  logExpenseText: { fontSize: 14, fontWeight: "800", flex: 1 },
   budgetCard: { borderWidth: 1, borderRadius: 15, padding: 13, marginBottom: 8, gap: 10 },
   budgetTop: { flexDirection: "row", alignItems: "center", gap: 9 },
   smallIcon: { width: 35, height: 35, borderRadius: 11, alignItems: "center", justifyContent: "center" },
