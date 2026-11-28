@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
+import { spacing, typography, radius } from "@/theme/tokens";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -95,18 +96,18 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 38, gap: 14 },
   header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 5 },
   eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
-  title: { fontSize: 25, fontWeight: "900", marginTop: 2 },
+  title: { fontSize: typography.screenTitle, fontWeight: "900", marginTop: 2 },
   importantCard: { borderWidth: 1, borderRadius: 15, padding: 15, gap: 9 },
   importantHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
   importantTitle: { fontSize: 14, fontWeight: "900" },
   importantText: { fontSize: 11, lineHeight: 18 },
-  notice: { borderWidth: 1, borderRadius: 14, padding: 13, flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  notice: { borderWidth: 1, borderRadius: radius.md, padding: 13, flexDirection: "row", alignItems: "flex-start", gap: 10 },
   noticeText: { flex: 1, fontSize: 11, lineHeight: 17 },
   card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 11 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 11 },
-  icon: { width: 41, height: 41, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  icon: { width: 41, height: 41, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   sectionTitle: { flex: 1, fontSize: 14, fontWeight: "900" },
   paragraph: { fontSize: 11, lineHeight: 18 },
-  aboutLink: { borderWidth: 1, borderRadius: 14, padding: 13, flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 },
+  aboutLink: { borderWidth: 1, borderRadius: radius.md, padding: 13, flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 },
   aboutLinkText: { flex: 1, fontSize: 12, fontWeight: "800" },
 });
