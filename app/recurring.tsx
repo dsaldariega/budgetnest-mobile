@@ -47,8 +47,7 @@ export default function RecurringScreen(){
    </View>)}
   </ScrollView>
  </View>
- <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
-      onRequestClose={() => setFormOpen(false)}>
+ <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFormOpen(false)}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}><SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
   <View style={s.header}><Text style={[s.modalTitle,{color:p.text}]}>{editing?"Edit schedule":"New schedule"}</Text><Pressable onPress={()=>setFormOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
   <Text style={[s.label,{color:p.text}]}>Name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Monthly salary" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
