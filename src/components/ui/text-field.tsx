@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, View, type TextInputProps, type StyleProp, type ViewStyle } from "react-native";
 import { useAppTheme } from "@/theme/use-app-theme";
-import { controlSize, radius, spacing } from "@/theme/tokens";
+import { controlSize, radius, spacing, typography } from "@/theme/tokens";
 
 export function TextField({
   label, error, helperText, required = false, containerStyle, ...inputProps
@@ -15,7 +15,7 @@ export function TextField({
   const { palette } = useAppTheme();
   const [focused, setFocused] = useState(false);
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View style={[styles.container, { marginTop: spacing.lg }, containerStyle]}>
       <Text style={[styles.label, { color: palette.text }]}>{label}{required ? " *" : ""}</Text>
       <TextInput
         {...inputProps}
@@ -36,7 +36,7 @@ export function TextField({
 
 const styles = StyleSheet.create({
   container: { gap: spacing.sm },
-  label: { fontSize: 13, fontWeight: "700" },
+  label: { fontSize: typography.label, fontWeight: "700" },
   input: { minHeight: controlSize.minHeight, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
   helper: { fontSize: 12, lineHeight: 17 },
 });
