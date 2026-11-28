@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
+import { spacing, typography, radius } from "@/theme/tokens";
 import { useCallback, useState } from "react";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -66,15 +67,15 @@ export default function RecurringScreen(){
 }
 const s=StyleSheet.create({
  safe:{flex:1},page:{flex:1,paddingHorizontal:20,paddingTop:18},header:{flexDirection:"row",alignItems:"center",gap:11,marginBottom:16},
- back:{width:40,height:40,borderRadius:13,borderWidth:1,alignItems:"center",justifyContent:"center"},eyebrow:{fontSize:10,fontWeight:"800",letterSpacing:1},title:{fontSize:27,fontWeight:"800",marginTop:2},
+ back:{width:40,height:40,borderRadius: radius.md,borderWidth:1,alignItems:"center",justifyContent:"center"},eyebrow:{fontSize:10,fontWeight:"800",letterSpacing:1},title: {fontSize: typography.screenTitle,fontWeight:"800",marginTop:2},
  add:{flexDirection:"row",alignItems:"center",gap:4,paddingHorizontal:14,paddingVertical:10,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
  info:{borderWidth:1,borderRadius:15,padding:13,flexDirection:"row",alignItems:"center",gap:10,marginBottom:10},infoText:{flex:1,fontSize:11,lineHeight:17},
- generate:{borderWidth:1,borderRadius:14,padding:13,flexDirection:"row",alignItems:"center",gap:9,marginBottom:14},generateText:{flex:1,fontSize:12,fontWeight:"800"},
- card:{borderWidth:1,borderRadius:17,padding:14,gap:9},cardTop:{flexDirection:"row",alignItems:"center",gap:10},iconBox:{width:40,height:40,borderRadius:13,alignItems:"center",justifyContent:"center"},
+ generate:{borderWidth:1,borderRadius: radius.md,padding:13,flexDirection:"row",alignItems:"center",gap:9,marginBottom:14},generateText:{flex:1,fontSize:12,fontWeight:"800"},
+ card:{borderWidth:1,borderRadius:17,padding:14,gap:9},cardTop:{flexDirection:"row",alignItems:"center",gap:10},iconBox:{width:40,height:40,borderRadius: radius.md,alignItems:"center",justifyContent:"center"},
  cardTitle:{fontSize:14,fontWeight:"900"},subText:{fontSize:11,marginTop:3},status:{fontSize:10,fontWeight:"800",textTransform:"uppercase"},amountText:{fontSize:21,fontWeight:"800"},
  metaRow:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",gap:5},meta:{fontSize:10},actions:{borderTopWidth:1,paddingTop:10,flexDirection:"row",justifyContent:"space-between"},
  action:{flexDirection:"row",alignItems:"center",gap:5,paddingVertical:3},actionText:{fontSize:11,fontWeight:"700"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center",marginTop:8},
- primary:{ minHeight: 48, padding: 14,borderRadius:13,alignItems:"center",marginTop:16},primaryText:{color:"#fff",fontWeight:"700"},modal:{flex:1},form:{padding:20,paddingBottom:40},modalTitle:{flex:1,fontSize:22,fontWeight:"800"},
+ primary:{ minHeight: 48, padding: 14,borderRadius: radius.md,alignItems:"center",marginTop:16},primaryText:{color:"#fff",fontWeight:"700"},modal:{flex:1},form: { padding: spacing.page,paddingBottom:40},modalTitle:{flex:1,fontSize:22,fontWeight:"800"},
  label:{fontSize:13,fontWeight:"700",marginTop:16,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:12,paddingVertical:9},repeatRow:{flexDirection:"row",alignItems:"center",gap:7},intervalInput:{width:46,minHeight:38,borderWidth:1,borderRadius:11,paddingHorizontal:8,paddingVertical:8,textAlign:"center",fontSize:13,fontWeight:"800"},unitChip:{flex:1,minHeight:38,borderWidth:1,borderRadius:19,paddingHorizontal:5,paddingVertical:8,alignItems:"center",justifyContent:"center"},endToggle:{flexDirection:"row",alignItems:"center",gap:7,marginTop:14,paddingVertical:4},
  input:{borderWidth:1,borderRadius:12,paddingHorizontal:13,paddingVertical:12,fontSize:14},amountInput:{fontSize:21,fontWeight:"800"},error:{fontSize:12,marginTop:12}
 });
