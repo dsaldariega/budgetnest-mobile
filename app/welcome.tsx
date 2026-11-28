@@ -26,8 +26,13 @@ const slides = [
   },
   {
     title: "Track at your own pace, anytime.",
-    description: "Record spending in seconds, set budgets that fit your routine, and use the app anytime—even without internet or an account. Your records stay on your phone.",
+    description: "Record spending in seconds, set budgets that fit your routine, and use the app anytime—even without internet. Your records stay on your phone.",
     icon: "chart-box-outline" as const,
+  },
+  {
+    title: "Want to back up your data with Google?",
+    description: "Optional: connect Google now to back up and restore on Google Drive, or jump straight in.",
+    icon: "google-drive" as const,
   },
 ];
 
@@ -40,7 +45,6 @@ export default function WelcomeScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [connectError, setConnectError] = useState("");
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
-  const showGoogleStep = activeIndex === slides.length;
   const lastSlide = activeIndex === slides.length - 1;
 
   const explore = () => router.replace("/(tabs)");
@@ -60,10 +64,6 @@ export default function WelcomeScreen() {
     setActiveIndex(Math.max(0, Math.min(slides.length - 1, next)));
   };
 
-  const goToGoogleStep = () => {
-    setActiveIndex(slides.length);
-  };
-
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
       <View style={styles.topBar}>
@@ -73,8 +73,7 @@ export default function WelcomeScreen() {
         </Pressable>
       </View>
 
-      {!showGoogleStep ? (
-        <ScrollView
+      <ScrollView
           ref={scrollRef}
           horizontal
           pagingEnabled
@@ -83,38 +82,51 @@ export default function WelcomeScreen() {
           style={styles.slider}
           contentContainerStyle={styles.sliderContent}
         >
-          {slides.map((slide, index) => (
-            <View key={slide.title} style={[styles.slide, { width }]}>
-              <View style={[styles.illustration, { backgroundColor: mode === "dark" ? "#3A2424" : "#FCE8E8" }]}>
-                <View style={[styles.illustrationInner, { backgroundColor: palette.primary }]}>
-                  <MaterialCommunityIcons name={slide.icon} size={58} color="#FFFFFF" />
-                </View>
+        {slides.map((slide, index) => (
+          <View key={slide.title} style={[styles.slide, { width }]}>
+            <View style={[styles.illustration, { backgroundColor: mode === "dark" ? "#3A2424" : "#FCE8E8" }]}>
+              <View style={[styles.illustrationInner, { backgroundColor: palette.primary }]}>
+                <MaterialCommunityIcons name={slide.icon} size={58} color="#FFFFFF" />
               </View>
+            </View>
 
-              <Text style={[styles.heading, { color: palette.text }]}>{slide.title}</Text>
-              <Text style={[styles.description, { color: palette.textMuted }]}>{slide.description}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      ) : (
-        <View style={styles.googleStep}>
-          <View style={[styles.illustration, { backgroundColor: mode === "dark" ? "#3A2424" : "#FCE8E8" }]}>
-            <View style={[styles.illustrationInner, { backgroundColor: palette.primary }]}>
-              <MaterialCommunityIcons name="google-drive" size={58} color="#FFFFFF" />
-            </View>
+            <Text style={[styles.heading, { color: palette.text }]}>{slide.title}</Text>
+            <Text style={[styles.description, { color: palette.textMuted }]}>{slide.description}</Text>
+
+            {lastSlide ? (
+              <View style={styles.slideActions}>
+                <Pressable
+                  onPress={explore}
+                  style={[styles.primaryButton, { backgroundColor: palette.primary }]}
+                >
+                  <Text style={styles.primaryButtonText}>Start Without Google</Text>
+                </Pressable>
+
+                <Pressable
+                  disabled={signingIn}
+                  onPress={() => void connectGoogle()}
+                  style={styles.secondaryAction}
+                >
+                  {signingIn ? (
+                    <ActivityIndicator color={palette.primary} />
+                  ) : (
+                    <MaterialCommunityIcons name="google" size={17} color={palette.primary} />
+                  )}
+                  <Text style={[styles.secondaryActionText, { color: palette.primary }]}>
+                    {signingIn ? "Connecting…" : "Connect with Google"}
+                  </Text>
+                </Pressable>
+
+                {connectError ? <Text style={[styles.connectError, { color: palette.primary }]}>{connectError}</Text> : null}
+              </View>
+            ) : null}
           </View>
-
-          <Text style={[styles.heading, { color: palette.text }]}>Want to back up your data with Google?</Text>
-          <Text style={[styles.description, { color: palette.textMuted }]}>
-            Optional: connect your Google account if you want to back up and restore your records on Google Drive, or jump straight in.
-          </Text>
-        </View>
-      )}
+        ))}
+      </ScrollView>
 
       <View style={styles.footer}>
-        {!showGoogleStep ? (
-          <View style={styles.pagination}>
-            {[0, 1].map(index => (
+        <View style={styles.pagination}>
+          {[0, 1, 2].map(index => (
               <View
                 key={index}
                 style={[
@@ -127,49 +139,17 @@ export default function WelcomeScreen() {
               />
             ))}
           </View>
-        ) : null}
+        </View>
 
-        {showGoogleStep ? (
-          <>
-            <Pressable
-              onPress={explore}
-              style={[styles.primaryButton, { backgroundColor: palette.primary }]}
-            >
-              <Text style={styles.primaryButtonText}>Start Without Google</Text>
-            </Pressable>
-
-            <Pressable
-              disabled={signingIn}
-              onPress={() => void connectGoogle()}
-              style={styles.secondaryAction}
-            >
-              {signingIn ? (
-                <ActivityIndicator color={palette.primary} />
-              ) : (
-                <MaterialCommunityIcons name="google" size={17} color={palette.primary} />
-              )}
-              <Text style={[styles.secondaryActionText, { color: palette.primary }]}>
-                {signingIn ? "Connecting…" : "Connect with Google"}
-              </Text>
-            </Pressable>
-
-            {connectError ? <Text style={[styles.connectError, { color: palette.primary }]}>{connectError}</Text> : null}
-          </>
-        ) : (
+        {!lastSlide ? (
           <Pressable
-            onPress={() => {
-              if (lastSlide) {
-                goToGoogleStep();
-              } else {
-                scrollRef.current?.scrollTo({ x: width, animated: true });
-              }
-            }}
+            onPress={() => scrollRef.current?.scrollTo({ x: width * (activeIndex + 1), animated: true })}
             style={[styles.primaryButton, { backgroundColor: palette.primary }]}
           >
             <Text style={styles.primaryButtonText}>Next</Text>
             <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" />
           </Pressable>
-        )}
+        ) : null}
         <Text style={[styles.footerNote, { color: palette.textMuted }]}>Your money. Your pace. Your privacy.</Text>
       </View>
 
@@ -184,15 +164,11 @@ const styles = StyleSheet.create({
   slider: { flex: 1 },
   sliderContent: { alignItems: "stretch" },
   slide: { flex: 1, alignItems: "center", paddingHorizontal: 30, paddingTop: 22 },
-  googleStep: { flex: 1, alignItems: "center", paddingHorizontal: 30, paddingTop: 22, justifyContent: "center" },
+  slideActions: { width: "100%", marginTop: 24, gap: 8 },
   illustration: { width: 188, height: 188, borderRadius: 60, alignItems: "center", justifyContent: "center", marginBottom: 34 },
   illustrationInner: { width: 132, height: 132, borderRadius: 42, alignItems: "center", justifyContent: "center" },
-  sparkle: { position: "absolute", right: 12, bottom: 15, width: 38, height: 38, borderRadius: 14, alignItems: "center", justifyContent: "center", elevation: 3 },
   heading: { fontSize: 29, lineHeight: 36, fontWeight: "900", letterSpacing: -0.8, textAlign: "center", marginTop: 12, maxWidth: 340 },
   description: { fontSize: 14, lineHeight: 22, textAlign: "center", marginTop: 12, maxWidth: 340 },
-  points: { alignSelf: "stretch", marginTop: 22, gap: 12, maxWidth: 330 },
-  point: { flexDirection: "row", alignItems: "center", gap: 10 },
-  pointText: { fontSize: 13, fontWeight: "600", flex: 1 },
   footer: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 16, gap: 10 },
   pagination: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 7, marginBottom: 8 },
   dot: { height: 7, borderRadius: 5 },
