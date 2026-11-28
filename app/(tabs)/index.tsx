@@ -77,7 +77,7 @@ export default function DashboardScreen() {
 
       const safeAccounts = Array.isArray(accounts) ? accounts : []; const safeMonthlyRows = Array.isArray(monthlyRows) ? monthlyRows : []; const currencyCodes = new Set([...safeAccounts.map(a => a.currencyCode), ...safeMonthlyRows.map(row => row.currency_code)]);
       const currencies = [...currencyCodes].sort().map(currencyCode => {
-        const monthly = monthlyRows.find(row => row.currency_code === currencyCode);
+        const monthly = safeMonthlyRows.find(row => row.currency_code === currencyCode);
         return {
           currencyCode,
           balanceMinor: safeAccounts.filter(account => account.currencyCode === currencyCode).reduce((sum, account) => sum + account.balanceMinor, 0),
@@ -145,9 +145,9 @@ export default function DashboardScreen() {
           </View>
           <View style={s.monthSummary}>
             <Text style={s.monthSummaryTitle}>This month</Text>
-            {data.currencies.length === 0 ? (
+            {(data.currencies ?? []).length === 0 ? (
               <Text style={s.monthSummaryEmpty}>Add an account to start tracking your cash flow.</Text>
-            ) : data.currencies.map(item => (
+            ) : (data.currencies ?? []).map(item => (
               <View key={item.currencyCode} style={s.monthSummaryRow}>
                 <View style={s.monthMetric}><Text style={s.monthMetricLabel}>In</Text><Text style={s.monthMetricValue}>{money(item.incomeMinor, item.currencyCode)}</Text></View>
                 <View style={s.monthMetric}><Text style={s.monthMetricLabel}>Out</Text><Text style={s.monthMetricValue}>{money(item.expenseMinor, item.currencyCode)}</Text></View>
@@ -197,7 +197,7 @@ const s = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 36 },
   contentWide: { width: "100%", maxWidth: 1160, alignSelf: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  brand: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
+  brand: { fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"], letterSpacing: 0.5 },
   greeting: { fontSize: 27, fontWeight: "800", letterSpacing: -0.7, marginTop: 3 },
   dateText: { fontSize: 13, marginTop: 3 },
   headerAction: { minHeight: 40, paddingHorizontal: 12, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
