@@ -43,6 +43,7 @@ export default function DashboardScreen() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [data, setData] = useState<DashboardData>({ accounts: [], currencies: [], budgets: [], activity: [] });
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -92,6 +93,7 @@ export default function DashboardScreen() {
       setError(e instanceof Error ? e.message : "Unable to load your financial overview.");
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   }, [db, selectedMonth]);
 
@@ -197,7 +199,7 @@ export default function DashboardScreen() {
               </View>
             </View>
           );
-        }) : <EmptyState icon="chart-donut" title="No budgets yet" message="Create a spending limit to keep your expenses on track." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
+        }) : <EmptyState icon="chart-donut" title="No budgets yet" message="Create a spending limit to keep your expenses on track." actionLabel="Create a budget" onAction={() => router.push("/budgets")} palette={p} dark={dark} />}
 
         <SectionHeader title="Recent Activity" actionLabel="See all" onAction={() => router.push("/(tabs)/transactions")} />
         {data.activity.length ? data.activity.map(item => {
