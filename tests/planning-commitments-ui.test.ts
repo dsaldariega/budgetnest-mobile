@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const screens = [
-  "app/(tabs)/budgets.tsx",
-  "app/(tabs)/goals.tsx",
+  "app/budgets.tsx",
+  "app/goals.tsx",
   "app/loans.tsx",
   "app/subscriptions.tsx",
   "app/recurring.tsx",
@@ -44,12 +44,12 @@ test("Phase 6 uses the stronger BudgetNest red palette and shared spacing contra
   assert.match(tokens, /card: 14/);
 });
 
-test("Goals remains a dedicated feature screen reachable from More without becoming a bottom tab", () => {
+test("Goals is a dedicated root screen reachable from More without becoming a bottom tab", () => {
   const tabs = readFileSync("app/(tabs)/_layout.tsx", "utf8");
   const more = readFileSync("app/(tabs)/more.tsx", "utf8");
-  const goals = readFileSync("app/(tabs)/goals.tsx", "utf8");
-  assert.match(tabs, /name="goals"\s+options=\{\{ href: null \}\}/);
-  assert.match(more, /label: "Goals"[^\n]*route: "\/\(tabs\)\/goals"/);
+  const goals = readFileSync("app/goals.tsx", "utf8");
+  assert.doesNotMatch(tabs, /name="goals"/);
+  assert.match(more, /label: "Goals"[^\n]*route: "\/goals"/);
   assert.match(goals, /Goals/);
   assert.match(goals, /Create a goal/);
 });
