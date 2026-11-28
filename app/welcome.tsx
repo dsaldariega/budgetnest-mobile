@@ -69,7 +69,7 @@ export default function WelcomeScreen() {
       <View style={styles.topBar}>
         <BudgetNestBrand color={palette.text} size={30} />
         <Pressable onPress={explore} hitSlop={12} accessibilityRole="button">
-          <Text style={[styles.skipTop, { color: palette.textMuted }]}>Close</Text>
+          <Text style={[styles.skipTop, { color: palette.textMuted }]}>Skip</Text>
         </Pressable>
       </View>
 
@@ -112,20 +112,22 @@ export default function WelcomeScreen() {
       )}
 
       <View style={styles.footer}>
-        <View style={styles.pagination}>
-          {[0, 1].map(index => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: index === activeIndex ? palette.primary : palette.border,
-                  width: index === activeIndex ? 22 : 7,
-                },
-              ]}
-            />
-          ))}
-        </View>
+        {!showGoogleStep ? (
+          <View style={styles.pagination}>
+            {[0, 1].map(index => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: index === activeIndex ? palette.primary : palette.border,
+                    width: index === activeIndex ? 22 : 7,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        ) : null}
 
         {showGoogleStep ? (
           <>
