@@ -4,7 +4,7 @@ import test from "node:test";
 
 test("recurring frequency choices stay on one line on narrow screens", () => {
   const source = readFileSync("app/recurring.tsx", "utf8");
-  assert.match(source, /numberOfLines={1} style=\{\{color:frequency===v\?"#fff":p\.text,fontWeight:"700",fontSize:12\}\}/);
+  assert.ok(source.includes('numberOfLines={1} style={{color:frequency===v?"#fff":p.text,fontWeight:"700",fontSize:12}}'));
   assert.match(source, /v === "weekly" \? "Week" : v === "monthly" \? "Month" : "Year"/);
 });
 
