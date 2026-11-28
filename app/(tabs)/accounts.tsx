@@ -25,6 +25,7 @@ import type { AccountType, CreateAccountInput } from "@/database/types";
 import { toMinorUnits } from "@/domain/money";
 import { createSettingsRepository } from "@/database/repositories/settings-repository";
 import { colors } from "@/theme/colors";
+import { EmptyState } from "@/components/EmptyState";
 
 const TYPES: { value: AccountType; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
   { value: "cash", label: "Cash", icon: "cash-multiple" },
@@ -307,24 +308,15 @@ export default function AccountsScreen() {
             <Text style={{ color: palette.textMuted }}>Loading accounts…</Text>
           </View>
         ) : visibleRows.length === 0 ? (
-          <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <View style={[styles.emptyIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
-              <MaterialCommunityIcons name="wallet-outline" size={28} color={palette.primary} />
-            </View>
-            <Text style={[styles.cardTitle, { color: palette.text }]}>
-              {showArchived ? "No archived accounts" : "Start with your first account"}
-            </Text>
-            <Text style={[styles.emptyText, { color: palette.textMuted }]}>
-              {showArchived
-                ? "Accounts you archive will appear here."
-                : "Add the places where you keep your money. You can connect transactions, budgets, and goals to an account later."}
-            </Text>
-            {!showArchived ? (
-              <Pressable onPress={() => void openCreate()} style={[styles.primaryButton, { backgroundColor: palette.primary }]}>
-                <Text style={styles.primaryButtonText}>Add your first account</Text>
-              </Pressable>
-            ) : null}
-          </View>
+          <EmptyState
+            icon="wallet-outline"
+            title={showArchived ? "No archived accounts" : "Start with your first account"}
+            message={showArchived ? "Accounts you archive will appear here." : "Add the places where you keep your money to start tracking your finances."}
+            actionLabel={!showArchived ? "Add your first account" : undefined}
+            onAction={!showArchived ? () => void openCreate() : undefined}
+            palette={palette}
+            dark={dark}
+          />
         ) : (
           <ScrollView contentContainerStyle={[styles.list, isWideLayout && styles.wideList]} showsVerticalScrollIndicator={false}>
             {visibleRows.map((account) => {
