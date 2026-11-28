@@ -139,7 +139,6 @@ export default function WelcomeScreen() {
               />
             ))}
           </View>
-        </View>
 
         {!lastSlide ? (
           <Pressable
