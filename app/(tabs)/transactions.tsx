@@ -105,10 +105,10 @@ export default function TransactionsScreen() {
     setName(current => current.trim() ? current : (rows.find(row => row.id === preferred)?.name ?? rows[0]?.name ?? ""));
   }, [txRepo]);
 
-  const resetForm = () => {
-    setEditing(null); setFormKind("expense"); setName(""); setAmount(""); setAccountId(accounts[0]?.id ?? "");
+  const resetForm = (kind: FormKind = "expense") => {
+    setEditing(null); setFormKind(kind); setName(""); setAmount(""); setAccountId(accounts[0]?.id ?? "");
     setDestinationAccountId(accounts.find(a => a.id !== accounts[0]?.id)?.id ?? ""); setCategoryId(""); setNote(""); setShowNote(false); setOccurredAt(today()); setError("");
-    void loadCategories("expense");
+    void loadCategories(kind);
   };
   const openEdit = async (item: HistoryItem) => {
     const historyTransactionKind = item.kind === "income"
@@ -192,11 +192,11 @@ export default function TransactionsScreen() {
       setSaving(false);
     }
   };
-  const openNew = async () => { resetForm(); try { const recent = await txRepo.listRecent(1); const recentAccountId = recent[0]?.accountId; if (recentAccountId && accounts.some(account => account.id === recentAccountId)) setAccountId(recentAccountId); } catch {} setFormOpen(true); };
+  const openNew = async (kind: FormKind = "expense") => { resetForm(kind); try { const recent = await txRepo.listRecent(1); const recentAccountId = recent[0]?.accountId; if (recentAccountId && accounts.some(account => account.id === recentAccountId)) setAccountId(recentAccountId); } catch {} setFormOpen(true); };
   const { quick } = useLocalSearchParams<{ quick?: string }>();
   useFocusEffect(useCallback(() => {
-    if (quick === "expense") {
-      void openNew();
+    if (quick === "income" || quick === "expense" || quick === "transfer") {
+      void openNew(quick);
       router.setParams({ quick: undefined });
     }
   }, [quick, router]));

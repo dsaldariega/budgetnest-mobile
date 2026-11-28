@@ -9,7 +9,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { createBudgetRepository, type BudgetListItem } from "@/database/repositories/budget-repository";
 import { createHistoryRepository, type HistoryItem } from "@/database/repositories/history-repository";
-import { colors } from "@/theme/colors";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -23,10 +22,24 @@ type DashboardData = {
 
 const today = todayLocalDate;
 const currentMonth = () => today().slice(0, 7);
+const monthDate = (month: string) => new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1);
+const shiftMonth = (month: string, offset: number) => {
+  const date = monthDate(month);
+  date.setMonth(date.getMonth() + offset);
+  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+};
+const monthBounds = (month: string) => {
+  const start = month + "-01";
+  const next = shiftMonth(month, 1) + "-01";
+  const endDate = new Date(Number(next.slice(0, 4)), Number(next.slice(5, 7)) - 1, 0);
+  const end = month + "-" + String(endDate.getDate()).padStart(2, "0") + "T23:59:59.999";
+  return { start, end };
+};
 const money = (minor: number, currency: string) => new Intl.NumberFormat("en-PH", {
   style: "currency", currency, maximumFractionDigits: 2,
 }).format(minor / 100);
-const shortDate = (value: string) => new Date(value + "T00:00:00").toLocaleDateString("en-PH", {
+const monthTitle = (month: string) => monthDate(month).toLocaleDateString("en-PH", { month: "long", year: "numeric" });
+const shortDate = (value: string) => new Date(value.slice(0, 10) + "T00:00:00").toLocaleDateString("en-PH", {
   month: "short", day: "numeric",
 });
 
@@ -34,14 +47,28 @@ function ProgressBar({ progress, color, track }: { progress: number; color: stri
   return <View style={[s.progressTrack, { backgroundColor: track }]}><View style={[s.progressFill, { width: `${Math.max(0, Math.min(1, progress)) * 100}%`, backgroundColor: color }]} /></View>;
 }
 
+function QuickAction({ label, icon, onPress, palette, tone = "primary" }: {
+  label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; onPress: () => void;
+  palette: ReturnType<typeof useAppTheme>["palette"]; tone?: "primary" | "income" | "neutral";
+}) {
+  const tint = tone === "income" ? palette.income : tone === "neutral" ? palette.secondary : palette.primary;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
+      style={[s.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <View style={[s.quickIcon, { backgroundColor: tone === "income" ? palette.successSoft : tone === "neutral" ? palette.surfaceElevated : palette.primarySoft }]}>
+        <MaterialCommunityIcons name={icon} size={19} color={tint} />
+      </View>
+      <Text style={[s.quickLabel, { color: palette.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export default function DashboardScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const { isDark: dark, palette: p } = useAppTheme();
-  const wideLayout = false;
-  const [data, setData] = useState<DashboardData>({
-    accounts: [], currencies: [], budgets: [], activity: [],
-  });
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [data, setData] = useState<DashboardData>({ accounts: [], currencies: [], budgets: [], activity: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -49,11 +76,12 @@ export default function DashboardScreen() {
     setLoading(true);
     try {
       const date = today();
-      const month = currentMonth();
+      const month = selectedMonth;
+      const bounds = monthBounds(month);
       const [accounts, budgets, activity, monthlyRows] = await Promise.all([
         createAccountRepository(db).list(),
         createBudgetRepository(db).list(date),
-        createHistoryRepository(db).list({ limit: 5 }),
+        createHistoryRepository(db).list({ limit: 200, fromDate: bounds.start, toDate: bounds.end }),
         db.getAllAsync<{ currency_code: string; income_minor: number; expense_minor: number }>(
           "SELECT a.currency_code, " +
           "COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_minor ELSE 0 END), 0) AS income_minor, " +
@@ -65,7 +93,9 @@ export default function DashboardScreen() {
         ),
       ]);
 
-      const safeAccounts = Array.isArray(accounts) ? accounts : []; const safeMonthlyRows = Array.isArray(monthlyRows) ? monthlyRows : []; const currencyCodes = new Set([...safeAccounts.map(a => a.currencyCode), ...safeMonthlyRows.map(row => row.currency_code)]);
+      const safeAccounts = Array.isArray(accounts) ? accounts : [];
+      const safeMonthlyRows = Array.isArray(monthlyRows) ? monthlyRows : [];
+      const currencyCodes = new Set([...safeAccounts.map(a => a.currencyCode), ...safeMonthlyRows.map(row => row.currency_code)]);
       const currencies = [...currencyCodes].sort().map(currencyCode => {
         const monthly = safeMonthlyRows.find(row => row.currency_code === currencyCode);
         return {
@@ -76,103 +106,156 @@ export default function DashboardScreen() {
         };
       });
 
-      setData({ accounts: safeAccounts, currencies, budgets: (Array.isArray(budgets) ? budgets : []).filter(item => item.startDate <= date && (!item.endDate || item.endDate >= date)).slice(0, 3), activity: Array.isArray(activity) ? activity : [] });
+      const safeBudgets = (Array.isArray(budgets) ? budgets : [])
+        .filter(item => item.startDate <= date && (!item.endDate || item.endDate >= date))
+        .slice(0, 3);
+      const safeActivity = (Array.isArray(activity) ? activity : []).slice(0, 5);
+      setData({ accounts: safeAccounts, currencies, budgets: safeBudgets, activity: safeActivity });
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load your financial overview.");
     } finally {
       setLoading(false);
     }
-  }, [db]);
+  }, [db, selectedMonth]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
-  const monthLabel = useMemo(() => new Date().toLocaleDateString("en-PH", { month: "long", year: "numeric" }), []);
-  const totalAccounts = (data.accounts ?? []).length;
+  const monthLabel = useMemo(() => monthTitle(selectedMonth), [selectedMonth]);
+  const totalAccounts = data.accounts.filter(account => !account.isArchived).length;
+  const hasCurrencies = data.currencies.length > 0;
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
-      <ScrollView contentContainerStyle={[s.content, wideLayout && s.contentWide]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
           <View>
-            <Text style={[s.brand, { color: p.primary }]}>BudgetNest</Text>
+            <Text style={[s.brand, { color: p.primaryText }]}>BUDGETNEST</Text>
             <Text style={[s.greeting, { color: p.text }]}>Your overview</Text>
-            <Text style={[s.dateText, { color: p.textMuted }]}>{monthLabel}</Text>
           </View>
-          <Pressable
-            onPress={() => router.push("/(tabs)/transactions?quick=expense")}
-            style={[s.headerAction, { backgroundColor: p.primary }]}
-            accessibilityRole="button"
-            accessibilityLabel="Log expense"
-          >
-            <MaterialCommunityIcons name="plus" size={19} color={p.onPrimary} />
-            <Text style={[s.headerActionText, { color: p.onPrimary }]}>Expense</Text>
+          <Pressable onPress={() => router.push("/(tabs)/accounts")} style={[s.headerAction, { borderColor: p.border, backgroundColor: p.surface }]}
+            accessibilityRole="button" accessibilityLabel="View accounts">
+            <MaterialCommunityIcons name="wallet-outline" size={19} color={p.primaryText} />
           </Pressable>
         </View>
 
-        <View style={[s.heroCard, { backgroundColor: p.primaryDark }]}>
-          <View style={s.heroTop}>
-            <View style={s.heroLabelRow}>
-              <MaterialCommunityIcons name="wallet-outline" size={17} color="#FFFFFF" />
-              <Text style={s.heroEyebrow}>TOTAL BALANCE</Text>
-            </View>
-            <View style={s.heroMark}><MaterialCommunityIcons name="sprout" size={22} color="#FFFFFF" /></View>
+        <View style={[s.monthSelector, { backgroundColor: p.surface, borderColor: p.border }]}>
+          <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, -1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Previous month">
+            <MaterialCommunityIcons name="chevron-left" size={22} color={p.text} />
+          </Pressable>
+          <View style={s.monthCenter}>
+            <Text style={[s.monthLabel, { color: p.text }]}>{monthLabel}</Text>
+            {selectedMonth !== currentMonth() ? <Pressable onPress={() => setSelectedMonth(currentMonth())}><Text style={[s.todayLink, { color: p.primaryText }]}>Back to this month</Text></Pressable> : null}
           </View>
-          {loading ? <Text style={s.heroAmount}>Loading…</Text> : (data.currencies ?? []).length === 0
-            ? <Text style={s.heroAmount}>No accounts yet</Text>
-            : (data.currencies ?? []).map(item => (
+          <Pressable onPress={() => setSelectedMonth(value => shiftMonth(value, 1))} hitSlop={8} style={s.monthArrow} accessibilityRole="button" accessibilityLabel="Next month">
+            <MaterialCommunityIcons name="chevron-right" size={22} color={p.text} />
+          </Pressable>
+        </View>
+
+        <View style={[s.balanceCard, { backgroundColor: p.primaryDark }]}>
+          <View style={s.balanceHeading}>
+            <View style={s.balanceLabelRow}>
+              <MaterialCommunityIcons name="wallet-outline" size={17} color="#FFFFFF" />
+              <Text style={s.balanceEyebrow}>TOTAL BALANCE</Text>
+            </View>
+            <MaterialCommunityIcons name="sprout" size={23} color="rgba(255,255,255,0.8)" />
+          </View>
+          {loading ? <Text style={s.balanceAmount}>Loading…</Text> : !hasCurrencies
+            ? <Text style={s.balanceAmount}>No accounts yet</Text>
+            : data.currencies.map(item => (
               <View key={item.currencyCode} style={s.balanceLine}>
                 <Text style={s.currencyCode}>{item.currencyCode}</Text>
-                <Text style={s.heroAmount}>{money(item.balanceMinor, item.currencyCode)}</Text>
+                <Text style={s.balanceAmount}>{money(item.balanceMinor, item.currencyCode)}</Text>
               </View>
             ))}
-          <View style={s.heroFooter}>
-            <Text style={s.heroFootText}>{totalAccounts} active {totalAccounts === 1 ? "account" : "accounts"}</Text>
-            <Pressable onPress={() => router.push("/accounts")} style={s.heroLink}>
-              <Text style={s.heroLinkText}>View accounts</Text>
+          <View style={s.balanceFooter}>
+            <Text style={s.balanceFootText}>{totalAccounts} active {totalAccounts === 1 ? "account" : "accounts"}</Text>
+            <Pressable onPress={() => router.push("/(tabs)/accounts")} style={s.balanceLink}>
+              <Text style={s.balanceLinkText}>View accounts</Text>
               <MaterialCommunityIcons name="arrow-right" size={15} color="#FFFFFF" />
             </Pressable>
           </View>
-          <View style={s.monthSummary}>
-            <Text style={s.monthSummaryTitle}>This month</Text>
-            {(data.currencies ?? []).length === 0 ? (
-              <Text style={s.monthSummaryEmpty}>Add an account to start tracking your cash flow.</Text>
-            ) : (data.currencies ?? []).map(item => (
-              <View key={item.currencyCode} style={s.monthSummaryRow}>
-                <View style={s.monthMetric}><Text style={s.monthMetricLabel}>In</Text><Text style={s.monthMetricValue}>{money(item.incomeMinor, item.currencyCode)}</Text></View>
-                <View style={s.monthMetric}><Text style={s.monthMetricLabel}>Out</Text><Text style={s.monthMetricValue}>{money(item.expenseMinor, item.currencyCode)}</Text></View>
-                <View style={s.monthMetric}><Text style={s.monthMetricLabel}>Net</Text><Text style={s.monthMetricValue}>{money(item.incomeMinor - item.expenseMinor, item.currencyCode)}</Text></View>
-              </View>
-            ))}
-          </View>
         </View>
 
-        <Pressable onPress={() => router.push("/(tabs)/transactions?quick=expense")} style={[s.logExpenseButton, { backgroundColor: p.primary }]}>
-          <MaterialCommunityIcons name="plus" size={20} color={p.onPrimary} />
-          <Text style={[s.logExpenseText, { color: p.onPrimary }]}>Log Expense</Text>
-        </Pressable>
+        <View style={s.sectionHeading}>
+          <Text style={[s.sectionTitle, { color: p.text }]}>Cash flow</Text>
+          <Text style={[s.sectionCaption, { color: p.textMuted }]}>{monthLabel}</Text>
+        </View>
+        <View style={s.metricsGrid}>
+          {data.currencies.length ? data.currencies.map(item => (
+            <View key={item.currencyCode} style={[s.metricCard, { backgroundColor: p.surface, borderColor: p.border }]}>
+              <Text style={[s.metricCurrency, { color: p.textMuted }]}>{item.currencyCode}</Text>
+              <View style={s.metricRow}>
+                <View style={s.metricBlock}>
+                  <Text style={[s.metricLabel, { color: p.textMuted }]}>Income</Text>
+                  <Text style={[s.metricValue, { color: p.income }]}>{money(item.incomeMinor, item.currencyCode)}</Text>
+                </View>
+                <View style={s.metricBlock}>
+                  <Text style={[s.metricLabel, { color: p.textMuted }]}>Expenses</Text>
+                  <Text style={[s.metricValue, { color: p.expense }]}>{money(item.expenseMinor, item.currencyCode)}</Text>
+                </View>
+              </View>
+              <View style={[s.netRow, { borderTopColor: p.border }]}>
+                <Text style={[s.netLabel, { color: p.textMuted }]}>Net cash flow</Text>
+                <Text style={[s.netValue, { color: item.incomeMinor - item.expenseMinor >= 0 ? p.income : p.expense }]}>{money(item.incomeMinor - item.expenseMinor, item.currencyCode)}</Text>
+              </View>
+            </View>
+          )) : (
+            <View style={[s.noMetrics, { backgroundColor: p.surface, borderColor: p.border }]}>
+              <Text style={[s.noMetricsText, { color: p.textMuted }]}>{loading ? "Loading monthly totals…" : "No income or expenses recorded for this month."}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={s.quickActions}>
+          <QuickAction label="Income" icon="arrow-down-left" tone="income" palette={p} onPress={() => router.push("/(tabs)/transactions?quick=income")} />
+          <QuickAction label="Expense" icon="arrow-up-right" palette={p} onPress={() => router.push("/(tabs)/transactions?quick=expense")} />
+          <QuickAction label="Transfer" icon="swap-horizontal" tone="neutral" palette={p} onPress={() => router.push("/(tabs)/transactions?quick=transfer")} />
+        </View>
 
         <SectionHeader title="Budgets" actionLabel="See all" onAction={() => router.push("/(tabs)/budgets")} />
-        {(data.budgets ?? []).length ? (data.budgets ?? []).map(item => (
-          <View key={item.id} style={[s.listCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={s.listTop}>
-              <View style={[s.smallIcon, { backgroundColor: p.successSoft }]}><MaterialCommunityIcons name="chart-donut" size={19} color={p.success} /></View>
-              <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.categoryName}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.accountName} · {item.period}</Text></View>
-              <Text style={[s.itemAmount, { color: item.spentMinor > item.amountMinor ? p.expense : p.text }]}>{money(item.spentMinor, item.currencyCode)}</Text>
+        {data.budgets.length ? data.budgets.map(item => {
+          const over = item.spentMinor > item.amountMinor;
+          const progress = item.amountMinor > 0 ? item.spentMinor / item.amountMinor : 0;
+          return (
+            <View key={item.id} style={[s.budgetCard, { backgroundColor: p.surface, borderColor: p.border }]}>
+              <View style={s.budgetTop}>
+                <View style={[s.smallIcon, { backgroundColor: p.primarySoft }]}>
+                  <MaterialCommunityIcons name="chart-donut" size={18} color={p.primaryText} />
+                </View>
+                <View style={s.itemMain}>
+                  <Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.categoryName}</Text>
+                  <Text style={[s.itemSub, { color: p.textMuted }]} numberOfLines={1}>{item.accountName} · {item.period}</Text>
+                </View>
+                <Text style={[s.itemAmount, { color: over ? p.expense : p.text }]}>{money(item.spentMinor, item.currencyCode)}</Text>
+              </View>
+              <ProgressBar progress={progress} color={over ? p.expense : p.primary} track={p.border} />
+              <View style={s.budgetFoot}>
+                <Text style={[s.progressCaption, { color: p.textMuted }]}>{money(item.amountMinor, item.currencyCode)} limit</Text>
+                <Text style={[s.progressCaption, { color: over ? p.expense : p.textMuted }]}>{over ? money(item.spentMinor - item.amountMinor, item.currencyCode) + " over" : money(item.amountMinor - item.spentMinor, item.currencyCode) + " left"}</Text>
+              </View>
             </View>
-            <ProgressBar progress={item.progress} color={item.progress >= 1 ? p.expense : p.primary} track={p.border} />
-            <Text style={[s.progressCaption, { color: p.textMuted }]}>{money(item.spentMinor, item.currencyCode)} of {money(item.amountMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <EmptyState icon="chart-donut" title="No active budgets yet" message="Create a budget to set a spending limit and track progress." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
+          );
+        }) : <EmptyState icon="chart-donut" title="No active budgets" message="Create a budget to set a spending limit and track progress." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
 
-        <SectionHeader title="Recent activity" actionLabel="See all" onAction={() => router.push("/(tabs)/transactions")} />
-        {(data.activity ?? []).length ? (data.activity ?? []).map(item => (
-          <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={[s.smallIcon, { backgroundColor: dark ? "#30303A" : "#F1F3F7" }]}><MaterialCommunityIcons name={item.kind === "income" ? "arrow-down-circle-outline" : item.kind === "expense" ? "arrow-up-circle-outline" : item.kind === "savings" ? "piggy-bank-outline" : "swap-horizontal"} size={19} color={item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.secondary} /></View>
-            <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.title}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.subtitle} · {new Date(item.occurredAt).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}</Text></View>
-            <Text style={[s.itemAmount, { color: item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.text }]}>{money(item.amountMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <EmptyState icon="receipt-text-outline" title="No recent activity yet" message="Log your first expense to start building your financial history." actionLabel="Log Expense" onAction={() => router.push("/(tabs)/transactions?quick=expense")} palette={p} dark={dark} />}
+        <SectionHeader title="Recent transactions" actionLabel="See all" onAction={() => router.push("/(tabs)/transactions")} />
+        {data.activity.length ? data.activity.map(item => {
+          const icon = item.kind === "income" ? "arrow-down-circle-outline" : item.kind === "expense" ? "arrow-up-circle-outline" : item.kind === "transfer" ? "swap-horizontal" : item.kind === "savings" ? "piggy-bank-outline" : item.kind === "loan" ? "hand-coin-outline" : "calendar-check-outline";
+          const amountColor = item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.text;
+          const prefix = item.kind === "income" ? "+" : item.kind === "expense" ? "−" : "";
+          return (
+            <Pressable key={item.kind + "-" + item.id} onPress={() => router.push("/(tabs)/transactions")} style={[s.activityRow, { backgroundColor: p.surface, borderColor: p.border }]}>
+              <View style={[s.smallIcon, { backgroundColor: dark ? p.surfaceElevated : "#F1F3F7" }]}>
+                <MaterialCommunityIcons name={icon} size={19} color={amountColor} />
+              </View>
+              <View style={s.itemMain}>
+                <Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.title}</Text>
+                <Text style={[s.itemSub, { color: p.textMuted }]} numberOfLines={1}>{item.subtitle} · {shortDate(item.occurredAt)}</Text>
+              </View>
+              <Text style={[s.itemAmount, { color: amountColor }]}>{prefix}{money(item.amountMinor, item.currencyCode)}</Text>
+            </Pressable>
+          );
+        }) : <EmptyState icon="receipt-text-outline" title="No transactions this month" message="Your income and expenses will appear here once recorded." actionLabel="Add transaction" onAction={() => router.push("/(tabs)/transactions?quick=expense")} palette={p} dark={dark} />}
 
         {error ? <Text style={[s.errorText, { color: p.expense }]}>{error}</Text> : null}
         {loading ? <Text style={[s.loadingText, { color: p.textMuted }]}>Refreshing your overview…</Text> : null}
@@ -184,69 +267,59 @@ export default function DashboardScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1 },
-  content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 36 },
-  contentWide: { width: "100%", maxWidth: 1160, alignSelf: "center" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  brand: { fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"], letterSpacing: 0.5 },
+  content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 34, gap: 12 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
+  brand: { fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
   greeting: { fontSize: 27, fontWeight: "800", letterSpacing: -0.7, marginTop: 3 },
-  dateText: { fontSize: 13, marginTop: 3 },
-  headerAction: { minHeight: 40, paddingHorizontal: 12, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
-  headerActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
-  heroCard: { borderRadius: 22, padding: 20, marginBottom: 26 },
-  heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
-  heroLabelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  heroEyebrow: { color: "#FFFFFF", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  heroMark: { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" },
-  balanceLine: { marginBottom: 8 },
-  currencyCode: { color: "rgba(255,255,255,0.72)", fontSize: 11, fontWeight: "700", marginBottom: 2 },
-  heroAmount: { color: "#FFFFFF", fontSize: 27, fontWeight: "800", letterSpacing: -0.5 },
-  heroFooter: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.22)", marginTop: 12, paddingTop: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  heroFootText: { color: "rgba(255,255,255,0.76)", fontSize: 12 },
-  heroLink: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 3, paddingRight: 5, paddingLeft: 4 },
-  heroLinkText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  monthSummary: { marginTop: 16, paddingTop: 15, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.22)" },
-  monthSummaryTitle: { color: "#FFFFFF", fontSize: 13, fontWeight: "800", marginBottom: 10 },
-  monthSummaryEmpty: { color: "rgba(255,255,255,0.72)", fontSize: 11 },
-  monthSummaryRow: { flexDirection: "row", gap: 8 },
-  monthMetric: { flex: 1 },
-  monthMetricLabel: { color: "rgba(255,255,255,0.68)", fontSize: 10, fontWeight: "700" },
-  monthMetricValue: { color: "#FFFFFF", fontSize: 12, fontWeight: "800", marginTop: 3 },
-  logExpenseButton: { minHeight: 52, borderRadius: 15, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 7, marginBottom: 10 },
-  logExpenseText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
-  sectionHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, marginBottom: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
-  actionText: { fontSize: 12, fontWeight: "700" },
-  cashFlowCard: { borderWidth: 1, borderRadius: 17, padding: 16, marginBottom: 12 },
-  currencyHeading: { fontSize: 13, fontWeight: "800", marginBottom: 14 },
-  cashFlowRow: { flexDirection: "row", alignItems: "center" },
-  cashFlowMetric: { flex: 1, gap: 7 },
-  metricLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  metricLabel: { fontSize: 12, fontWeight: "600" },
-  metricValue: { fontSize: 17, fontWeight: "800" },
-  metricDivider: { width: 1, height: 40, marginHorizontal: 12 },
-  netRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, marginTop: 14, paddingTop: 12 },
-  netLabel: { fontSize: 12, fontWeight: "600" },
-  netValue: { fontSize: 14, fontWeight: "800" },
-  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },
-  quickCard: { width: "48%", minHeight: 88, borderWidth: 1, borderRadius: 16, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 },
-  quickCardWide: { width: "31.5%" },
-  quickIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  quickLabel: { flex: 1, fontSize: 13, fontWeight: "700" },
-  listCard: { borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 10, gap: 12 },
-  listTop: { flexDirection: "row", alignItems: "center", gap: 10 },
-  smallIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  listMain: { flex: 1, minWidth: 0 },
+  headerAction: { width: 44, height: 44, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  monthSelector: { minHeight: 52, borderWidth: 1, borderRadius: 15, flexDirection: "row", alignItems: "center", paddingHorizontal: 8 },
+  monthArrow: { width: 40, height: 44, alignItems: "center", justifyContent: "center" },
+  monthCenter: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44 },
+  monthLabel: { fontSize: 14, fontWeight: "800" },
+  todayLink: { fontSize: 10, fontWeight: "700", marginTop: 2 },
+  balanceCard: { borderRadius: 20, padding: 18, marginTop: 2 },
+  balanceHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
+  balanceLabelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  balanceEyebrow: { color: "#FFFFFF", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  balanceLine: { marginBottom: 9 },
+  currencyCode: { color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: "700", marginBottom: 2 },
+  balanceAmount: { color: "#FFFFFF", fontSize: 26, fontWeight: "800", letterSpacing: -0.5, fontVariant: ["tabular-nums"] },
+  balanceFooter: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.22)", marginTop: 8, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  balanceFootText: { color: "rgba(255,255,255,0.76)", fontSize: 12 },
+  balanceLink: { minHeight: 32, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 4 },
+  balanceLinkText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  sectionHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, marginBottom: -2 },
+  sectionTitle: { fontSize: 17, fontWeight: "800" },
+  sectionCaption: { fontSize: 11, fontWeight: "600" },
+  metricsGrid: { gap: 9 },
+  metricCard: { borderWidth: 1, borderRadius: 15, padding: 14, gap: 10 },
+  metricCurrency: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  metricRow: { flexDirection: "row", gap: 12 },
+  metricBlock: { flex: 1, minWidth: 0, gap: 4 },
+  metricLabel: { fontSize: 11, fontWeight: "600" },
+  metricValue: { fontSize: 15, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  netRow: { borderTopWidth: 1, paddingTop: 9, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  netLabel: { fontSize: 11, fontWeight: "600" },
+  netValue: { fontSize: 13, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  noMetrics: { borderWidth: 1, borderRadius: 14, padding: 15 },
+  noMetricsText: { fontSize: 12, lineHeight: 18 },
+  quickActions: { flexDirection: "row", gap: 9, marginTop: 1, marginBottom: 3 },
+  quickAction: { flex: 1, minHeight: 76, borderWidth: 1, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 7, alignItems: "center", justifyContent: "center", gap: 6 },
+  quickIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  quickLabel: { fontSize: 11, fontWeight: "800" },
+  budgetCard: { borderWidth: 1, borderRadius: 15, padding: 13, marginBottom: 8, gap: 10 },
+  budgetTop: { flexDirection: "row", alignItems: "center", gap: 9 },
+  smallIcon: { width: 35, height: 35, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  itemMain: { flex: 1, minWidth: 0 },
   itemTitle: { fontSize: 13, fontWeight: "700" },
-  itemSub: { fontSize: 11, marginTop: 4 },
-  itemAmount: { fontSize: 12, fontWeight: "800" },
+  itemSub: { fontSize: 11, marginTop: 3 },
+  itemAmount: { fontSize: 12, fontWeight: "800", fontVariant: ["tabular-nums"] },
   progressTrack: { height: 7, borderRadius: 5, overflow: "hidden" },
   progressFill: { height: 7, borderRadius: 5 },
-  progressCaption: { fontSize: 10, marginTop: -5 },
-  compactCard: { borderWidth: 1, borderRadius: 15, padding: 12, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 10 },
-  emptyCard: { borderWidth: 1, borderRadius: 15, padding: 16, marginBottom: 12 },
-  emptyText: { fontSize: 12, paddingVertical: 8 },
-  mutedText: { fontSize: 12, lineHeight: 18 },
-  errorText: { fontSize: 12, marginTop: 14 },
-  loadingText: { fontSize: 11, textAlign: "center", marginTop: 16 },
-  footerText: { fontSize: 10, textAlign: "center", marginTop: 24 },
+  budgetFoot: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
+  progressCaption: { fontSize: 10, fontWeight: "600" },
+  activityRow: { borderWidth: 1, borderRadius: 14, padding: 11, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 9 },
+  errorText: { fontSize: 12, marginTop: 10 },
+  loadingText: { fontSize: 11, textAlign: "center", marginTop: 8 },
+  footerText: { fontSize: 10, textAlign: "center", marginTop: 14 },
 });
