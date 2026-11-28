@@ -190,7 +190,7 @@ const s=StyleSheet.create({
  big:{fontSize:20,fontWeight:"800"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{padding:15,borderRadius:13,alignItems:"center",marginTop:18},
  primaryText:{color:"#fff",fontWeight:"700"},secondary:{padding:14,borderWidth:1,borderRadius:13,alignItems:"center",marginTop:10},dangerButton:{padding:14,alignItems:"center",marginTop:8},
  dangerText:{color:"#D32F2F",fontWeight:"700"},modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},
- label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:13,paddingVertical:10},
+ label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},chips:{flexDirection:"row",alignItems:"stretch",gap:6},chip:{flex:1,minHeight:40,borderWidth:1,borderRadius:20,paddingHorizontal:4,paddingVertical:9,alignItems:"center",justifyContent:"center"},
  input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{color:"#D32F2F",fontSize:13,marginTop:12},
  summary:{borderWidth:1,borderRadius:18,padding:18,marginTop:16},hero:{fontSize:30,fontWeight:"800",marginVertical:8},section:{fontSize:16,fontWeight:"800",marginTop:24,marginBottom:10},
  payment:{borderWidth:1,borderRadius:15,padding:15,marginBottom:9},context:{fontSize:13,lineHeight:20,marginTop:14},
