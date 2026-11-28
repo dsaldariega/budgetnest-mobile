@@ -73,7 +73,7 @@ export default function BudgetsScreen() {
         (items ?? []).map(item=><View key={item.id} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>
           <View style={s.row}><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{item.name}</Text><Text style={{color:p.textMuted,fontSize:11,marginTop:3}}>{item.categoryName} · {item.accountName} · {item.period}</Text></View><View style={s.rowActions}><Pressable onPress={()=>openEdit(item)}><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>Edit</Text></Pressable><Pressable onPress={()=>remove(item)}><Text style={s.delete}>Delete</Text></Pressable></View></View>
           <View style={s.moneyRow}><Text style={[s.spent,{color:p.text}]}>{fmt(item.spentMinor,item.currencyCode)}</Text><Text style={{color:p.textMuted,fontSize:12}}>of {fmt(item.amountMinor,item.currencyCode)}</Text></View>
-          <View style={[s.track,{backgroundColor:dark?"#332B2B":"#EEEFF2"}]}><View style={[s.fill,{width:Math.min(100,Math.round(item.progress*100))+"%",backgroundColor:item.progress>1?p.primary:p.income}]} /></View>
+          <View style={[s.track,{backgroundColor:dark?"#332B2B":"#EEEFF2"}]}><View style={[s.fill,{width:Math.min(100,Math.round(item.progress*100))+"%",backgroundColor:item.remainingMinor<0?p.primary:p.income}]} /></View>
           <View style={s.moneyRow}><Text style={{color:item.remainingMinor<0?p.primary:p.textMuted,fontSize:12}}>{item.remainingMinor<0?fmt(Math.abs(item.remainingMinor),item.currencyCode)+" over budget":fmt(item.remainingMinor,item.currencyCode)+" remaining"}</Text><Text style={{color:p.textMuted,fontSize:11}}>Starts {item.startDate}</Text></View>
         </View>)}
       </ScrollView>

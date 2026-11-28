@@ -166,7 +166,7 @@ export default function AccountsScreen() {
         id: editing?.id ?? makeId(),
         name: name.trim(),
         type,
-        sourceType: editing?.sourceType ?? null,
+        sourceType: editing && editing.type === type ? editing.sourceType : null,
         currencyCode: editing?.currencyCode ?? currency.trim().toUpperCase(),
         openingBalanceMinor: toMinorUnits(amount),
       };
