@@ -8,11 +8,11 @@ import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { colors } from "@/theme/colors";
 
 const FEATURES = [
-  { icon: "wallet-outline", title: "Accounts and transactions", detail: "Track cash, bank accounts, e-wallets, income, expenses, and transfers in one place." },
-  { icon: "chart-donut", title: "Budgets and savings goals", detail: "Set spending limits, monitor progress, and keep your savings targets visible." },
-  { icon: "bank-outline", title: "Loans and commitments", detail: "Keep loan balances, repayments, subscriptions, and recurring schedules organized." },
-  { icon: "chart-box-outline", title: "Reports and insights", detail: "Review cash flow, spending categories, and monthly trends across your currencies." },
-  { icon: "file-delimited-outline", title: "Your data, your copy", detail: "Export filtered transactions to CSV, import supported CSV files, and make optional Google Drive backups." },
+  { icon: "wallet-outline", title: "Accounts and transactions", detail: "Track accounts, income, expenses, and transfers in one place." },
+  { icon: "chart-donut", title: "Budgets and savings goals", detail: "Set spending limits and keep savings targets visible." },
+  { icon: "bank-outline", title: "Loans and commitments", detail: "Keep loans, repayments, subscriptions, and recurring schedules organized." },
+  { icon: "chart-box-outline", title: "Reports and insights", detail: "Review cash flow, spending, and monthly trends." },
+  { icon: "file-delimited-outline", title: "Your data, your copy", detail: "Export/import transactions with CSV and optionally back up to Google Drive." },
 ];
 
 const FAQS = [
@@ -58,7 +58,7 @@ export default function AboutScreen() {
 
         <View style={[styles.hero, { backgroundColor: dark ? "#57242C" : "#D32F2F" }]}>
           <Text style={styles.heroTitle}>Your money, with a little more clarity.</Text>
-          <Text style={styles.heroText}>A personal finance workspace for accounts, spending, budgets, savings, and recurring commitments.</Text>
+          <Text style={styles.heroText}>Track accounts, spending, plans, and recurring commitments locally.</Text>
         </View>
 
         <Text style={[styles.sectionTitle, { color: palette.text }]}>What you can do</Text>
@@ -77,10 +77,10 @@ export default function AboutScreen() {
         <Text style={[styles.sectionTitle, { color: palette.text, marginTop: 8 }]}>Getting started</Text>
         <View style={[styles.steps, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           {[
-            ["01", "Create your accounts", "Add the cash, bank, or e-wallet accounts you want to track."],
-            ["02", "Record what happens", "Add income and expenses, and use transfers when moving money between accounts."],
-            ["03", "Set your plans", "Create budgets and savings goals, then add loans or recurring commitments when needed."],
-            ["04", "Review and adjust", "Use your dashboard and reports to understand your financial picture."],
+            ["01", "Create your accounts", "Add the accounts you want to track."],
+            ["02", "Record what happens", "Record income and expenses; use transfers between accounts."],
+            ["03", "Set your plans", "Set budgets and goals, then add commitments as needed."],
+            ["04", "Review and adjust", "Use Home and Reports to review your finances."],
           ].map(([number, title, detail]) => (
             <View key={number} style={styles.step}>
               <View style={[styles.stepNumber, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={[styles.stepNumberText, { color: palette.primary }]}>{number}</Text></View>
