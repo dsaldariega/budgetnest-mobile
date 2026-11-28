@@ -67,7 +67,7 @@ export default function ActivityLogScreen() {
         repository.list({ entityType: entityFilter, period: periodFilter, limit: 500 }),
         repository.countToday(),
       ]);
-      setItems(activities);
+      setItems(Array.isArray(activities) ? activities : []);
       setTodayCount(today);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load activity.");
@@ -136,7 +136,7 @@ export default function ActivityLogScreen() {
 
         <Text style={[styles.filterLabel, { color: palette.textMuted }]}>ACTIVITY TYPE</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {ENTITY_FILTERS.map((item) => (
+          {(ENTITY_FILTERS ?? []).map((item) => (
             <Pressable key={item.value} onPress={() => setEntityFilter(item.value)} style={chipStyle(entityFilter === item.value)}>
               <Text style={{ color: entityFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
@@ -145,7 +145,7 @@ export default function ActivityLogScreen() {
 
         <Text style={[styles.filterLabel, { color: palette.textMuted }]}>DATE RANGE</Text>
         <View style={styles.dateFilterRow}>
-          {PERIOD_FILTERS.map((item) => (
+          {(PERIOD_FILTERS ?? []).map((item) => (
             <Pressable key={item.value} onPress={() => setPeriodFilter(item.value)} style={chipStyle(periodFilter === item.value)}>
               <Text style={{ color: periodFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
@@ -172,7 +172,7 @@ export default function ActivityLogScreen() {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-            {filtered.map((item) => (
+            {(filtered ?? []).map((item) => (
               <View key={item.id} style={[styles.activityCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
                 <View style={[styles.activityIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
                   <MaterialCommunityIcons name={activityIconName(item.entityType) as never} size={20} color={palette.primary} />
