@@ -50,11 +50,12 @@ export default function TabLayout() {
           : {
               backgroundColor: palette.surface,
               borderTopColor: palette.border,
-              height: 64 + insets.bottom,
-              paddingTop: 7,
-              paddingBottom: 7 + insets.bottom,
+              height: 62 + insets.bottom,
+              paddingTop: 6,
+              paddingBottom: 6 + insets.bottom,
+              paddingHorizontal: 2,
             },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "700" },
         tabBarItemStyle: useNavigationRail ? { minHeight: 66 } : undefined,
         tabBarHideOnKeyboard: true,
       }}
@@ -82,8 +83,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: "Transactions",
-          tabBarLabel: ({ focused }) => <TabLabel label="Transactions" focused={focused} dark={isDark} />,
+          title: "Activity",
+          tabBarLabel: ({ focused }) => <TabLabel label="Activity" focused={focused} dark={isDark} />,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="receipt-text-outline" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
           ),
@@ -91,13 +92,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="budgets"
-        options={{
-          title: "Budgets",
-          tabBarLabel: ({ focused }) => <TabLabel label="Budgets" focused={focused} dark={isDark} />,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chart-donut" size={size} color={typeof color === "number" ? palette.textMuted : color ?? palette.textMuted} />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="goals"

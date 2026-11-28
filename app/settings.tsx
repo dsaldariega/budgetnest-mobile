@@ -227,9 +227,9 @@ export default function SettingsScreen() {
             <Pressable
               disabled={authLoading || signingIn}
               onPress={() => { setError(""); void signIn().catch(e => setError(e instanceof Error ? e.message : "Unable to connect with Google.")); }}
-              style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: authLoading || signingIn ? 0.6 : 1 }]}
+              style={[styles.secondaryButton, { borderColor: palette.border, opacity: authLoading || signingIn ? 0.6 : 1 }]}
             >
-              <Text style={styles.primaryText}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
+              <Text style={[styles.secondaryText, { color: palette.text }]}>{signingIn ? "Connecting…" : "Connect with Google"}</Text>
             </Pressable>
           ) : (
             <Pressable

@@ -34,11 +34,11 @@ const ENTITY_FILTERS: { value: ActivityEntityFilter; label: string }[] = [
 ];
 
 const PERIOD_FILTERS: { value: ActivityPeriod; label: string }[] = [
-  { value: "7", label: "7 days" },
-  { value: "30", label: "30 days" },
-  { value: "90", label: "90 days" },
-  { value: "365", label: "1 year" },
-  { value: "all", label: "All time" },
+  { value: "7", label: "7d" },
+  { value: "30", label: "30d" },
+  { value: "90", label: "90d" },
+  { value: "365", label: "1y" },
+  { value: "all", label: "All" },
 ];
 
 const formatDate = (value: string) => new Date(value).toLocaleString("en-PH", {
@@ -94,7 +94,7 @@ export default function ActivityLogScreen() {
   const chipStyle = (active: boolean) => [
     styles.chip,
     {
-      backgroundColor: active ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface,
+      backgroundColor: active ? palette.primary : palette.surface,
       borderColor: active ? palette.primary : palette.border,
     },
   ];
@@ -138,16 +138,16 @@ export default function ActivityLogScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {ENTITY_FILTERS.map((item) => (
             <Pressable key={item.value} onPress={() => setEntityFilter(item.value)} style={chipStyle(entityFilter === item.value)}>
-              <Text style={{ color: entityFilter === item.value ? palette.primary : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
+              <Text style={{ color: entityFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         <Text style={[styles.filterLabel, { color: palette.textMuted }]}>DATE RANGE</Text>
-        <View style={styles.filterRow}>
+        <View style={styles.dateFilterRow}>
           {PERIOD_FILTERS.map((item) => (
             <Pressable key={item.value} onPress={() => setPeriodFilter(item.value)} style={chipStyle(periodFilter === item.value)}>
-              <Text style={{ color: periodFilter === item.value ? palette.primary : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
+              <Text style={{ color: periodFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -210,7 +210,8 @@ const styles = StyleSheet.create({
   searchBox: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 9 },
   searchInput: { flex: 1, paddingVertical: 9, fontSize: 13 },
   filterLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8, marginTop: 14, marginBottom: 7 },
-  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  filterRow: { flexDirection: "row", gap: 7 },
+  dateFilterRow: { flexDirection: "row", gap: 7 },
   chip: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 10, paddingVertical: 8 },
   list: { gap: 9, paddingTop: 14, paddingBottom: 30 },
   activityCard: { borderWidth: 1, borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "flex-start", gap: 11 },
