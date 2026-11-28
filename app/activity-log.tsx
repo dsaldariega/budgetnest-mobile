@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
-import { spacing, typography, radius } from "@/theme/tokens";
+import { typography, radius } from "@/theme/tokens";
 import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
