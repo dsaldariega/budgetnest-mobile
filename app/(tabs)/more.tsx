@@ -126,12 +126,12 @@ export default function MoreScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 28 },
+  content: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 32 },
   contentWide: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", maxWidth: 1160, width: "100%", alignSelf: "center" },
   intro: { width: "100%" },
   eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
   title: { fontSize: 28, fontWeight: "800", marginTop: 4, marginBottom: 16 },
-  group: { marginBottom: 14 },
+  group: { marginBottom: 16 },
   groupWide: { width: "48%" },
   groupTitle: {
     fontSize: 10,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   menuItem: {
-    minHeight: 54,
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,

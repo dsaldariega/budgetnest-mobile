@@ -6,6 +6,9 @@ export const spacing = {
   xl: 20,
   "2xl": 24,
   "3xl": 32,
+  page: 20,
+  section: 16,
+  card: 14,
 } as const;
 
 export const radius = {
@@ -27,4 +30,5 @@ export const typography = {
 export const controlSize = {
   minHeight: 48,
   buttonHeight: 50,
+  iconButton: 44,
 } as const;
