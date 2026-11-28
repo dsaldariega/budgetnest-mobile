@@ -48,8 +48,6 @@ export default function DashboardScreen() {
   const router = useRouter();
   const dark = useColorScheme() === "dark";
   const p = dark ? colors.dark : colors.light;
-  const { width, height } = useWindowDimensions();
-  const wideLayout = width >= 720 || width > height;
   const [data, setData] = useState<DashboardData>({
     accounts: [], currencies: [], budgets: [], activity: [],
   });
@@ -162,7 +160,6 @@ export default function DashboardScreen() {
           <Text style={s.logExpenseText}>Log Expense</Text>
         </Pressable>
 
-        <SectionHeading title="Budgets" action="See all" onPress={() => router.push("/(tabs)/budgets")} palette={p} />
         <SectionHeading title="Budgets" action="See all" onPress={() => router.push("/(tabs)/budgets")} palette={p} />
         {data.budgets.length ? data.budgets.map(item => (
           <View key={item.id} style={[s.listCard, { backgroundColor: p.surface, borderColor: p.border }]}>
