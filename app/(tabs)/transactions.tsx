@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -39,6 +39,7 @@ function KindSelector({ value, onChange, palette }: { value: FormKind; onChange:
 
 export default function TransactionsScreen() {
   const db = useSQLiteContext();
+  const router = useRouter();
   const dark = useColorScheme() === "dark";
   const p = dark ? colors.dark : colors.light;
   const [items, setItems] = useState<HistoryItem[]>([]);
