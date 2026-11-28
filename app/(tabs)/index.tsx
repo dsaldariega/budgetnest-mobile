@@ -164,7 +164,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <Pressable onPress={() => router.push("/(tabs)/transactions")} style={[s.logExpenseButton, { backgroundColor: p.primary }]}>
+        <Pressable onPress={() => router.push("/(tabs)/transactions?quick=expense")} style={[s.logExpenseButton, { backgroundColor: p.primary }]}>
           <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
           <Text style={s.logExpenseText}>Log Expense</Text>
         </Pressable>
