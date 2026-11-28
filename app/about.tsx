@@ -53,7 +53,7 @@ export default function AboutScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
-          <View style={{ flex: 1 }}><BudgetNestBrand color={palette.text} size={30} /><Text style={[styles.title, { color: palette.text }]}>About & Help</Text></View>
+          <BudgetNestBrand color={palette.text} size={23} /><Text style={[styles.title, { color: palette.text }]}>About & Help</Text>
         </View>
 
         <View style={[styles.hero, { backgroundColor: dark ? "#57242C" : "#D32F2F" }]}>
