@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
+import { spacing, typography, radius } from "@/theme/tokens";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -234,7 +235,7 @@ const s = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 },
   brand: { fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
   greeting: { fontSize: 27, fontWeight: "800", letterSpacing: -0.7, marginTop: 3 },
-  headerAction: { width: 44, height: 44, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  headerAction: { width: 44, height: 44, borderWidth: 1, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   heroCard: { borderRadius: 20, padding: 18, marginTop: 2 },
   heroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   heroEyebrow: { color: "rgba(255,255,255,0.76)", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
@@ -273,7 +274,7 @@ const s = StyleSheet.create({
   progressFill: { height: 7, borderRadius: 5 },
   budgetFoot: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   progressCaption: { fontSize: 10, fontWeight: "600" },
-  activityRow: { borderWidth: 1, borderRadius: 14, padding: 11, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 9 },
+  activityRow: { borderWidth: 1, borderRadius: radius.md, padding: 11, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 9 },
   errorText: { fontSize: 12, marginTop: 10 },
   loadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 8 },
   loadingText: { fontSize: 11 },
