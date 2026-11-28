@@ -34,7 +34,7 @@ export default function BudgetsScreen() {
         createBudgetRepository(db).list(today()), createAccountRepository(db).list(),
         db.getAllAsync<{ id: string; name: string }>("SELECT id, name FROM categories WHERE type = 'expense' ORDER BY is_system DESC, name COLLATE NOCASE"),
       ]);
-      setItems(budgets); setAccounts(acc.filter(a => !a.isArchived)); setCategories(cats);
+      setItems(Array.isArray(budgets) ? budgets : []); setAccounts((Array.isArray(acc) ? acc : []).filter(a => !a.isArchived)); setCategories(Array.isArray(cats) ? cats : []);
       setAccountId(v => v || acc.find(a => !a.isArchived)?.id || ""); setCategoryId(v => v || cats[0]?.id || "");
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to load budgets."); }
   }, [db]);
@@ -45,12 +45,12 @@ export default function BudgetsScreen() {
 
   const save = async () => {
     setError("");
-    if (!name.trim()) { setError("Enter a budget name."); return; }
+    const categoryName = categories.find(c => c.id === categoryId)?.name ?? "Spending"; const budgetName = name.trim() || (categoryName + " " + period + " budget");
     if (!/^\d+(\.\d{1,2})?$/.test(amount.trim()) || Number(amount) <= 0) { setError("Enter a positive budget amount."); return; }
     if (!accountId || !categoryId) { setError("Choose an account and category."); return; }
     try {
       compareDates(startDate, startDate); setSaving(true);
-      const payload = { id: editing?.id ?? makeId(), name, categoryId, accountId, period, startDate, endDate: null, amountMinor: toMinorUnits(Number(amount)) };
+      const payload = { id: editing?.id ?? makeId(), name: budgetName, categoryId, accountId, period, startDate, endDate: null, amountMinor: toMinorUnits(Number(amount)) };
       if (editing) await createBudgetRepository(db).update(payload); else await createBudgetRepository(db).create(payload);
       setOpen(false); reset(); await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to save budget."); } finally { setSaving(false); }
@@ -60,8 +60,8 @@ export default function BudgetsScreen() {
     { text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: async () => { try { await createBudgetRepository(db).delete(item.id); await load(); } catch (e) { Alert.alert("Unable to delete", e instanceof Error ? e.message : "Please try again."); } } },
   ]);
 
-  const accountOptions = accounts.map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
-  const categoryOptions = categories.map(c => ({ value: c.id, label: c.name }));
+  const accountOptions = (accounts ?? []).map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
+  const categoryOptions = (categories ?? []).map(c => ({ value: c.id, label: c.name }));
 
   return <SafeAreaView style={[s.safe,{backgroundColor:p.background}]} edges={["top","left","right"]}>
     <View style={s.page}>
@@ -69,7 +69,7 @@ export default function BudgetsScreen() {
       <Text style={[s.sub,{color:p.textMuted}]}>Set spending limits by category and period, then monitor actual spending against each limit.</Text>
       <ScrollView contentContainerStyle={{gap:12,paddingBottom:30}}>
         {items.length===0?<EmptyState icon="chart-donut" title="No budgets yet" message="Create a weekly, monthly, or yearly spending limit." actionLabel="Create a budget" onAction={()=>{reset();setOpen(true)}} palette={p} dark={dark} />:
-        items.map(item=><View key={item.id} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>
+        (items ?? []).map(item=><View key={item.id} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>
           <View style={s.row}><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{item.name}</Text><Text style={{color:p.textMuted,fontSize:11,marginTop:3}}>{item.categoryName} · {item.accountName} · {item.period}</Text></View><View style={s.rowActions}><Pressable onPress={()=>openEdit(item)}><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>Edit</Text></Pressable><Pressable onPress={()=>remove(item)}><Text style={s.delete}>Delete</Text></Pressable></View></View>
           <View style={s.moneyRow}><Text style={[s.spent,{color:p.text}]}>{fmt(item.spentMinor,item.currencyCode)}</Text><Text style={{color:p.textMuted,fontSize:12}}>of {fmt(item.amountMinor,item.currencyCode)}</Text></View>
           <View style={[s.track,{backgroundColor:dark?"#332B2B":"#EEEFF2"}]}><View style={[s.fill,{width:Math.min(100,Math.round(item.progress*100))+"%",backgroundColor:item.progress>1?p.primary:p.income}]} /></View>
