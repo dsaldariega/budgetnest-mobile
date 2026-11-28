@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
+import { spacing, typography, radius } from "@/theme/tokens";
 import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
@@ -199,11 +200,11 @@ const styles = StyleSheet.create({
   page: { flex: 1, paddingHorizontal: 18, paddingTop: 14 },
   header: { flexDirection: "row", alignItems: "center", gap: 11 },
   eyebrow: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  title: { fontSize: 26, fontWeight: "900", marginTop: 2 },
+  title: { fontSize: typography.screenTitle, fontWeight: "900", marginTop: 2 },
   refresh: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   subtitle: { fontSize: 12, lineHeight: 18, marginTop: 9, marginBottom: 15 },
   summaryRow: { flexDirection: "row", gap: 9, marginBottom: 14 },
-  summaryCard: { flex: 1, borderWidth: 1, borderRadius: 13, padding: 12, gap: 5 },
+  summaryCard: { flex: 1, borderWidth: 1, borderRadius: radius.md, padding: 12, gap: 5 },
   summaryLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 0.5 },
   summaryValue: { fontSize: 23, fontWeight: "900" },
   searchBox: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 9 },
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
   dateFilterRow: { flexDirection: "row", gap: 7 },
   chip: { minHeight: 36, borderWidth: 1, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   list: { gap: 9, paddingTop: 14, paddingBottom: 30 },
-  activityCard: { borderWidth: 1, borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "flex-start", gap: 11 },
+  activityCard: { borderWidth: 1, borderRadius: radius.md, padding: 12, flexDirection: "row", alignItems: "flex-start", gap: 11 },
   activityIcon: { width: 39, height: 39, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   activityCopy: { flex: 1, gap: 4 },
   itemTitle: { fontSize: 13, fontWeight: "800" },
