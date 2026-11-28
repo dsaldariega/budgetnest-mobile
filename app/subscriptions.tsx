@@ -46,7 +46,7 @@ export default function SubscriptionsScreen() {
         createAccountRepository(db).list(),
         db.getAllAsync<{ id: string; name: string }>("SELECT id, name FROM categories WHERE type = 'expense' AND source_name = 'subscription' ORDER BY name COLLATE NOCASE"),
       ]);
-      setItems(subs); setAccounts(acc.filter(a => !a.isArchived)); setCategories(cats);
+      setItems(Array.isArray(subs) ? subs : []); setAccounts((Array.isArray(acc) ? acc : []).filter(a => !a.isArchived)); setCategories(Array.isArray(cats) ? cats : []);
       setAccountId(v => v || acc.find(a => !a.isArchived)?.id || "");
       setCategoryId(v => v || cats.find(c => /general|other|misc/i.test(c.name) && !/cloud services/i.test(c.name))?.id || cats[0]?.id || "");
       if (selected) {
@@ -125,8 +125,8 @@ export default function SubscriptionsScreen() {
     }}],
   );
 
-  const accountOptions = accounts.map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
-  const categoryOptions = categories.map(c => ({ value: c.id, label: c.name }));
+  const accountOptions = (accounts ?? []).map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
+  const categoryOptions = (categories ?? []).map(c => ({ value: c.id, label: c.name }));
 
   return <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top","left","right"]}>
     <View style={s.page}>
@@ -134,7 +134,7 @@ export default function SubscriptionsScreen() {
       <Text style={[s.sub,{color:p.textMuted}]}>Manage services and memberships that require periodic payment. Recording a payment updates the linked account and transaction history.</Text>
       <ScrollView contentContainerStyle={{gap:12,paddingBottom:30}}>
         {items.length===0?<View style={[s.empty,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={[s.cardTitle,{color:p.text}]}>No subscriptions yet</Text><Text style={{color:p.textMuted,marginTop:6,textAlign:"center"}}>Add services such as Netflix, cloud storage, software, or a gym membership.</Text><Pressable onPress={()=>{reset();setFormOpen(true)}} style={[s.primary,{backgroundColor:p.primary}]}><Text style={s.primaryText}>Add a subscription</Text></Pressable></View>:
-        items.map(item=><Pressable key={item.id} onPress={()=>void openSubscription(item)} style={[s.card,{backgroundColor:p.surface,borderColor:p.border,opacity:item.isActive?1:0.7}]}>
+        (items ?? []).map(item=><Pressable key={item.id} onPress={()=>void openSubscription(item)} style={[s.card,{backgroundColor:p.surface,borderColor:p.border,opacity:item.isActive?1:0.7}]}>
           <View style={s.row}><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{item.name}</Text><Text style={{color:p.textMuted,fontSize:11,marginTop:3}}>{billingCycleLabel(item.billingCycle)} · {item.accountName??"No account"}{item.categoryName?" · "+item.categoryName:""}</Text></View><Text style={[s.status,{color:item.isActive?p.primary:p.textMuted}]}>{item.isActive?"Active":"Paused"}</Text></View>
           <View style={s.moneyRow}><Text style={[s.big,{color:p.text}]}>{fmt(item.amountMinor,item.currencyCode)}</Text><Text style={{color:p.textMuted,fontSize:11}}>per {item.billingCycle==="yearly"?"year":item.billingCycle==="quarterly"?"quarter":item.billingCycle==="weekly"?"week":"month"}</Text></View>
           <View style={s.moneyRow}><Text style={{color:p.textMuted,fontSize:12}}>Next billing</Text><Text style={{color:p.text,fontWeight:"700"}}>{item.nextBillingDate||"—"}</Text></View>
@@ -166,7 +166,7 @@ export default function SubscriptionsScreen() {
           <Pressable onPress={()=>void toggle(selected)} style={[s.secondary,{borderColor:p.border}]}><Text style={{color:p.text,fontWeight:"700"}}>{selected.isActive?"Pause subscription":"Resume subscription"}</Text></Pressable>
           <Pressable onPress={()=>remove(selected)} style={s.dangerButton}><Text style={s.dangerText}>Delete subscription</Text></Pressable>
           <Text style={[s.section,{color:p.text}]}>Payment history</Text>
-          {payments.length===0?<Text style={{color:p.textMuted}}>No payments recorded yet.</Text>:payments.map(payment=><Pressable key={payment.id} onLongPress={()=>removePayment(payment)} style={[s.payment,{backgroundColor:p.surface,borderColor:p.border}]}><View style={s.row}><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{fmt(payment.amountMinor,selected.currencyCode)}</Text><Text style={{color:p.textMuted,fontSize:11,marginTop:3}}>Billing {payment.billingDate} · Paid {payment.paidAt.slice(0,10)}</Text></View><Text style={{color:p.textMuted,fontSize:11}}>Hold to delete</Text></View>{payment.notes?<Text style={{color:p.textMuted,fontSize:11,marginTop:5}}>{payment.notes}</Text>:null}</Pressable>)}
+          {payments.length===0?<Text style={{color:p.textMuted}}>No payments recorded yet.</Text>:(payments ?? []).map(payment=><Pressable key={payment.id} onLongPress={()=>removePayment(payment)} style={[s.payment,{backgroundColor:p.surface,borderColor:p.border}]}><View style={s.row}><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{fmt(payment.amountMinor,selected.currencyCode)}</Text><Text style={{color:p.textMuted,fontSize:11,marginTop:3}}>Billing {payment.billingDate} · Paid {payment.paidAt.slice(0,10)}</Text></View><Text style={{color:p.textMuted,fontSize:11}}>Hold to delete</Text></View>{payment.notes?<Text style={{color:p.textMuted,fontSize:11,marginTop:5}}>{payment.notes}</Text>:null}</Pressable>)}
         </ScrollView>:null}
       </SafeAreaView>
     </Modal>
