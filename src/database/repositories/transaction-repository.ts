@@ -69,10 +69,10 @@ export function createTransactionRepository(db: SQLiteDatabase) {
       );
       return row ? mapTransaction(row) : null;
     },
-    async listCategories(type: "income" | "expense") {
+    async listCategories(type: "income" | "expense", includeCategoryId?: string | null) {
       return db.getAllAsync<{ id: string; name: string }>(
-        "SELECT id, name FROM categories WHERE type = ? ORDER BY is_system DESC, name COLLATE NOCASE",
-        type,
+        "SELECT id, name FROM categories WHERE type = ? AND (id = ? OR ((source_name IS NULL OR source_name <> 'subscription') AND id NOT IN ('cat-income-loan', 'cat-expense-savings'))) ORDER BY is_system DESC, name COLLATE NOCASE",
+        type, includeCategoryId ?? null,
       );
     },
     async create(input: CreateSimpleTransactionInput): Promise<void> {

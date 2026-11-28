@@ -11,6 +11,7 @@ import { compareDates, todayLocalDate } from "@/domain/dates";
 import { colors } from "@/theme/colors";
 import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
+import { ScreenBackButton } from "@/components/ui/screen-back-button";
 
 const makeId = (p: string) => p + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 const today = todayLocalDate;
@@ -78,7 +79,7 @@ export default function GoalsScreen() {
   ]);
   return <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
     <View style={s.page}>
-      <View style={s.header}><View><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>SAVE WITH PURPOSE</Text><Text style={[s.title, { color: p.text }]}>Goals</Text></View><Pressable onPress={() => { reset(); setOpen(true); }} style={[s.add, { backgroundColor: p.primary }]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable></View>
+      <View style={s.header}><ScreenBackButton backgroundColor={p.surface} borderColor={p.border} color={p.text}/><View style={{ flex: 1 }}><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>SAVE WITH PURPOSE</Text><Text style={[s.title, { color: p.text }]}>Goals</Text></View>{items.length > 0 ? <Pressable onPress={() => { reset(); setOpen(true); }} style={[s.add, { backgroundColor: p.primary }]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable> : null}</View>
       <Text style={[s.sub, { color: p.textMuted }]}>Build progress toward something that matters to you.</Text>
       <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={[s.cardTitle, { color: p.text }]}>No savings goals yet</Text><Text style={{ color: p.textMuted, marginTop: 6 }}>Create a goal, then record contributions as you save.</Text><Pressable onPress={() => setOpen(true)} style={[s.primary, { backgroundColor: p.primary }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>Create a goal</Text></Pressable></View> :

@@ -52,7 +52,7 @@ export const colors: Record<"light" | "dark", ThemeColors> = {
     primary: "#EF5350",
     primaryLight: "#FF796D",
     primaryDark: "#C62828",
-    onPrimary: "#FFFFFF",
+    onPrimary: "#1A1A1A",
     primaryText: "#FF796D",
     primarySoft: "#3A2224",
     secondary: "#A7AFB8",

@@ -5,12 +5,10 @@
 The Home tab is a local SQLite-backed financial overview.
 
 It presents:
-- active account balances grouped by currency (currencies are never added together)
+- a hero showing active account balances grouped by currency (currencies are never added together)
 - current-month income, expenses, and net cash flow grouped by currency
-- quick access to Activity, Accounts, Budgets, and Savings
-- active budget progress and savings goal progress
-- upcoming or overdue subscription bills
-- active and paused loan obligations
+- a prominent Log Expense action
+- an active budget preview
 - the five most recent financial history entries
 
 The dashboard uses the existing repositories and domain calculations. It is a read-only overview; financial records continue to be created and maintained in their dedicated screens.

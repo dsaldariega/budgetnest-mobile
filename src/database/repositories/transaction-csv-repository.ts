@@ -40,7 +40,7 @@ export function createTransactionCsvRepository(db: SQLiteDatabase) {
                 t.description, t.occurred_at
          FROM transactions t
          LEFT JOIN categories c ON c.id = t.category_id
-         WHERE t.type IN ('income', 'expense')`,
+         WHERE t.deleted_at IS NULL AND t.type IN ('income', 'expense')`,
       );
 
       const accountKey = (name: string, currency: string) =>

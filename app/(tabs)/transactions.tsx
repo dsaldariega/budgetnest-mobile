@@ -21,13 +21,11 @@ const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "c
 const makeId = (prefix: string) => prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
 const today = todayLocalDate;
 
-type FormKind = "income" | "expense" | "transfer" | "loan" | "savings";
-const kindLabel: Record<FormKind, string> = { income: "Income", expense: "Expense", transfer: "Transfer", loan: "Loans", savings: "Savings" };
+type FormKind = "income" | "expense" | "transfer";
+const kindLabel: Record<FormKind, string> = { income: "Income", expense: "Expense", transfer: "Transfer" };
 
 function transactionKind(item: TransactionListItem): FormKind {
   if (item.type === "transfer") return "transfer";
-  if (item.categoryId === "cat-income-loan") return "loan";
-  if (item.categoryId === "cat-expense-savings") return "savings";
   return item.type;
 }
 
@@ -98,14 +96,12 @@ export default function TransactionsScreen() {
 
   const accountOptions = accounts.map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
   const categoryOptions = categories;
-  const loadCategories = useCallback(async (kind: FormKind) => {
+  const loadCategories = useCallback(async (kind: FormKind, includeCategoryId?: string | null) => {
     if (kind === "transfer") { setCategories([]); setCategoryId(""); return; }
-    const actualType = kind === "loan" ? "income" : kind === "savings" ? "expense" : kind;
-    const rows = await txRepo.listCategories(actualType);
+    const rows = await txRepo.listCategories(kind, includeCategoryId);
     setCategories(rows.map(row => ({ value: row.id, label: row.name })));
-    const preferred = kind === "loan" ? "cat-income-loan" : kind === "savings" ? "cat-expense-savings" : "";
-    setCategoryId(current => rows.some(row => row.id === current) ? current : rows.some(row => row.id === preferred) ? preferred : rows[0]?.id ?? "");
-    setName(current => current.trim() ? current : (rows.find(row => row.id === preferred)?.name ?? rows[0]?.name ?? ""));
+    setCategoryId(current => rows.some(row => row.id === current) ? current : rows[0]?.id ?? "");
+    setName(current => current.trim() ? current : (rows[0]?.name ?? ""));
   }, [txRepo]);
 
   const resetForm = (kind: FormKind = "expense") => {
@@ -140,7 +136,7 @@ export default function TransactionsScreen() {
       setDestinationAccountId("");
     }
     setCategoryId(transaction.categoryId ?? ""); setNote(transaction.notes ?? ""); setOccurredAt(transaction.occurredAt.slice(0, 10)); setError("");
-    await loadCategories(transactionKind(transaction)); setFormOpen(true);
+    await loadCategories(transactionKind(transaction), transaction.categoryId); setFormOpen(true);
   };
   const remove = (item: HistoryItem) => {
     const historyTransactionKind = item.kind === "income"
@@ -181,11 +177,9 @@ export default function TransactionsScreen() {
         if (editing) await txRepo.updateTransfer(editing.id, { sourceAccountId: accountId, destinationAccountId, amountMinor, description: name, notes: note, occurredAt });
         else await txRepo.createTransfer({ groupId: makeId("transfer"), sourceAccountId: accountId, destinationAccountId, amountMinor, description: name, notes: note, occurredAt });
       } else {
-        const actualType = formKind === "loan" ? "income" : formKind === "savings" ? "expense" : formKind;
-        const actualCategory = formKind === "loan" ? "cat-income-loan" : formKind === "savings" ? "cat-expense-savings" : categoryId;
-        if (!actualCategory) { setError("Choose a category."); return; }
-        if (editing) await txRepo.update(editing.id, { accountId, categoryId: actualCategory, type: actualType, amountMinor, description: name, notes: note, occurredAt });
-        else await txRepo.create({ id: makeId("transaction"), accountId, categoryId: actualCategory, type: actualType, amountMinor, description: name, notes: note, occurredAt });
+        if (!categoryId) { setError("Choose a category."); return; }
+        if (editing) await txRepo.update(editing.id, { accountId, categoryId, type: formKind, amountMinor, description: name, notes: note, occurredAt });
+        else await txRepo.create({ id: makeId("transaction"), accountId, categoryId, type: formKind, amountMinor, description: name, notes: note, occurredAt });
       }
       setFormOpen(false); resetForm(); await load();
     } catch (e) {
@@ -263,7 +257,7 @@ export default function TransactionsScreen() {
               <View style={s.quickAmounts}>{[50, 100, 200, 500].map(value => <Pressable key={value} onPress={() => setAmount(current => String((Number(current) || 0) + value))} style={[s.quickChip, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={{ color: p.primary, fontWeight: "800", fontSize: 12 }}>+{value}</Text></Pressable>)}</View>
               <Text style={[s.label, { color: p.text }]}>Category</Text>
               <ChipGroup
-                options={categoryOptions.slice(0, 9)}
+                options={categoryOptions}
                 value={categoryId}
                 onChange={(value) => {
                   setCategoryId(value);

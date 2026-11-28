@@ -18,6 +18,7 @@ const MENU_GROUPS = [
     title: "Planning & Commitments",
     items: [
       { label: "Goals", icon: "bullseye-arrow", route: "/goals" },
+      { label: "Budgets", icon: "chart-donut", route: "/budgets" },
       { label: "Loans", icon: "bank-outline", route: "/loans" },
       { label: "Subscriptions", icon: "calendar-clock", route: "/subscriptions" },
       { label: "Recurring", icon: "repeat", route: "/recurring" },

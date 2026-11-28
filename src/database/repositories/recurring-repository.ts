@@ -49,6 +49,7 @@ export function createRecurringRepository(db: SQLiteDatabase) {
       const now=new Date().toISOString();
       if(existing) {
         const next=existing.generated_count>0?existing.next_occurrence_date:input.startDate;
+        if(compareDates(next,input.startDate)<0) throw new Error("Start date cannot be after the next scheduled date ("+next+").");
         if(input.endDate&&compareDates(next,input.endDate)>0) throw new Error("The next scheduled date is after the selected end date.");
         await db.runAsync("UPDATE recurring_rules SET name=?,type=?,amount_minor=?,account_id=?,category_id=?,frequency=?,interval_count=?,start_date=?,next_occurrence_date=?,end_date=?,updated_at=? WHERE id=?",
           name,input.type,input.amountMinor,input.accountId,input.categoryId,input.frequency,input.intervalCount,input.startDate,next,input.endDate??null,now,input.id);

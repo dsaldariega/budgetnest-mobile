@@ -30,4 +30,5 @@ export const SYSTEM_CATEGORIES: SystemCategorySeed[] = [
   { id: "cat-sub-productivity", name: "Productivity", type: "expense", icon: "calendar-check-outline", isSystem: 1, sourceName: "subscription" },
   { id: "cat-sub-education", name: "Education", type: "expense", icon: "school-outline", isSystem: 1, sourceName: "subscription" },
   { id: "cat-sub-other", name: "Other", type: "expense", icon: "dots-horizontal-circle-outline", isSystem: 1, sourceName: "subscription" },
+  { id: "cat-sub-general", name: "General", type: "expense", icon: "tag-outline", isSystem: 1, sourceName: "subscription" },
 ];

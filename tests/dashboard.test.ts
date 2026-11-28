@@ -5,7 +5,7 @@ import test from "node:test";
 const dashboard = readFileSync("app/(tabs)/index.tsx", "utf8");
 const transactions = readFileSync("app/(tabs)/transactions.tsx", "utf8");
 const accounts = readFileSync("app/(tabs)/accounts.tsx", "utf8");
-const budgets = readFileSync("app/(tabs)/budgets.tsx", "utf8");
+const budgets = readFileSync("app/budgets.tsx", "utf8");
 const reports = readFileSync("app/reports.tsx", "utf8");
 
 test("home combines total balance and selected-month cash flow in one hero", () => {
