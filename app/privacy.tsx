@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
-import { spacing, typography, radius } from "@/theme/tokens";
+import { typography, radius } from "@/theme/tokens";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
