@@ -78,7 +78,7 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
     () => getExportDateRange(period, startDate, endDate),
     [period, startDate, endDate],
   );
-  const validDate = (value: string) => /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+  const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(value + "T00:00:00.000Z")) &&
     new Date(value + "T00:00:00.000Z").toISOString().slice(0, 10) === value;
   const dateInvalid = period === "custom" &&
@@ -196,7 +196,7 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: palette.text }]}>Transaction data</Text>
           <Text style={[styles.description, { color: palette.textMuted }]}>
-            Move income and expense records between BudgetNest and a spreadsheet.
+            Export or import your income and expense records as CSV files.
           </Text>
         </View>
       </View>
@@ -216,10 +216,6 @@ export function TransactionDataTools({ onImported }: { onImported?: () => void }
         <MaterialCommunityIcons name="file-download-outline" size={16} color={palette.primary} />
         <Text style={[styles.templateText, { color: palette.primary }]}>Share CSV import template</Text>
       </Pressable>
-
-      <Text style={[styles.note, { color: palette.textMuted }]}>
-        CSV import matches active accounts by name and currency, creates missing categories, and skips duplicate transactions. Transfers are not included. Maximum: 5 MB and 5,000 rows.
-      </Text>
 
       {notice ? (
         <View style={[styles.message, { backgroundColor: dark ? "#203528" : "#E8F5E9" }]}>
@@ -320,7 +316,6 @@ const styles = StyleSheet.create({
   secondaryText: { fontSize: 12, fontWeight: "800" },
   templateButton: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingVertical: 11 },
   templateText: { fontSize: 11, fontWeight: "800" },
-  note: { fontSize: 10, lineHeight: 16, marginTop: 2 },
   message: { borderRadius: 12, padding: 11, marginTop: 12 },
   modal: { flex: 1 },
   modalContent: { padding: 20, paddingBottom: 40 },
@@ -335,5 +330,4 @@ const styles = StyleSheet.create({
   categoryChips: { gap: 7, paddingVertical: 2 },
   errorText: { color: "#D32F2F", fontSize: 11, lineHeight: 16, marginTop: 12 },
   countCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 26, gap: 4 },
-  count: { fontSize: 28, fontWeight: "900" },
 });
