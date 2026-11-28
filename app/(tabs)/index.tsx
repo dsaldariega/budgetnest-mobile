@@ -176,38 +176,6 @@ export default function DashboardScreen() {
           </View>
         )) : <EmptyState icon="chart-donut" title="No active budgets yet" message="Create a budget to set a spending limit and track progress." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
 
-        <SectionHeading title="Savings goals" action="See all" onPress={() => router.push("/(tabs)/goals")} palette={p} />
-        {data.goals.length ? data.goals.map(item => (
-          <View key={item.id} style={[s.listCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={s.listTop}>
-              <View style={[s.smallIcon, { backgroundColor: dark ? "#263B35" : "#E8F5E9" }]}><MaterialCommunityIcons name="bullseye-arrow" size={19} color={p.success} /></View>
-              <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.name}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.targetDate ? `Target ${shortDate(item.targetDate)}` : "No target date"}</Text></View>
-              <Text style={[s.itemAmount, { color: p.text }]}>{Math.round(item.progress * 100)}%</Text>
-            </View>
-            <ProgressBar progress={item.progress} color={p.success} track={p.border} />
-            <Text style={[s.progressCaption, { color: p.textMuted }]}>{money(item.currentAmountMinor, item.currencyCode)} of {money(item.targetAmountMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <Text style={[s.emptyText, { color: p.textMuted }]}>No active savings goals to show.</Text>}
-
-        <SectionHeading title="Upcoming bills" action="See all" onPress={() => router.push("/subscriptions")} palette={p} />
-        {data.subscriptions.length ? data.subscriptions.map(item => {
-          const overdue = item.nextBillingDate < today();
-          return <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={[s.smallIcon, { backgroundColor: dark ? "#3C3323" : "#FFF3E0" }]}><MaterialCommunityIcons name="calendar-clock" size={19} color={p.warning} /></View>
-            <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.name}</Text><Text style={[s.itemSub, { color: overdue ? p.expense : p.textMuted }]}>{overdue ? "Overdue" : "Due"} · {shortDate(item.nextBillingDate)}</Text></View>
-            <Text style={[s.itemAmount, { color: p.text }]}>{money(item.amountMinor, item.currencyCode)}</Text>
-          </View>;
-        }) : <Text style={[s.emptyText, { color: p.textMuted }]}>No upcoming subscription bills.</Text>}
-
-        <SectionHeading title="Loan obligations" action="See all" onPress={() => router.push("/loans")} palette={p} />
-        {data.loans.length ? data.loans.map(item => (
-          <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <View style={[s.smallIcon, { backgroundColor: dark ? "#2B3443" : "#EAF0FA" }]}><MaterialCommunityIcons name="bank-outline" size={19} color={p.secondary} /></View>
-            <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.name}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.status === "paused" ? "Paused" : `Due ${shortDate(item.dueDate)}`}</Text></View>
-            <Text style={[s.itemAmount, { color: p.text }]}>{money(item.remainingMinor, item.currencyCode)}</Text>
-          </View>
-        )) : <Text style={[s.emptyText, { color: p.textMuted }]}>No active loan obligations.</Text>}
-
         <SectionHeading title="Recent activity" action="See all" onPress={() => router.push("/(tabs)/transactions")} palette={p} />
         {data.activity.length ? data.activity.map(item => (
           <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
