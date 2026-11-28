@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
-import { spacing, typography, radius } from "@/theme/tokens";
+import { typography, radius } from "@/theme/tokens";
 import { useCallback,useState } from "react";
 import { Pressable,ScrollView,StyleSheet,Text,View } from "react-native";
 import { useFocusEffect,useRouter } from "expo-router";
