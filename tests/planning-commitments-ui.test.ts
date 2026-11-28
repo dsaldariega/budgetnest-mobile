@@ -38,7 +38,8 @@ test("Phase 6 uses the stronger BudgetNest red palette and shared spacing contra
   const tokens = readFileSync("src/theme/tokens.ts", "utf8");
   assert.match(colors, /primary: "#D32F2F"/);
   assert.match(colors, /primary: "#EF5350"/);
-  assert.match(colors, /light:[\s\S]*onPrimary: "#FFFFFF"/);\n  assert.match(colors, /dark:[\s\S]*onPrimary: "#1A1A1A"/);
+  assert.match(colors, /light:[\s\S]*onPrimary: "#FFFFFF"/);
+  assert.match(colors, /dark:[\s\S]*onPrimary: "#1A1A1A"/);
   assert.match(tokens, /page: 20/);
   assert.match(tokens, /section: 16/);
   assert.match(tokens, /card: 14/);
