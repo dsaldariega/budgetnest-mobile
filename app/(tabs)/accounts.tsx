@@ -79,7 +79,7 @@ export default function AccountsScreen() {
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType>("cash");
   const [currency, setCurrency] = useState("PHP");
-  const [opening, setOpening] = useState("0");
+  const [opening, setOpening] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -115,7 +115,7 @@ export default function AccountsScreen() {
     setName("");
     setType("cash");
     setCurrency("PHP");
-    setOpening("0");
+    setOpening("");
     setError("");
   };
 
