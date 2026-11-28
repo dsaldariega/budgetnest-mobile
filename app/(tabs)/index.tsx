@@ -75,23 +75,18 @@ export default function DashboardScreen() {
         ),
       ]);
 
-      const currencyCodes = new Set([...accounts.map(a => a.currencyCode), ...monthlyRows.map(row => row.currency_code)]);
+      const safeAccounts = Array.isArray(accounts) ? accounts : []; const safeMonthlyRows = Array.isArray(monthlyRows) ? monthlyRows : []; const currencyCodes = new Set([...safeAccounts.map(a => a.currencyCode), ...safeMonthlyRows.map(row => row.currency_code)]);
       const currencies = [...currencyCodes].sort().map(currencyCode => {
         const monthly = monthlyRows.find(row => row.currency_code === currencyCode);
         return {
           currencyCode,
-          balanceMinor: accounts.filter(account => account.currencyCode === currencyCode).reduce((sum, account) => sum + account.balanceMinor, 0),
+          balanceMinor: safeAccounts.filter(account => account.currencyCode === currencyCode).reduce((sum, account) => sum + account.balanceMinor, 0),
           incomeMinor: monthly?.income_minor ?? 0,
           expenseMinor: monthly?.expense_minor ?? 0,
         };
       });
 
-      setData({
-        accounts,
-        currencies,
-        budgets: budgets.filter(item => item.startDate <= date && (!item.endDate || item.endDate >= date)).slice(0, 3),
-        activity,
-      });
+      setData({ accounts: safeAccounts, currencies, budgets: (Array.isArray(budgets) ? budgets : []).filter(item => item.startDate <= date && (!item.endDate || item.endDate >= date)).slice(0, 3), activity: Array.isArray(activity) ? activity : [] });
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to load your financial overview.");
@@ -103,7 +98,7 @@ export default function DashboardScreen() {
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const monthLabel = useMemo(() => new Date().toLocaleDateString("en-PH", { month: "long", year: "numeric" }), []);
-  const totalAccounts = data.accounts.length;
+  const totalAccounts = (data.accounts ?? []).length;
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
@@ -133,9 +128,9 @@ export default function DashboardScreen() {
             </View>
             <View style={s.heroMark}><MaterialCommunityIcons name="sprout" size={22} color="#FFFFFF" /></View>
           </View>
-          {loading ? <Text style={s.heroAmount}>Loading…</Text> : data.currencies.length === 0
+          {loading ? <Text style={s.heroAmount}>Loading…</Text> : (data.currencies ?? []).length === 0
             ? <Text style={s.heroAmount}>No accounts yet</Text>
-            : data.currencies.map(item => (
+            : (data.currencies ?? []).map(item => (
               <View key={item.currencyCode} style={s.balanceLine}>
                 <Text style={s.currencyCode}>{item.currencyCode}</Text>
                 <Text style={s.heroAmount}>{money(item.balanceMinor, item.currencyCode)}</Text>
@@ -168,7 +163,7 @@ export default function DashboardScreen() {
         </Pressable>
 
         <SectionHeading title="Budgets" action="See all" onPress={() => router.push("/(tabs)/budgets")} palette={p} />
-        {data.budgets.length ? data.budgets.map(item => (
+        {(data.budgets ?? []).length ? (data.budgets ?? []).map(item => (
           <View key={item.id} style={[s.listCard, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={s.listTop}>
               <View style={[s.smallIcon, { backgroundColor: dark ? "#263B35" : "#E8F5E9" }]}><MaterialCommunityIcons name="chart-donut" size={19} color={p.success} /></View>
@@ -181,7 +176,7 @@ export default function DashboardScreen() {
         )) : <EmptyState icon="chart-donut" title="No active budgets yet" message="Create a budget to set a spending limit and track progress." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
 
         <SectionHeading title="Recent activity" action="See all" onPress={() => router.push("/(tabs)/transactions")} palette={p} />
-        {data.activity.length ? data.activity.map(item => (
+        {(data.activity ?? []).length ? (data.activity ?? []).map(item => (
           <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={[s.smallIcon, { backgroundColor: dark ? "#30303A" : "#F1F3F7" }]}><MaterialCommunityIcons name={item.kind === "income" ? "arrow-down-circle-outline" : item.kind === "expense" ? "arrow-up-circle-outline" : item.kind === "savings" ? "piggy-bank-outline" : "swap-horizontal"} size={19} color={item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.secondary} /></View>
             <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]} numberOfLines={1}>{item.title}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.subtitle} · {new Date(item.occurredAt).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}</Text></View>
