@@ -4,9 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
-import { colors } from "@/theme/colors";
 
 const FEATURES = [
   { icon: "wallet-outline", title: "Accounts and transactions", detail: "Track accounts, income, expenses, and transfers in one place." },
@@ -53,7 +51,7 @@ export default function AboutScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
-          <BudgetNestBrand color={palette.text} size={23} /><Text style={[styles.title, { color: palette.text }]}>About & Help</Text>
+          <View style={{ flex: 1 }}><Text style={[styles.title, { color: palette.text }]}>About & Help</Text></View>
         </View>
 
         <View style={[styles.hero, { backgroundColor: palette.primaryDark }]}>
