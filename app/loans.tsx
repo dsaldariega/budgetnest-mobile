@@ -50,7 +50,7 @@ export default function LoansScreen() {
   const load = useCallback(async () => {
     try {
       const [items, acc] = await Promise.all([createLoanRepository(db).list(), createAccountRepository(db).list()]);
-      setLoans(items); setAccounts(acc.filter(a => !a.isArchived));
+      setLoans(Array.isArray(items) ? items : []); setAccounts((Array.isArray(acc) ? acc : []).filter(a => !a.isArchived));
       setAccountId(v => v || acc.find(a => !a.isArchived)?.id || "");
       if (selected) {
         const fresh = items.find(item => item.id === selected.id) ?? null;
@@ -125,7 +125,7 @@ export default function LoansScreen() {
     catch (e) { Alert.alert("Unable to update loan", e instanceof Error ? e.message : "Please try again."); }
   };
 
-  const accountOptions = accounts.map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
+  const accountOptions = (accounts ?? []).map(a => ({ value: a.id, label: a.name, description: a.currencyCode + " · " + fmt(a.balanceMinor, a.currencyCode) }));
 
   return <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
     <View style={s.page}>
@@ -137,7 +137,7 @@ export default function LoansScreen() {
       <Text style={[s.sub, { color: p.textMuted }]}>Track flat-rate loans, repayments, and the account receiving the loan proceeds.</Text>
       <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }}>
         {loans.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={[s.cardTitle, { color: p.text }]}>No loans yet</Text><Text style={{ color: p.textMuted, marginTop: 6, textAlign: "center" }}>Add a loan with its linked account and repayment dates.</Text><Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.primary, { backgroundColor: p.primary }]}><Text style={s.primaryText}>Add a loan</Text></Pressable></View> :
-        loans.map(loan => <Pressable key={loan.id} onPress={() => void openLoan(loan)} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
+        (loans ?? []).map(loan => <Pressable key={loan.id} onPress={() => void openLoan(loan)} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
           <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{loan.name}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>Flat rate · {loan.monthlyInterestRateBps / 100}% monthly · {loan.accountName ?? "No account"}</Text></View><Text style={[s.status, { color: loan.status === "paid" ? p.success : loan.status === "paused" ? p.warning : p.primary }]}>{loan.status}</Text></View>
           <View style={s.moneyRow}><Text style={[s.big, { color: p.text }]}>{fmt(loan.remainingMinor, loan.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 11 }}>remaining</Text></View>
           <View style={s.moneyRow}><Text style={{ color: p.textMuted, fontSize: 12 }}>Monthly estimate</Text><Text style={{ color: p.text, fontWeight: "700" }}>{fmt(loan.scheduledPaymentMinor, loan.currencyCode)}</Text></View>
@@ -175,7 +175,7 @@ export default function LoansScreen() {
           {selected.status !== "paid" ? <Pressable onPress={() => void togglePause(selected)} style={[s.secondary, { borderColor: p.border }]}><Text style={{ color: p.text, fontWeight: "700" }}>{selected.status === "active" ? "Pause loan" : "Resume loan"}</Text></Pressable> : null}
           <Pressable onPress={() => deleteLoan(selected)} style={s.dangerButton}><Text style={s.dangerText}>Delete loan and history</Text></Pressable>
           <Text style={[s.section, { color: p.text }]}>Payment history</Text>
-          {payments.length === 0 ? <Text style={{ color: p.textMuted }}>No payments recorded yet.</Text> : payments.map(payment => <View key={payment.id} style={[s.payment, { backgroundColor: p.surface, borderColor: p.border }]}>
+          {payments.length === 0 ? <Text style={{ color: p.textMuted }}>No payments recorded yet.</Text> : (payments ?? []).map(payment => <View key={payment.id} style={[s.payment, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{fmt(payment.amountMinor, selected.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{payment.paymentDate}</Text></View><Text style={{ color: p.textMuted, fontSize: 11 }}>Interest {fmt(payment.interestPaidMinor, selected.currencyCode)}</Text></View>
             <Text style={{ color: p.textMuted, fontSize: 11, marginTop: 5 }}>Principal {fmt(payment.principalPaidMinor, selected.currencyCode)}{payment.notes ? " · " + payment.notes : ""}</Text>
           </View>)}
