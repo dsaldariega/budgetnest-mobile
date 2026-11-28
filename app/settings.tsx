@@ -277,8 +277,10 @@ export default function SettingsScreen() {
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
 
-          <Text style={[styles.cardTitle, { color: palette.text }]}>CSV & device data</Text>
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>Records stay in local SQLite. CSV tools above move transaction data between BudgetNest and a spreadsheet.</Text>
+          <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>YOUR DATA ON THIS DEVICE</Text>
+          <Text style={[styles.dataSummary, { color: palette.text }]}>
+            Records on this device: {overview ? formatCount(totalRecords) : "—"} · Local storage
+          </Text>
           <Pressable onPress={() => setExpandedDataSection(expandedDataSection === "csv" ? null : "csv")} style={styles.expandRow}>
             <View style={{ flex: 1 }}><Text style={[styles.expandTitle, { color: palette.text }]}>CSV import rules & template</Text><Text style={[styles.expandHint, { color: palette.textMuted }]}>Columns, matching, duplicates, and limits</Text></View>
             <MaterialCommunityIcons name={expandedDataSection === "csv" ? "chevron-up" : "chevron-down"} size={20} color={palette.textMuted} />
@@ -289,13 +291,6 @@ export default function SettingsScreen() {
             <MaterialCommunityIcons name={expandedDataSection === "technical" ? "chevron-up" : "chevron-down"} size={20} color={palette.textMuted} />
           </Pressable>
           {expandedDataSection === "technical" ? <View style={styles.expandBody}><Text style={[styles.expandLine, { color: palette.textMuted }]}>Storage: Local SQLite on this device</Text><Text style={[styles.expandLine, { color: palette.textMuted }]}>Records: {overview ? formatCount(totalRecords) : "—"}</Text><Text style={[styles.expandLine, { color: palette.textMuted }]}>Database version: {overview?.schemaVersion ?? "—"}</Text></View> : null}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <BudgetNestBrand color={palette.text} size={38} />
-          <Text style={[styles.cardDescription, { color: palette.textMuted }]}>
-            A private, local-first personal finance tracker. No account or cloud connection is required for normal use.
-          </Text>
         </View>
 
         {error ? (
