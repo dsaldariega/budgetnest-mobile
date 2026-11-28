@@ -273,6 +273,7 @@ const s = StyleSheet.create({
   progressCaption: { fontSize: 10, fontWeight: "600" },
   activityRow: { borderWidth: 1, borderRadius: 14, padding: 11, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 9 },
   errorText: { fontSize: 12, marginTop: 10 },
-  loadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 8 },\n  loadingText: { fontSize: 11 },
+  loadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 8 },
+  loadingText: { fontSize: 11 },
   footerText: { fontSize: 10, textAlign: "center", marginTop: 14 },
 });
