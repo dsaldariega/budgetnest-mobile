@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGoogleAuth } from "@/context/google-auth-context";
-import { useThemePreference } from "@/context/theme-context";
-import { colors } from "@/theme/colors";
+import { useAppTheme } from "@/theme/use-app-theme";
 
 type GoogleConnectModalProps = {
   visible: boolean;
@@ -13,9 +12,7 @@ type GoogleConnectModalProps = {
 
 export function GoogleConnectModal({ visible, onClose, onConnected }: GoogleConnectModalProps) {
   const { signIn, signingIn, error, clearError, isGoogleAuthAvailable } = useGoogleAuth();
-  const { mode } = useThemePreference();
-  const dark = mode === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
 
   useEffect(() => {
     if (visible) clearError();
