@@ -15,6 +15,7 @@ import { toMinorUnits } from "@/domain/money";
 import { SelectField, type SelectOption } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
 import { Button, ChipGroup, TextField } from "@/components/ui";
+import { spacing, typography } from "@/theme/tokens";
 import { colors } from "@/theme/colors";
 
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
@@ -272,7 +273,7 @@ export default function TransactionsScreen() {
               {showNote ? <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]} /> : null}
             </>}
             {error ? <Text style={[s.errorText, { color: p.expense }]}>{error}</Text> : null}
-            <Button label={saving ? "Saving…" : editing ? "Save changes" : "Save transaction"} onPress={() => void save()} loading={saving} fullWidth />
+            <Button label={saving ? "Saving…" : editing ? "Save changes" : "Save transaction"} onPress={() => void save()} loading={saving} fullWidth style={{ marginTop: spacing["2xl"] }} />
           </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -314,8 +315,8 @@ const s = StyleSheet.create({
   list:{gap:10,paddingTop:14,paddingBottom:40},card:{borderWidth:1,borderRadius:16,padding:14},itemRow:{flexDirection:"row",alignItems:"center",gap:10},dot:{width:9,height:9,borderRadius:5},
   itemTitle:{fontSize:14,fontWeight:"700"},bottom:{flexDirection:"row",justifyContent:"space-between",gap:10,marginTop:12},rowActions:{flexDirection:"row",justifyContent:"flex-end",gap:18,marginTop:12,paddingTop:10,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:"rgba(100,116,139,0.18)"},
   empty:{borderWidth:1,borderRadius:16,padding:22,marginTop:12,alignItems:"center"},primaryButton:{minHeight:48,borderRadius:13,alignItems:"center",justifyContent:"center",paddingHorizontal:16,marginTop:16},primaryButtonText:{color:"#fff",fontSize:13,fontWeight:"800"},
-  error:{borderRadius:14,padding:12,marginTop:8},errorText:{fontSize:13,marginTop:12},modal:{flex:1},form:{padding:22,paddingBottom:48},modalTitle:{fontSize:23,fontWeight:"900"},
-  label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},kindRow:{flexDirection:"row",flexWrap:"wrap",gap:7},kindChip:{borderWidth:1,borderRadius:20,paddingHorizontal:10,paddingVertical:9},
+  error:{borderRadius:14,padding:12,marginTop:8},errorText:{fontSize:13,marginTop:12},modal:{flex:1},form:{padding:spacing.form.padding,paddingBottom:48},modalTitle:{fontSize:23,fontWeight:"900"},
+  label:{fontSize:typography.label,fontWeight:"700",marginTop:spacing.lg,marginBottom:spacing.sm},kindRow:{flexDirection:"row",flexWrap:"wrap",gap:7},kindChip:{borderWidth:1,borderRadius:20,paddingHorizontal:10,paddingVertical:9},
   input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},detail:{padding:22,paddingBottom:48},detailCard:{borderWidth:1,borderRadius:18,padding:18,marginTop:18},hero:{fontSize:30,fontWeight:"800",marginTop:7,marginBottom:16},
   detailRow:{flexDirection:"row",justifyContent:"space-between",alignItems:"flex-start",gap:16,paddingVertical:9,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:"rgba(100,116,139,0.18)"},noteCard:{borderWidth:1,borderRadius:16,padding:16,marginTop:10},
 });
