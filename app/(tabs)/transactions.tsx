@@ -190,6 +190,13 @@ export default function TransactionsScreen() {
     }
   };
   const openNew = async () => { resetForm(); try { const recent = await txRepo.listRecent(1); const recentAccountId = recent[0]?.accountId; if (recentAccountId && accounts.some(account => account.id === recentAccountId)) setAccountId(recentAccountId); } catch {} setFormOpen(true); };
+  const { quick } = useLocalSearchParams<{ quick?: string }>();
+  useFocusEffect(useCallback(() => {
+    if (quick === "expense") {
+      void openNew();
+      router.setParams({ quick: undefined });
+    }
+  }, [quick, router]));
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>

@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { createReportRepository, type ReportCurrencySummary,type ReportCategoryTotal,type ReportMonthTotal } from "@/database/repositories/report-repository";
 import { colors } from "@/theme/colors";
+import { EmptyState } from "@/components/EmptyState";
 import { addMonthsClamped, todayLocalDate } from "@/domain/dates";
 type Period="month"|"quarter"|"year";
 const today = todayLocalDate;
@@ -23,7 +24,7 @@ export default function ReportsScreen(){
   <View style={s.periods}>{(["month","quarter","year"] as Period[]).map(v=><Pressable key={v} onPress={()=>setPeriod(v)} style={[s.period,{backgroundColor:period===v?p.primary:p.surface,borderColor:period===v?p.primary:p.border}]}><Text style={{color:period===v?"#fff":p.text,fontWeight:"700",textTransform:"capitalize"}}>{v==="month"?"This month":v==="quarter"?"3 months":"This year"}</Text></Pressable>)}</View>
   <ScrollView contentContainerStyle={{gap:13,paddingBottom:32}}>
    {error?<Text style={{color:p.expense}}>{error}</Text>:null}
-   {summary.length===0?<View style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={{color:p.text,fontWeight:"700"}}>No financial activity in this period</Text><Text style={{color:p.textMuted,marginTop:5}}>Income and expenses will appear here once recorded.</Text></View>:summary.map(x=><View key={x.currencyCode} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>
+   {summary.length===0?<EmptyState icon="chart-box-outline" title="No financial activity yet" message="Record an expense or income to start seeing reports for this period." actionLabel="Log Expense" onAction={()=>router.push("/(tabs)/transactions")} palette={p} dark={dark} />:summary.map(x=><View key={x.currencyCode} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>
     <Text style={[s.section,{color:p.text}]}>{x.currencyCode} overview</Text>
     <View style={s.metric}><Text style={{color:p.textMuted}}>Income</Text><Text style={{color:p.income,fontWeight:"800"}}>{money(x.incomeMinor,x.currencyCode)}</Text></View>
     <View style={s.metric}><Text style={{color:p.textMuted}}>Expenses</Text><Text style={{color:p.expense,fontWeight:"800"}}>{money(x.expenseMinor,x.currencyCode)}</Text></View>
