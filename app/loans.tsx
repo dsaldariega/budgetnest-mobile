@@ -146,8 +146,7 @@ export default function LoansScreen() {
       </ScrollView>
     </View>
 
-    <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      onRequestClose={() => setFormOpen(false)}>
+    <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFormOpen(false)}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{editing ? "Edit loan" : "Add loan"}</Text><Text style={{ color: p.textMuted, fontSize: 12, marginTop: 3 }}>Set the amount, linked account, and repayment dates.</Text></View><Pressable onPress={() => setFormOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
@@ -163,8 +162,7 @@ export default function LoansScreen() {
     </KeyboardAvoidingView>
     </Modal>
 
-    <Modal visible={selected !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      onRequestClose={() => setSelected(null)}>
+    <Modal visible={selected !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
         {selected ? <ScrollView contentContainerStyle={s.form}>
@@ -189,8 +187,7 @@ export default function LoansScreen() {
     </KeyboardAvoidingView>
     </Modal>
 
-    <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      onRequestClose={() => setPaymentOpen(false)}>
+    <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPaymentOpen(false)}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Record payment</Text><Pressable onPress={() => setPaymentOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
