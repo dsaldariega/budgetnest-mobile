@@ -48,6 +48,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const dark = useColorScheme() === "dark";
   const p = dark ? colors.dark : colors.light;
+  const wideLayout = false;
   const [data, setData] = useState<DashboardData>({
     accounts: [], currencies: [], budgets: [], activity: [],
   });
