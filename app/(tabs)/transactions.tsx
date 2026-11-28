@@ -223,7 +223,7 @@ export default function TransactionsScreen() {
           <View style={s.filters}>{(["all", "income", "expense", "transfer", "loan", "subscription", "savings"] as HistoryFilter[]).map(kind => <Pressable key={kind} onPress={() => setFilter(kind)} style={[s.filter, { backgroundColor: filter === kind ? p.primary : p.surface, borderColor: filter === kind ? p.primary : p.border }]}><Text style={{ color: filter === kind ? "#fff" : p.text, fontWeight: "700", fontSize: 11 }}>{historyKindLabel(kind)}</Text></Pressable>)}</View>
           <View style={s.dateRow}><View style={{ flex: 1 }}><DateField label="From" value={fromDate} onChange={setFromDate} placeholder="Any date" /></View><View style={{ flex: 1 }}><DateField label="To" value={toDate} onChange={setToDate} placeholder="Any date" /></View></View>
           <View style={s.dateRow}><TextInput value={accountName} onChangeText={setAccountName} placeholder="Account name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /><TextInput value={categoryName} onChangeText={setCategoryName} placeholder="Category name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /></View>
-        </> : null>
+        </> : null}
 
         {error ? <View style={[s.error, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={{ color: p.expense, fontWeight: "800", fontSize: 12 }}>{error}</Text></View> : null}
         <ScrollView contentContainerStyle={s.list}>
