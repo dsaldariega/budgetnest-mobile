@@ -181,6 +181,19 @@ export default function LoansScreen() {
           {payments.length === 0 ? <Text style={{ color: p.textMuted }}>No payments recorded yet.</Text> : (payments ?? []).map(payment => <View key={payment.id} style={[s.payment, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{fmt(payment.amountMinor, selected.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{payment.paymentDate}</Text></View><Text style={{ color: p.textMuted, fontSize: 11 }}>Interest {fmt(payment.interestPaidMinor, selected.currencyCode)}</Text></View>
             <Text style={{ color: p.textMuted, fontSize: 11, marginTop: 5 }}>Principal {fmt(payment.principalPaidMinor, selected.currencyCode)}{payment.notes ? " · " + payment.notes : ""}</Text>
+            <Pressable
+              hitSlop={8}
+              onPress={() => Alert.alert("Delete payment?", "Later payments will be re-allocated.", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: async () => {
+                  try { await createLoanRepository(db).deletePayment(payment.id); await load(); }
+                  catch (e) { Alert.alert("Unable to delete payment", e instanceof Error ? e.message : "Please try again."); }
+                } },
+              ])}
+              style={{ alignSelf: "flex-end", marginTop: 8 }}
+            >
+              <Text style={{ color: p.expense, fontSize: 11, fontWeight: "800" }}>Delete</Text>
+            </Pressable>
           </View>)}
         </ScrollView> : null}
       </SafeAreaView>
