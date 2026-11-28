@@ -16,6 +16,6 @@ The generation process is transactional. If a schedule references an archived ac
 
 Schedules can be edited, paused, resumed, or deleted. Editing a schedule with generated history preserves its next due date. Deleting a schedule preserves already-generated transactions; the optional schedule reference becomes null.
 
-The recurring_rules table is included in versioned backup and restore. Database schema version is 5. Existing transactions remain compatible; recurrence linkage columns are nullable.
+The recurring_rules table is included in versioned backup and restore. Database schema version is 11. Existing transactions remain compatible; recurrence linkage columns are nullable.
 
 Subscriptions remain separate with their own billing and payment history. No cloud sync or background scheduling was introduced.

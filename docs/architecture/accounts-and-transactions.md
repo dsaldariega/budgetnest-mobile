@@ -1,7 +1,7 @@
 # Accounts and Transactions
 
 ## Accounts
-- Accounts are stored locally in SQLite and archived rather than deleted, preserving transaction history.
+- Accounts are stored locally in SQLite and can be archived or permanently deleted with all connected records.
 - Supported types: cash, bank, e-wallet, credit card, investment, and other.
 - Investment is stored as internal `other` plus source metadata; credit card preserves its mapping to the web `credit` type.
 - Currency is stored per account. Balances are not combined across currencies.
