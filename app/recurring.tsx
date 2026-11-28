@@ -1,6 +1,6 @@
 import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,10 +9,11 @@ import { createAccountRepository, type AccountWithBalance } from "@/database/rep
 import { createTransactionRepository } from "@/database/repositories/transaction-repository";
 import { createRecurringRepository, type RecurringRule } from "@/database/repositories/recurring-repository";
 import { colors } from "@/theme/colors";
+import { todayLocalDate } from "@/domain/dates";
 import type { RecurringFrequency } from "@/domain/recurring";
 import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
-const today=()=>new Date().toISOString().slice(0,10);
+const today=todayLocalDate;
 const makeId=()=>"recurring-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 const fmt=(minor:number,currency:string)=>new Intl.NumberFormat("en-PH",{style:"currency",currency}).format(minor/100);
 const repeatLabel=(f:RecurringFrequency,n:number)=>"Every "+(n===1?"":n+" ")+(f==="weekly"?"week":f==="monthly"?"month":"year")+(n===1?"":"s");
@@ -46,7 +47,9 @@ export default function RecurringScreen(){
    </View>)}
   </ScrollView>
  </View>
- <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setFormOpen(false)}><SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+ <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
+      onRequestClose={() => setFormOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}><SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
   <View style={s.header}><Text style={[s.modalTitle,{color:p.text}]}>{editing?"Edit schedule":"New schedule"}</Text><Pressable onPress={()=>setFormOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
   <Text style={[s.label,{color:p.text}]}>Name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Monthly salary" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
   <Text style={[s.label,{color:p.text}]}>Type</Text><View style={s.chips}>{(["income","expense"] as const).map(v=><Pressable key={v} onPress={()=>{setType(v);void loadCategories(v);}} style={[s.chip,{backgroundColor:type===v?p.primary:p.surface,borderColor:type===v?p.primary:p.border}]}><Text style={{color:type===v?"#fff":p.text,fontWeight:"700",textTransform:"capitalize"}}>{v}</Text></Pressable>)}</View>
@@ -58,7 +61,8 @@ export default function RecurringScreen(){
   <Pressable onPress={()=>setShowEndDate(v=>!v)} style={s.endToggle}><MaterialCommunityIcons name={showEndDate?"minus-circle-outline":"plus-circle-outline"} size={18} color={p.primary}/><Text style={{color:p.primary,fontWeight:"800",fontSize:12}}>{showEndDate?"Hide end date":"Set end date"}{showEndDate?"":" (optional)"}</Text></Pressable>
   {showEndDate ? <DateField label="End date" value={endDate} onChange={setEndDate} placeholder="No end date" /> : null}
   {error?<Text style={[s.error,{color:p.expense}]}>{error}</Text>:null}<Pressable disabled={saving} onPress={()=>void save()} style={[s.primary,{backgroundColor:p.primary,opacity:saving?0.6:1}]}><Text style={[s.primaryText,{color:p.onPrimary}]}>{saving?"Saving…":editing?"Save changes":"Create schedule"}</Text></Pressable>
- </ScrollView></SafeAreaView></Modal>
+ </ScrollView></SafeAreaView></KeyboardAvoidingView>
+    </Modal>
  </SafeAreaView>;
 }
 const s=StyleSheet.create({
@@ -71,7 +75,7 @@ const s=StyleSheet.create({
  cardTitle:{fontSize:14,fontWeight:"900",textAlign:"center"},subText:{fontSize:11,marginTop:3},status:{fontSize:10,fontWeight:"800",textTransform:"uppercase"},amountText:{fontSize:21,fontWeight:"800"},
  metaRow:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",gap:5},meta:{fontSize:10},actions:{borderTopWidth:1,paddingTop:10,flexDirection:"row",justifyContent:"space-between"},
  action:{flexDirection:"row",alignItems:"center",gap:5,paddingVertical:3},actionText:{fontSize:11,fontWeight:"700"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center",marginTop:8},
- primary:{padding:14,borderRadius:13,alignItems:"center",marginTop:16},primaryText:{color:"#fff",fontWeight:"700"},modal:{flex:1},form:{padding:20,paddingBottom:40},modalTitle:{flex:1,fontSize:22,fontWeight:"800"},
+ primary:{ minHeight: 48, padding: 14,borderRadius:13,alignItems:"center",marginTop:16},primaryText:{color:"#fff",fontWeight:"700"},modal:{flex:1},form:{padding:20,paddingBottom:40},modalTitle:{flex:1,fontSize:22,fontWeight:"800"},
  label:{fontSize:13,fontWeight:"700",marginTop:16,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:12,paddingVertical:9},repeatRow:{flexDirection:"row",alignItems:"center",gap:7},intervalInput:{width:46,minHeight:38,borderWidth:1,borderRadius:11,paddingHorizontal:8,paddingVertical:8,textAlign:"center",fontSize:13,fontWeight:"800"},unitChip:{flex:1,minHeight:38,borderWidth:1,borderRadius:19,paddingHorizontal:5,paddingVertical:8,alignItems:"center",justifyContent:"center"},endToggle:{flexDirection:"row",alignItems:"center",gap:7,marginTop:14,paddingVertical:4},
  input:{borderWidth:1,borderRadius:12,paddingHorizontal:13,paddingVertical:12,fontSize:14},amountInput:{fontSize:21,fontWeight:"800"},error:{fontSize:12,marginTop:12}
 });
