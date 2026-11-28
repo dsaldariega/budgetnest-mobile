@@ -135,10 +135,10 @@ export default function ActivityLogScreen() {
         </View>
 
         <Text style={[styles.filterLabel, { color: palette.textMuted }]}>ACTIVITY TYPE</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow} style={styles.filterScroll}>
           {(ENTITY_FILTERS ?? []).map((item) => (
             <Pressable key={item.value} onPress={() => setEntityFilter(item.value)} style={chipStyle(entityFilter === item.value)}>
-              <Text style={{ color: entityFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, fontWeight: "800" }}>{item.label}</Text>
+              <Text numberOfLines={1} allowFontScaling={false} style={{ color: entityFilter === item.value ? "#FFFFFF" : palette.text, fontSize: 11, lineHeight: 14, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -210,9 +210,9 @@ const styles = StyleSheet.create({
   searchBox: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 9 },
   searchInput: { flex: 1, paddingVertical: 9, fontSize: 13 },
   filterLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8, marginTop: 14, marginBottom: 7 },
-  filterRow: { flexDirection: "row", gap: 7 },
+  filterScroll: { flexGrow: 0 },\n  filterRow: { flexDirection: "row", gap: 7, paddingRight: 10 },
   dateFilterRow: { flexDirection: "row", gap: 7 },
-  chip: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 10, paddingVertical: 8 },
+  chip: { minHeight: 36, borderWidth: 1, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, alignItems: "center", justifyContent: "center" },
   list: { gap: 9, paddingTop: 14, paddingBottom: 30 },
   activityCard: { borderWidth: 1, borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "flex-start", gap: 11 },
   activityIcon: { width: 39, height: 39, borderRadius: 12, alignItems: "center", justifyContent: "center" },
