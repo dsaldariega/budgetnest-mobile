@@ -114,8 +114,14 @@ export default function DashboardScreen() {
             <Text style={[s.greeting, { color: p.text }]}>Your overview</Text>
             <Text style={[s.dateText, { color: p.textMuted }]}>{monthLabel}</Text>
           </View>
-          <Pressable onPress={() => router.push("/settings")} style={[s.headerButton, { backgroundColor: p.surface, borderColor: p.border }]}>
-            <MaterialCommunityIcons name="cog-outline" size={22} color={p.text} />
+          <Pressable
+            onPress={() => router.push("/(tabs)/transactions?quick=expense")}
+            style={[s.headerAction, { backgroundColor: p.primary }]}
+            accessibilityRole="button"
+            accessibilityLabel="Log expense"
+          >
+            <MaterialCommunityIcons name="plus" size={19} color="#FFFFFF" />
+            <Text style={s.headerActionText}>Expense</Text>
           </Pressable>
         </View>
 
@@ -199,7 +205,8 @@ const s = StyleSheet.create({
   brand: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
   greeting: { fontSize: 27, fontWeight: "800", letterSpacing: -0.7, marginTop: 3 },
   dateText: { fontSize: 13, marginTop: 3 },
-  headerButton: { width: 44, height: 44, borderRadius: 15, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  headerAction: { minHeight: 40, paddingHorizontal: 12, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
+  headerActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
   heroCard: { borderRadius: 22, padding: 20, marginBottom: 26 },
   heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
   heroLabelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
