@@ -28,6 +28,7 @@ import { toMinorUnits } from "@/domain/money";
 import { createSettingsRepository } from "@/database/repositories/settings-repository";
 import { EmptyState } from "@/components/EmptyState";
 import { Button, ChipGroup, TextField } from "@/components/ui";
+import { spacing, typography } from "@/theme/tokens";
 
 const TYPES: { value: AccountType; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
   { value: "cash", label: "Cash", icon: "cash-multiple" },
@@ -418,7 +419,7 @@ export default function AccountsScreen() {
             <TextField label="Starting balance" value={opening} onChangeText={setOpening} keyboardType="decimal-pad" placeholder="0.00" style={styles.amountInput} />
 
             {error ? <Text style={[styles.error, { color: palette.expense }]}>{error}</Text> : null}
-            <Button label={editing ? "Save changes" : "Save account"} onPress={() => void save()} loading={saving} fullWidth />
+            <Button label={editing ? "Save changes" : "Save account"} onPress={() => void save()} loading={saving} fullWidth style={{ marginTop: spacing["2xl"] }} />
           </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -512,12 +513,12 @@ const styles = StyleSheet.create({
   primaryButton: { paddingHorizontal: 17, paddingVertical: 13, borderRadius: 13, alignItems: "center", marginTop: 17 },
   primaryButtonText: { color: "#fff", fontSize: 13, fontWeight: "800" },
   modal: { flex: 1 },
-  form: { padding: 21, paddingBottom: 40 },
+  form: { padding: spacing.form.padding, paddingBottom: 40 },
   modalHeader: { flexDirection: "row", alignItems: "flex-start", gap: 14, marginBottom: 8 },
   modalTitle: { fontSize: 22, fontWeight: "900" },
   modalSubtitle: { fontSize: 12, lineHeight: 18, marginTop: 5 },
-  fieldGroup: { gap: 8, marginTop: 17 },
-  fieldLabel: { fontSize: 12, fontWeight: "800" },
+  fieldGroup: { gap: spacing.form.labelGap, marginTop: spacing.lg },
+  fieldLabel: { fontSize: typography.label, fontWeight: "700" },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 12, fontSize: 14 },
   amountInput: { fontSize: 19, fontWeight: "800" },
   helperText: { fontSize: 10, lineHeight: 15, marginTop: 6 },
