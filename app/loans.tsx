@@ -113,7 +113,7 @@ export default function LoansScreen() {
 
   const deleteLoan = (loan: LoanListItem) => Alert.alert(
     "Delete loan and payment history?",
-    "The loan, its payment history, and linked financial transactions will be permanently deleted from the active records. This cannot be undone.",
+    "The loan and its payment history will be permanently deleted. This cannot be undone.",
     [{ text: "Cancel", style: "cancel" }, { text: "Delete loan", style: "destructive", onPress: async () => {
       try { await createLoanRepository(db).delete(loan.id); setSelected(null); setPayments([]); await load(); }
       catch (e) { Alert.alert("Unable to delete loan", e instanceof Error ? e.message : "Please try again."); }
@@ -134,7 +134,7 @@ export default function LoansScreen() {
         <View style={{ flex: 1 }}><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>BORROWING</Text><Text style={[s.title, { color: p.text }]}>Loans</Text></View>
         {loans.length > 0 ? <Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.add, { backgroundColor: p.primary }]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable> : null}
       </View>
-      <Text style={[s.sub, { color: p.textMuted }]}>Track flat-rate loans, repayments, and the account receiving the loan proceeds.</Text>
+      <Text style={[s.sub, { color: p.textMuted }]}>Track flat-rate loans and repayments. Loan records are kept separate and don't change account balances.</Text>
       <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }}>
         {loans.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={[s.cardTitle, { color: p.text }]}>No loans yet</Text><Text style={{ color: p.textMuted, marginTop: 6, textAlign: "center" }}>Add a loan, link an account, and set repayment dates.</Text><Pressable onPress={() => { resetForm(); setFormOpen(true); }} style={[s.primary, { backgroundColor: p.primary }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>Add a loan</Text></Pressable></View> :
         (loans ?? []).map(loan => <Pressable key={loan.id} onPress={() => void openLoan(loan)} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
@@ -191,7 +191,7 @@ export default function LoansScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Record payment</Text><Pressable onPress={() => setPaymentOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
-        <Text style={[s.context, { color: p.textMuted }]}>This payment is recorded as an expense in the loan's linked account.</Text>
+        <Text style={[s.context, { color: p.textMuted }]}>This records a repayment against the loan. It does not change the linked account balance.</Text>
         <Text style={[s.label, { color: p.text }]}>Amount *</Text><TextInput value={paymentAmount} onChangeText={setPaymentAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
         <DateField label="Payment date" required value={paymentDate} onChange={setPaymentDate} />
         <Text style={[s.label, { color: p.text }]}>Note (optional)</Text><TextInput value={paymentNote} onChangeText={setPaymentNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />

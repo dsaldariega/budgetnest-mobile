@@ -110,7 +110,7 @@ export default function SubscriptionsScreen() {
 
   const remove = (item: SubscriptionListItem) => Alert.alert(
     "Delete subscription and payment history?",
-    "The subscription, billing history, and linked expense transactions will be permanently deleted from active records.",
+    "The subscription and its billing history will be permanently deleted.",
     [{ text: "Cancel", style: "cancel" }, { text: "Delete subscription", style: "destructive", onPress: async () => {
       try { await createSubscriptionRepository(db).delete(item.id); setSelected(null); setPayments([]); await load(); }
       catch (e) { Alert.alert("Unable to delete", e instanceof Error ? e.message : "Please try again."); }
@@ -119,7 +119,7 @@ export default function SubscriptionsScreen() {
 
   const removePayment = (payment: SubscriptionPaymentListItem) => Alert.alert(
     "Delete payment?",
-    "The linked expense transaction will also be removed from the account balance.",
+    "This payment will be removed from billing history, and the next billing date may roll back.",
     [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: async () => {
       try { await createSubscriptionRepository(db).deletePayment(payment.id); if (selected) setPayments(await createSubscriptionRepository(db).listPayments(selected.id)); await load(); }
       catch (e) { Alert.alert("Unable to delete payment", e instanceof Error ? e.message : "Please try again."); }
@@ -132,7 +132,7 @@ export default function SubscriptionsScreen() {
   return <SafeAreaView style={[s.safe, { backgroundColor: p.background }]} edges={["top","left","right"]}>
     <View style={s.page}>
       <View style={s.header}><ScreenBackButton backgroundColor={p.surface} borderColor={p.border} color={p.text}/><View style={{flex:1}}><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>RECURRING EXPENSES</Text><Text style={[s.title,{color:p.text}]}>Subscriptions</Text></View>{items.length>0?<Pressable onPress={()=>{reset();setFormOpen(true)}} style={[s.add,{backgroundColor:p.primary}]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable>:null}</View>
-      <Text style={[s.sub,{color:p.textMuted}]}>Manage services and memberships that require periodic payment. Recording a payment updates the linked account and transaction history.</Text>
+      <Text style={[s.sub,{color:p.textMuted}]}>Track services and memberships and their billing history. Payments are recorded separately and don't change account balances.</Text>
       <ScrollView contentContainerStyle={{gap:12,paddingBottom:30}}>
         {items.length===0?<View style={[s.empty,{backgroundColor:p.surface,borderColor:p.border}]}><Text style={[s.cardTitle,{color:p.text}]}>No subscriptions yet</Text><Text style={{color:p.textMuted,marginTop:6,textAlign:"center"}}>Track services and memberships with their billing dates and payments.</Text><Pressable onPress={()=>{reset();setFormOpen(true)}} style={[s.primary,{backgroundColor:p.primary}]}><Text style={[s.primaryText, { color: p.onPrimary }]}>Add a subscription</Text></Pressable></View>:
         (items ?? []).map(item=><Pressable key={item.id} onPress={()=>void openSubscription(item)} style={[s.card,{backgroundColor:p.surface,borderColor:p.border,opacity:item.isActive?1:0.7}]}>
@@ -180,7 +180,7 @@ export default function SubscriptionsScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle,{color:p.text}]}>Record payment</Text><Pressable onPress={()=>setPaymentOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
-        <Text style={[s.context,{color:p.textMuted}]}>The payment will create an expense transaction and deduct from the selected account.</Text>
+        <Text style={[s.context,{color:p.textMuted}]}>This records the payment and moves the next billing date forward. To change an account balance, also add an expense transaction.</Text>
         <Text style={[s.label,{color:p.text}]}>Payment amount *</Text><TextInput value={paymentAmount} onChangeText={setPaymentAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input,s.amount,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
         <Text style={[s.label,{color:p.text}]}>Note (optional)</Text><TextInput value={paymentNote} onChangeText={setPaymentNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
         {error?<Text style={[s.error, { color: p.expense }]}>{error}</Text>:null}
