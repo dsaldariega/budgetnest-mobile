@@ -1,5 +1,6 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
@@ -10,6 +11,7 @@ import { createBudgetRepository, type BudgetListItem } from "@/database/reposito
 import { createHistoryRepository, type HistoryItem } from "@/database/repositories/history-repository";
 import { colors } from "@/theme/colors";
 import { EmptyState } from "@/components/EmptyState";
+import { SectionHeader } from "@/components/ui/section-header";
 
 type CurrencySummary = { currencyCode: string; balanceMinor: number; incomeMinor: number; expenseMinor: number };
 type DashboardData = {
@@ -28,17 +30,6 @@ const shortDate = (value: string) => new Date(value + "T00:00:00").toLocaleDateS
   month: "short", day: "numeric",
 });
 
-function SectionHeading({ title, action, onPress, palette }: {
-  title: string; action?: string; onPress?: () => void; palette: typeof colors.light;
-}) {
-  return (
-    <View style={s.sectionHeading}>
-      <Text style={[s.sectionTitle, { color: palette.text }]}>{title}</Text>
-      {action && onPress ? <Pressable onPress={onPress} hitSlop={8}><Text style={[s.actionText, { color: palette.primary }]}>{action}</Text></Pressable> : null}
-    </View>
-  );
-}
-
 function ProgressBar({ progress, color, track }: { progress: number; color: string; track: string }) {
   return <View style={[s.progressTrack, { backgroundColor: track }]}><View style={[s.progressFill, { width: `${Math.max(0, Math.min(1, progress)) * 100}%`, backgroundColor: color }]} /></View>;
 }
@@ -46,8 +37,7 @@ function ProgressBar({ progress, color, track }: { progress: number; color: stri
 export default function DashboardScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const p = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette: p } = useAppTheme();
   const wideLayout = false;
   const [data, setData] = useState<DashboardData>({
     accounts: [], currencies: [], budgets: [], activity: [],
@@ -60,7 +50,7 @@ export default function DashboardScreen() {
     try {
       const date = today();
       const month = currentMonth();
-      const [accounts, budgets, goals, subscriptions, loans, activity, monthlyRows] = await Promise.all([
+      const [accounts, budgets, activity, monthlyRows] = await Promise.all([
         createAccountRepository(db).list(),
         createBudgetRepository(db).list(date),
         createHistoryRepository(db).list({ limit: 5 }),
@@ -115,12 +105,12 @@ export default function DashboardScreen() {
             accessibilityRole="button"
             accessibilityLabel="Log expense"
           >
-            <MaterialCommunityIcons name="plus" size={19} color="#FFFFFF" />
-            <Text style={s.headerActionText}>Expense</Text>
+            <MaterialCommunityIcons name="plus" size={19} color={p.onPrimary} />
+            <Text style={[s.headerActionText, { color: p.onPrimary }]}>Expense</Text>
           </Pressable>
         </View>
 
-        <View style={[s.heroCard, { backgroundColor: dark ? "#352020" : "#B71C1C" }]}>
+        <View style={[s.heroCard, { backgroundColor: p.primaryDark }]}>
           <View style={s.heroTop}>
             <View style={s.heroLabelRow}>
               <MaterialCommunityIcons name="wallet-outline" size={17} color="#FFFFFF" />
@@ -158,15 +148,15 @@ export default function DashboardScreen() {
         </View>
 
         <Pressable onPress={() => router.push("/(tabs)/transactions?quick=expense")} style={[s.logExpenseButton, { backgroundColor: p.primary }]}>
-          <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" />
-          <Text style={s.logExpenseText}>Log Expense</Text>
+          <MaterialCommunityIcons name="plus" size={20} color={p.onPrimary} />
+          <Text style={[s.logExpenseText, { color: p.onPrimary }]}>Log Expense</Text>
         </Pressable>
 
-        <SectionHeading title="Budgets" action="See all" onPress={() => router.push("/(tabs)/budgets")} palette={p} />
+        <SectionHeader title="Budgets" actionLabel="See all" onAction={() => router.push("/(tabs)/budgets")} />
         {(data.budgets ?? []).length ? (data.budgets ?? []).map(item => (
           <View key={item.id} style={[s.listCard, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={s.listTop}>
-              <View style={[s.smallIcon, { backgroundColor: dark ? "#263B35" : "#E8F5E9" }]}><MaterialCommunityIcons name="chart-donut" size={19} color={p.success} /></View>
+              <View style={[s.smallIcon, { backgroundColor: p.successSoft }]}><MaterialCommunityIcons name="chart-donut" size={19} color={p.success} /></View>
               <View style={s.listMain}><Text style={[s.itemTitle, { color: p.text }]}>{item.categoryName}</Text><Text style={[s.itemSub, { color: p.textMuted }]}>{item.accountName} · {item.period}</Text></View>
               <Text style={[s.itemAmount, { color: item.spentMinor > item.amountMinor ? p.expense : p.text }]}>{money(item.spentMinor, item.currencyCode)}</Text>
             </View>
@@ -175,7 +165,7 @@ export default function DashboardScreen() {
           </View>
         )) : <EmptyState icon="chart-donut" title="No active budgets yet" message="Create a budget to set a spending limit and track progress." actionLabel="Create a budget" onAction={() => router.push("/(tabs)/budgets")} palette={p} dark={dark} />}
 
-        <SectionHeading title="Recent activity" action="See all" onPress={() => router.push("/(tabs)/transactions")} palette={p} />
+        <SectionHeader title="Recent activity" actionLabel="See all" onAction={() => router.push("/(tabs)/transactions")} />
         {(data.activity ?? []).length ? (data.activity ?? []).map(item => (
           <View key={item.id} style={[s.compactCard, { backgroundColor: p.surface, borderColor: p.border }]}>
             <View style={[s.smallIcon, { backgroundColor: dark ? "#30303A" : "#F1F3F7" }]}><MaterialCommunityIcons name={item.kind === "income" ? "arrow-down-circle-outline" : item.kind === "expense" ? "arrow-up-circle-outline" : item.kind === "savings" ? "piggy-bank-outline" : "swap-horizontal"} size={19} color={item.kind === "income" ? p.income : item.kind === "expense" ? p.expense : p.secondary} /></View>

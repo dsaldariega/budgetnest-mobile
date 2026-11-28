@@ -1,5 +1,6 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
@@ -40,8 +41,7 @@ function KindSelector({ value, onChange, palette }: { value: FormKind; onChange:
 export default function TransactionsScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const p = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette: p } = useAppTheme();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [selected, setSelected] = useState<HistoryItem | null>(null);
@@ -206,7 +206,7 @@ export default function TransactionsScreen() {
       <View style={s.page}>
         <View style={s.header}>
           <View><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>FINANCIAL HISTORY</Text><Text style={[s.title, { color: p.text }]}>Activity</Text></View>
-          <Pressable onPress={openNew} style={[s.add, { backgroundColor: p.primary }]}><MaterialCommunityIcons name="plus" size={18} color="#fff" /><Text style={s.addText}>Add</Text></Pressable>
+          <Pressable onPress={openNew} style={[s.add, { backgroundColor: p.primary }]}><MaterialCommunityIcons name="plus" size={18} color={p.onPrimary} /><Text style={[s.addText, { color: p.onPrimary }]}>Add</Text></Pressable>
         </View>
         <Text style={[s.sub, { color: p.textMuted }]}>Create and manage transactions, while keeping loans, subscriptions, and savings activity in the same history.</Text>
 
@@ -215,7 +215,7 @@ export default function TransactionsScreen() {
           <View style={s.filtersToggleLabel}>
             <MaterialCommunityIcons name="tune-variant" size={16} color={p.primary} />
             <Text style={{ color: p.text, fontSize: 12, fontWeight: "800" }}>Filters</Text>
-            {(fromDate || toDate || accountName || categoryName || filter !== "all") ? <View style={[s.filterBadge, { backgroundColor: p.primary }]}><Text style={s.filterBadgeText}>Active</Text></View> : null}
+            {(fromDate || toDate || accountName || categoryName || filter !== "all") ? <View style={[s.filterBadge, { backgroundColor: p.primary }]}><Text style={[s.filterBadgeText, { color: p.onPrimary }]}>Active</Text></View> : null}
           </View>
           <MaterialCommunityIcons name={showFilters ? "chevron-up" : "chevron-down"} size={18} color={p.textMuted} />
         </Pressable>
@@ -225,9 +225,9 @@ export default function TransactionsScreen() {
           <View style={s.dateRow}><TextInput value={accountName} onChangeText={setAccountName} placeholder="Account name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /><TextInput value={categoryName} onChangeText={setCategoryName} placeholder="Category name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /></View>
         </> : null}
 
-        {error ? <View style={[s.error, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={{ color: p.expense, fontWeight: "800", fontSize: 12 }}>{error}</Text></View> : null}
+        {error ? <View style={[s.error, { backgroundColor: p.dangerSoft }]}><Text style={{ color: p.expense, fontWeight: "800", fontSize: 12 }}>{error}</Text></View> : null}
         <ScrollView contentContainerStyle={s.list}>
-          {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><MaterialCommunityIcons name="receipt-text-outline" size={34} color={p.primary}/><Text style={[s.itemTitle, { color: p.text, marginTop: 10 }]}>No activity found</Text><Text style={{ color: p.textMuted, fontSize: 13, marginTop: 6, textAlign: "center" }}>Try a different filter, or add your first transaction.</Text><Pressable onPress={openNew} style={[s.primaryButton, { backgroundColor: p.primary }]}><Text style={s.primaryButtonText}>Add transaction</Text></Pressable></View> :
+          {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><MaterialCommunityIcons name="receipt-text-outline" size={34} color={p.primary}/><Text style={[s.itemTitle, { color: p.text, marginTop: 10 }]}>No activity found</Text><Text style={{ color: p.textMuted, fontSize: 13, marginTop: 6, textAlign: "center" }}>Try a different filter, or add your first transaction.</Text><Pressable onPress={openNew} style={[s.primaryButton, { backgroundColor: p.primary }]}><Text style={[s.primaryButtonText, { color: p.onPrimary }]}>Add transaction</Text></Pressable></View> :
           items.map(item => {
             const prefix = historyAmountPrefix(item.kind);
             const editable = (item.kind === "income" || item.kind === "expense" || item.kind === "transfer") && !isLinkedTransactionId(item.id);
@@ -263,8 +263,8 @@ export default function TransactionsScreen() {
               <Pressable onPress={()=>setShowNote(v=>!v)} style={s.noteToggle}><MaterialCommunityIcons name={showNote?"minus-circle-outline":"plus-circle-outline"} size={18} color={p.primary}/><Text style={{color:p.primary,fontSize:12,fontWeight:"800"}}>{showNote?"Hide note":"Add note"}{showNote?"":" (optional)"}</Text></Pressable>
               {showNote ? <TextInput value={note} onChangeText={setNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]} /> : null}
             </>}
-            {error ? <Text style={s.errorText}>{error}</Text> : null}
-            <Pressable disabled={saving} onPress={() => void save()} style={[s.primaryButton, { backgroundColor: p.primary, opacity: saving ? 0.65 : 1 }]}><Text style={s.primaryButtonText}>{saving ? "Saving…" : editing ? "Save changes" : "Save transaction"}</Text></Pressable>
+            {error ? <Text style={[s.errorText, { color: p.expense }]}>{error}</Text> : null}
+            <Pressable disabled={saving} onPress={() => void save()} style={[s.primaryButton, { backgroundColor: p.primary, opacity: saving ? 0.65 : 1 }]}><Text style={[s.primaryButtonText, { color: p.onPrimary }]}>{saving ? "Saving…" : editing ? "Save changes" : "Save transaction"}</Text></Pressable>
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -305,7 +305,7 @@ const s = StyleSheet.create({
   list:{gap:10,paddingTop:14,paddingBottom:40},card:{borderWidth:1,borderRadius:16,padding:14},itemRow:{flexDirection:"row",alignItems:"center",gap:10},dot:{width:9,height:9,borderRadius:5},
   itemTitle:{fontSize:14,fontWeight:"700"},bottom:{flexDirection:"row",justifyContent:"space-between",gap:10,marginTop:12},rowActions:{flexDirection:"row",justifyContent:"flex-end",gap:18,marginTop:12,paddingTop:10,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:"rgba(100,116,139,0.18)"},
   empty:{borderWidth:1,borderRadius:16,padding:22,marginTop:12,alignItems:"center"},primaryButton:{minHeight:48,borderRadius:13,alignItems:"center",justifyContent:"center",paddingHorizontal:16,marginTop:16},primaryButtonText:{color:"#fff",fontSize:13,fontWeight:"800"},
-  error:{borderRadius:14,padding:12,marginTop:8},errorText:{color:"#D32F2F",fontSize:13,marginTop:12},modal:{flex:1},form:{padding:22,paddingBottom:48},modalTitle:{fontSize:23,fontWeight:"900"},
+  error:{borderRadius:14,padding:12,marginTop:8},errorText:{fontSize:13,marginTop:12},modal:{flex:1},form:{padding:22,paddingBottom:48},modalTitle:{fontSize:23,fontWeight:"900"},
   label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},kindRow:{flexDirection:"row",flexWrap:"wrap",gap:7},kindChip:{borderWidth:1,borderRadius:20,paddingHorizontal:10,paddingVertical:9},
   input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},detail:{padding:22,paddingBottom:48},detailCard:{borderWidth:1,borderRadius:18,padding:18,marginTop:18},hero:{fontSize:30,fontWeight:"800",marginTop:7,marginBottom:16},
   detailRow:{flexDirection:"row",justifyContent:"space-between",alignItems:"flex-start",gap:16,paddingVertical:9,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:"rgba(100,116,139,0.18)"},noteCard:{borderWidth:1,borderRadius:16,padding:16,marginTop:10},

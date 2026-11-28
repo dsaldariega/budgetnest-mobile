@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
@@ -6,7 +7,6 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -48,8 +48,7 @@ const formatDate = (value: string) => new Date(value).toLocaleString("en-PH", {
 
 export default function ActivityLogScreen() {
   const db = useSQLiteContext();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const [items, setItems] = useState<ActivityLogItem[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   const [entityFilter, setEntityFilter] = useState<ActivityEntityFilter>("all");
@@ -105,7 +104,7 @@ export default function ActivityLogScreen() {
         <View style={styles.header}>
           <ScreenBackButton backgroundColor={palette.surface} borderColor={palette.border} color={palette.text} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.primary }]}>YOUR HISTORY</Text>
+            <Text style={[styles.eyebrow, { color: palette.primaryText }]}>YOUR HISTORY</Text>
             <Text style={[styles.title, { color: palette.text }]}>Activity Log</Text>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Refresh activity" onPress={() => void load()} disabled={loading} style={styles.refresh}>
@@ -152,7 +151,7 @@ export default function ActivityLogScreen() {
           ))}
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, { color: palette.expense }]}>{error}</Text> : null}
 
         {loading ? (
           <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -174,7 +173,7 @@ export default function ActivityLogScreen() {
           <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
             {(filtered ?? []).map((item) => (
               <View key={item.id} style={[styles.activityCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                <View style={[styles.activityIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+                <View style={[styles.activityIcon, { backgroundColor: palette.primarySoft }]}>
                   <MaterialCommunityIcons name={activityIconName(item.entityType) as never} size={20} color={palette.primary} />
                 </View>
                 <View style={styles.activityCopy}>
@@ -227,5 +226,5 @@ const styles = StyleSheet.create({
   empty: { borderWidth: 1, borderRadius: 16, padding: 24, alignItems: "center", marginTop: 13 },
   emptyIcon: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   emptyText: { textAlign: "center", fontSize: 11, lineHeight: 17, marginTop: 7 },
-  error: { color: "#D32F2F", fontSize: 11, marginTop: 10 },
+  error: { fontSize: 11, marginTop: 10 },
 });

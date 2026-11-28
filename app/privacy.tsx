@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { useAppTheme } from "@/theme/use-app-theme";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -50,8 +51,7 @@ const SECTIONS = [
 
 export default function PrivacyScreen() {
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]} edges={["top", "left", "right"]}>
@@ -64,7 +64,7 @@ export default function PrivacyScreen() {
           </View>
         </View>
 
-        <View style={[styles.importantCard, { backgroundColor: dark ? "#3A2424" : "#FFF4E5", borderColor: dark ? "#6B3A2A" : "#F0C48A" }]}>
+        <View style={[styles.importantCard, { backgroundColor: palette.warningSoft, borderColor: palette.warning }]}>
           <View style={styles.importantHeader}>
             <MaterialCommunityIcons name="alert-outline" size={21} color={palette.primary} />
             <Text style={[styles.importantTitle, { color: palette.text }]}>Important to know</Text>
@@ -75,7 +75,7 @@ export default function PrivacyScreen() {
         {SECTIONS.map((section) => (
           <View key={section.title} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.icon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+              <View style={[styles.icon, { backgroundColor: palette.primarySoft }]}>
                 <MaterialCommunityIcons name={section.icon as never} size={21} color={palette.primary} />
               </View>
               <Text style={[styles.sectionTitle, { color: palette.text }]}>{section.title}</Text>

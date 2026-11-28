@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useState } from "react";
-import { useColorScheme } from "react-native";
-import { colors } from "@/theme/colors";
+import { useAppTheme } from "@/theme/use-app-theme";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { radius, spacing } from "@/theme/tokens";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -25,8 +26,7 @@ export function DateField({
 }: {
   label: string; value: string; onChange: (value: string) => void; placeholder?: string; required?: boolean; disabled?: boolean;
 }) {
-  const dark = useColorScheme() === "dark";
-  const p = dark ? colors.dark : colors.light;
+  const { palette: p } = useAppTheme();
   const [open, setOpen] = useState(false);
   const initial = parseDate(value);
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
@@ -62,15 +62,9 @@ export function DateField({
         <MaterialCommunityIcons name="calendar-month-outline" size={20} color={p.textMuted} />
       </Pressable>
 
-      <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
+      <BottomSheet visible={open} title="Select date" onClose={() => setOpen(false)}>
         <View style={[s.modal, { backgroundColor: p.background }]}>
-          <View style={s.header}>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.modalTitle, { color: p.text }]}>Select date</Text>
-              <Text style={{ color: p.textMuted, fontSize: 12, marginTop: 3 }}>Choose month, day, and year</Text>
-            </View>
-            <Pressable onPress={() => setOpen(false)} hitSlop={10}><Text style={{ color: p.textMuted, fontWeight: "700" }}>Close</Text></Pressable>
-          </View>
+          <Text style={{ color: p.textMuted, fontSize: 12, marginBottom: 12 }}>Choose month, day, and year</Text>
 
           {mode === "calendar" ? (
             <>
@@ -78,7 +72,7 @@ export function DateField({
                 <Pressable onPress={() => moveMonth(-1)} style={s.iconButton}><MaterialCommunityIcons name="chevron-left" size={21} color={p.text} /></Pressable>
                 <View style={s.monthTitle}>
                   <Pressable onPress={() => setMode("months")}><Text style={[s.monthText, { color: p.text }]}>{MONTHS[viewMonth]}</Text></Pressable>
-                  <Pressable onPress={() => setMode("years")}><Text style={[s.yearText, { color: p.primary }]}>{viewYear}</Text></Pressable>
+                  <Pressable onPress={() => setMode("years")}><Text style={[s.yearText, { color: p.primaryText }]}>{viewYear}</Text></Pressable>
                 </View>
                 <Pressable onPress={() => moveMonth(1)} style={s.iconButton}><MaterialCommunityIcons name="chevron-right" size={21} color={p.text} /></Pressable>
               </View>
@@ -89,18 +83,18 @@ export function DateField({
                   const candidate = new Date(viewYear, viewMonth, day);
                   const active = selected ? sameDate(candidate, selected) : false;
                   return <Pressable key={day} onPress={() => { onChange(dateOnly(candidate)); setOpen(false); }} style={[s.dayCell, active && { backgroundColor: p.primary }]}>
-                    <Text style={{ color: active ? "#fff" : p.text, fontSize: 14, fontWeight: active ? "900" : "600" }}>{day}</Text>
+                    <Text style={{ color: active ? p.onPrimary : p.text, fontSize: 14, fontWeight: active ? "900" : "600" }}>{day}</Text>
                   </Pressable>;
                 })}
               </View>
               <Pressable onPress={() => { const d = new Date(); setViewMonth(d.getMonth()); setViewYear(d.getFullYear()); }} style={s.todayButton}>
-                <Text style={{ color: p.primary, fontSize: 12, fontWeight: "800" }}>Jump to today</Text>
+                <Text style={{ color: p.primaryText, fontSize: 12, fontWeight: "800" }}>Jump to today</Text>
               </Pressable>
             </>
           ) : mode === "months" ? (
             <View style={s.selectorGrid}>
-              {MONTHS.map((month, index) => <Pressable key={month} onPress={() => { setViewMonth(index); setMode("calendar"); }} style={[s.selector, { backgroundColor: index === viewMonth ? (dark ? "#3A2424" : "#FCE8E8") : p.surface, borderColor: index === viewMonth ? p.primary : p.border }]}>
-                <Text style={{ color: index === viewMonth ? p.primary : p.text, fontWeight: "700", fontSize: 12 }}>{month.slice(0,3)}</Text>
+              {MONTHS.map((month, index) => <Pressable key={month} onPress={() => { setViewMonth(index); setMode("calendar"); }} style={[s.selector, { backgroundColor: index === viewMonth ? (p.primarySoft) : p.surface, borderColor: index === viewMonth ? p.primary : p.border }]}>
+                <Text style={{ color: index === viewMonth ? p.primaryText : p.text, fontWeight: "700", fontSize: 12 }}>{month.slice(0,3)}</Text>
               </Pressable>)}
             </View>
           ) : (
@@ -111,14 +105,14 @@ export function DateField({
                 <Pressable onPress={() => setViewYear(y => y + 12)} style={s.iconButton}><MaterialCommunityIcons name="chevron-right" size={21} color={p.text} /></Pressable>
               </View>
               <View style={s.selectorGrid}>
-                {years.map(year => <Pressable key={year} onPress={() => { setViewYear(year); setMode("calendar"); }} style={[s.selector, { backgroundColor: year === viewYear ? (dark ? "#3A2424" : "#FCE8E8") : p.surface, borderColor: year === viewYear ? p.primary : p.border }]}>
-                  <Text style={{ color: year === viewYear ? p.primary : p.text, fontWeight: "700", fontSize: 12 }}>{year}</Text>
+                {years.map(year => <Pressable key={year} onPress={() => { setViewYear(year); setMode("calendar"); }} style={[s.selector, { backgroundColor: year === viewYear ? (p.primarySoft) : p.surface, borderColor: year === viewYear ? p.primary : p.border }]}>
+                  <Text style={{ color: year === viewYear ? p.primaryText : p.text, fontWeight: "700", fontSize: 12 }}>{year}</Text>
                 </Pressable>)}
               </View>
             </>
           )}
         </View>
-      </Modal>
+      </BottomSheet>
     </>
   );
 }
@@ -126,18 +120,16 @@ export function DateField({
 const s = StyleSheet.create({
   label: { fontSize: 13, fontWeight: "700", marginTop: 17, marginBottom: 8 },
   field: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
-  modal: { flex: 1, padding: 22 },
-  header: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 18 },
-  modalTitle: { fontSize: 22, fontWeight: "900" },
+  modal: { paddingBottom: spacing.sm },
   calendarHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  iconButton: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(100,116,139,0.08)" },
+  iconButton: { width: 44, height: 44, borderRadius: radius.md, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(100,116,139,0.08)" },
   monthTitle: { alignItems: "center", gap: 2 },
   monthText: { fontSize: 18, fontWeight: "900" },
   yearText: { fontSize: 12, fontWeight: "800" },
   weekRow: { flexDirection: "row", marginBottom: 5 },
   weekday: { width: "14.2857%", textAlign: "center", fontSize: 10, fontWeight: "800" },
   grid: { flexDirection: "row", flexWrap: "wrap" },
-  dayCell: { width: "14.2857%", aspectRatio: 1, alignItems: "center", justifyContent: "center", borderRadius: 12 },
+  dayCell: { width: "14.2857%", aspectRatio: 1, minHeight: 40, alignItems: "center", justifyContent: "center", borderRadius: radius.md },
   todayButton: { alignSelf: "center", padding: 13 },
   selectorGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
   selector: { width: "31%", minHeight: 48, borderWidth: 1, borderRadius: 13, alignItems: "center", justifyContent: "center" },

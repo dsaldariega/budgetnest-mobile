@@ -1,7 +1,7 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { ReactNode } from "react";
-import { StyleSheet, Text, View, useColorScheme } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "@/theme/colors";
 
 type Props = {
   eyebrow?: string;
@@ -11,8 +11,7 @@ type Props = {
 };
 
 export function PlaceholderScreen({ eyebrow, title, description, children }: Props) {
-  const isDark = useColorScheme() === "dark";
-  const palette = isDark ? colors.dark : colors.light;
+  const { palette } = useAppTheme();
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={["top", "left", "right"]}>

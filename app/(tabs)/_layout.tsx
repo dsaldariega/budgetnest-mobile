@@ -1,15 +1,16 @@
 import { Tabs } from "expo-router";
-import { Text, useColorScheme, useWindowDimensions } from "react-native";
+import { Text, useWindowDimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/theme/colors";
+import { useAppTheme } from "@/theme/use-app-theme";
 
 function TabLabel({ label, focused, dark }: { label: string; focused: boolean; dark: boolean }) {
   return (
     <Text
       style={{
         color: focused
-          ? dark ? colors.dark.primary : colors.light.primary
+          ? dark ? colors.dark.primaryText : colors.light.primaryText
           : dark ? colors.dark.textMuted : colors.light.textMuted,
         fontSize: 11,
         fontWeight: focused ? "700" : "500",
@@ -21,8 +22,7 @@ function TabLabel({ label, focused, dark }: { label: string; focused: boolean; d
 }
 
 export default function TabLayout() {
-  const isDark = useColorScheme() === "dark";
-  const palette = isDark ? colors.dark : colors.light;
+  const { isDark, palette } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   // Keep the bottom bar on phones, including landscape. Use a side rail only

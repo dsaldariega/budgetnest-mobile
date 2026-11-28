@@ -167,7 +167,7 @@ export default function SettingsScreen() {
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <View style={styles.appearanceHeader}>
-            <View style={[styles.appearanceIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+            <View style={[styles.appearanceIcon, { backgroundColor: palette.primarySoft }]}>
               <MaterialCommunityIcons name="palette-outline" size={21} color={palette.primary} />
             </View>
             <View style={{ flex: 1 }}>
@@ -183,7 +183,7 @@ export default function SettingsScreen() {
             ] as const).map((option) => {
               const selected = preference === option.value;
               return (
-                <Pressable key={option.value} disabled={savingTheme} onPress={() => void changeThemePreference(option.value)} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: savingTheme }} style={[styles.appearanceOption, { borderColor: selected ? palette.primary : palette.border, backgroundColor: selected ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface }]}>
+                <Pressable key={option.value} disabled={savingTheme} onPress={() => void changeThemePreference(option.value)} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: savingTheme }} style={[styles.appearanceOption, { borderColor: selected ? palette.primary : palette.border, backgroundColor: selected ? (palette.primarySoft) : palette.surface }]}>
                   <MaterialCommunityIcons name={option.icon} size={19} color={selected ? palette.primary : palette.textMuted} />
                   <Text style={{ color: selected ? palette.primary : palette.text, fontSize: 11, fontWeight: "800", marginTop: 5 }}>{option.label}</Text>
                 </Pressable>
@@ -257,7 +257,7 @@ export default function SettingsScreen() {
               onPress={() => void exportBackupToGoogle()}
               style={[styles.primaryButton, styles.halfButton, { backgroundColor: palette.primary, opacity: busy || !user ? 0.42 : 1 }]}
             >
-              <Text style={styles.primaryText}>{busy ? "Working…" : "Back up"}</Text>
+              <Text style={[styles.primaryText, { color: palette.onPrimary }]}>{busy ? "Working…" : "Back up"}</Text>
             </Pressable>
             <Pressable
               disabled={busy || !user}
@@ -294,7 +294,7 @@ export default function SettingsScreen() {
         </View>
 
         {error ? (
-          <View style={[styles.errorCard, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+          <View style={[styles.errorCard, { backgroundColor: palette.dangerSoft }]}>
             <Text style={[styles.errorTitle, { color: palette.primary }]}>Settings action failed</Text>
             <Text style={[styles.errorText, { color: palette.text }]}>{error}</Text>
           </View>
@@ -317,7 +317,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.secondaryText, { color: palette.text }]}>Cancel</Text>
               </Pressable>
               <Pressable disabled={busy} onPress={() => void restoreBackup()} style={[styles.dangerButton, { backgroundColor: palette.primary, opacity: busy ? 0.6 : 1 }]}>
-                <Text style={styles.primaryText}>{busy ? "Restoring…" : "Restore data"}</Text>
+                <Text style={[styles.primaryText, { color: palette.onPrimary }]}>{busy ? "Restoring…" : "Restore data"}</Text>
               </Pressable>
             </View>
           </View>

@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -8,7 +9,6 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
   useWindowDimensions,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -63,8 +63,7 @@ const emptyImpact: AccountDeleteImpact = {
 
 export default function AccountsScreen() {
   const db = useSQLiteContext();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const { width } = useWindowDimensions();
   const isWideLayout = width >= 720;
 
@@ -260,13 +259,13 @@ export default function AccountsScreen() {
       <View style={[styles.page, isWideLayout && styles.widePage]}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: palette.primary }]}>YOUR MONEY</Text>
+            <Text style={[styles.eyebrow, { color: palette.primaryText }]}>YOUR MONEY</Text>
             <Text style={[styles.title, { color: palette.text }]}>Accounts</Text>
           </View>
           {activeRows.length > 0 ? (
             <Pressable onPress={() => void openCreate()} style={[styles.addButton, { backgroundColor: palette.primary }]}>
-              <MaterialCommunityIcons name="plus" size={18} color="#fff" />
-              <Text style={styles.addButtonText}>Add account</Text>
+              <MaterialCommunityIcons name="plus" size={18} color={palette.onPrimary} />
+              <Text style={[styles.addButtonText, { color: palette.onPrimary }]}>Add account</Text>
             </Pressable>
           ) : null}
         </View>
@@ -335,7 +334,7 @@ export default function AccountsScreen() {
                   ]}
                 >
                   <View style={styles.accountTop}>
-                    <View style={[styles.accountIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+                    <View style={[styles.accountIcon, { backgroundColor: palette.primarySoft }]}>
                       <MaterialCommunityIcons name={(accountType?.icon ?? "wallet-outline") as never} size={22} color={palette.primary} />
                     </View>
                     <View style={styles.accountCopy}>
@@ -389,7 +388,7 @@ export default function AccountsScreen() {
               {TYPES.map((item) => {
                 const active = type === item.value;
                 return (
-                  <Pressable key={item.value} onPress={() => setType(item.value)} style={[styles.chip, { borderColor: active ? palette.primary : palette.border, backgroundColor: active ? (dark ? "#3A2424" : "#FCE8E8") : palette.surface }]}>
+                  <Pressable key={item.value} onPress={() => setType(item.value)} style={[styles.chip, { borderColor: active ? palette.primary : palette.border, backgroundColor: active ? (palette.primarySoft) : palette.surface }]}>
                     <Text style={{ color: active ? palette.primary : palette.text, fontSize: 12, fontWeight: "700" }}>{item.label}</Text>
                   </Pressable>
                 );
@@ -403,9 +402,9 @@ export default function AccountsScreen() {
             <Text style={[styles.fieldLabel, { color: palette.text }]}>Starting balance</Text>
             <TextInput value={opening} onChangeText={setOpening} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={palette.textMuted} style={[styles.input, styles.amountInput, { color: palette.text, backgroundColor: palette.surface, borderColor: palette.border }]} />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: palette.expense }]}>{error}</Text> : null}
             <Pressable disabled={saving} onPress={() => void save()} style={[styles.primaryButton, { backgroundColor: palette.primary, opacity: saving ? 0.6 : 1 }]}>
-              <Text style={styles.primaryButtonText}>{saving ? "Saving…" : editing ? "Save changes" : "Save account"}</Text>
+              <Text style={[styles.primaryButtonText, { color: palette.onPrimary }]}>{saving ? "Saving…" : editing ? "Save changes" : "Save account"}</Text>
             </Pressable>
           </ScrollView>
         </SafeAreaView>
@@ -463,7 +462,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, paddingHorizontal: 20, paddingTop: 18 },
   widePage: { width: "100%", maxWidth: 1120, alignSelf: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  eyebrow: { color: "#D32F2F", fontSize: 11, fontWeight: "800", letterSpacing: 1 },
+  eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 1 },
   title: { fontSize: 29, fontWeight: "800", marginTop: 4 },
   addButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12 },
   addButtonText: { color: "#fff", fontSize: 12, fontWeight: "800" },
@@ -509,7 +508,7 @@ const styles = StyleSheet.create({
   helperText: { fontSize: 10, lineHeight: 15, marginTop: 6 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9 },
-  error: { color: "#D32F2F", fontSize: 12, marginTop: 12 },
+  error: { fontSize: 12, marginTop: 12 },
   backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.42)" },
   actionSheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 30 },
   sheetHandle: { width: 38, height: 4, borderRadius: 4, alignSelf: "center", marginBottom: 16 },

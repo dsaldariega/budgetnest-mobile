@@ -84,9 +84,9 @@ export default function WelcomeScreen() {
         >
         {(slides ?? []).map((slide, index) => (
           <View key={slide.title} style={[styles.slide, { width }]}>
-            <View style={[styles.illustration, { backgroundColor: mode === "dark" ? "#3A2424" : "#FCE8E8" }]}>
+            <View style={[styles.illustration, { backgroundColor: palette.primarySoft }]}>
               <View style={[styles.illustrationInner, { backgroundColor: palette.primary }]}>
-                <MaterialCommunityIcons name={slide.icon} size={58} color="#FFFFFF" />
+                <MaterialCommunityIcons name={slide.icon} size={58} color={palette.onPrimary} />
               </View>
             </View>
 
@@ -99,7 +99,7 @@ export default function WelcomeScreen() {
                   onPress={explore}
                   style={[styles.primaryButton, { backgroundColor: palette.primary }]}
                 >
-                  <Text style={styles.primaryButtonText}>Start Without Google</Text>
+                  <Text style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Start Without Google</Text>
                 </Pressable>
 
                 <Pressable
@@ -145,8 +145,8 @@ export default function WelcomeScreen() {
             onPress={() => scrollRef.current?.scrollTo({ x: width * (activeIndex + 1), animated: true })}
             style={[styles.primaryButton, { backgroundColor: palette.primary }]}
           >
-            <Text style={styles.primaryButtonText}>Next</Text>
-            <MaterialCommunityIcons name="arrow-right" size={18} color="#FFFFFF" />
+            <Text style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Next</Text>
+            <MaterialCommunityIcons name="arrow-right" size={18} color={palette.onPrimary} />
           </Pressable>
         ) : null}
         <Text style={[styles.footerNote, { color: palette.textMuted }]}>Your money. Your pace. Your privacy.</Text>

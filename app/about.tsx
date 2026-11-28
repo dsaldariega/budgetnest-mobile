@@ -1,5 +1,6 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -44,8 +45,7 @@ const FAQS = [
 
 export default function AboutScreen() {
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
@@ -56,7 +56,7 @@ export default function AboutScreen() {
           <BudgetNestBrand color={palette.text} size={23} /><Text style={[styles.title, { color: palette.text }]}>About & Help</Text>
         </View>
 
-        <View style={[styles.hero, { backgroundColor: dark ? "#57242C" : "#D32F2F" }]}>
+        <View style={[styles.hero, { backgroundColor: palette.primaryDark }]}>
           <Text style={styles.heroTitle}>Your money, with a little more clarity.</Text>
           <Text style={styles.heroText}>Track accounts, spending, plans, and recurring commitments locally.</Text>
         </View>
@@ -64,7 +64,7 @@ export default function AboutScreen() {
         <Text style={[styles.sectionTitle, { color: palette.text }]}>What you can do</Text>
         {FEATURES.map((feature) => (
           <View key={feature.title} style={[styles.feature, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <View style={[styles.featureIcon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+            <View style={[styles.featureIcon, { backgroundColor: palette.primarySoft }]}>
               <MaterialCommunityIcons name={feature.icon as never} size={21} color={palette.primary} />
             </View>
             <View style={{ flex: 1, gap: 3 }}>
@@ -83,7 +83,7 @@ export default function AboutScreen() {
             ["04", "Review and adjust", "Use Home and Reports to review your finances."],
           ].map(([number, title, detail]) => (
             <View key={number} style={styles.step}>
-              <View style={[styles.stepNumber, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={[styles.stepNumberText, { color: palette.primary }]}>{number}</Text></View>
+              <View style={[styles.stepNumber, { backgroundColor: palette.primarySoft }]}><Text style={[styles.stepNumberText, { color: palette.primaryText }]}>{number}</Text></View>
               <View style={{ flex: 1, gap: 3 }}>
                 <Text style={[styles.featureTitle, { color: palette.text }]}>{title}</Text>
                 <Text style={[styles.featureText, { color: palette.textMuted }]}>{detail}</Text>

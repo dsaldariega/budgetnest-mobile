@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -42,8 +42,7 @@ const MENU_GROUPS = [
 
 export default function MoreScreen() {
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { isDark: dark, palette } = useAppTheme();
   const { width, height } = useWindowDimensions();
   const useColumns = width >= 720 || width > height;
 
@@ -87,7 +86,7 @@ export default function MoreScreen() {
                     <View
                       style={[
                         styles.icon,
-                        { backgroundColor: dark ? "#3A2424" : "#FCE8E8" },
+                        { backgroundColor: palette.primarySoft },
                       ]}
                     >
                       <MaterialCommunityIcons

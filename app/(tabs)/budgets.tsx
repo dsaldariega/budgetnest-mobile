@@ -1,5 +1,6 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { todayLocalDate } from "@/domain/dates";
 import { useSQLiteContext } from "expo-sqlite";
@@ -19,7 +20,7 @@ const today = todayLocalDate;
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 
 export default function BudgetsScreen() {
-  const db = useSQLiteContext(); const dark = useColorScheme() === "dark"; const p = dark ? colors.dark : colors.light;
+  const db = useSQLiteContext(); const { isDark: dark, palette: p } = useAppTheme();
   const [items, setItems] = useState<BudgetListItem[]>([]); const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]); const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<BudgetListItem | null>(null);
@@ -65,7 +66,7 @@ export default function BudgetsScreen() {
 
   return <SafeAreaView style={[s.safe,{backgroundColor:p.background}]} edges={["top","left","right"]}>
     <View style={s.page}>
-      <View style={s.header}><View><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>PLAN YOUR SPENDING</Text><Text style={[s.title,{color:p.text}]}>Budgets</Text></View>{items.length>0?<Pressable onPress={()=>{reset();setOpen(true)}} style={[s.add,{backgroundColor:p.primary}]}><Text style={s.addText}>+ Add</Text></Pressable>:null}</View>
+      <View style={s.header}><View><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>PLAN YOUR SPENDING</Text><Text style={[s.title,{color:p.text}]}>Budgets</Text></View>{items.length>0?<Pressable onPress={()=>{reset();setOpen(true)}} style={[s.add,{backgroundColor:p.primary}]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable>:null}</View>
       <Text style={[s.sub,{color:p.textMuted}]}>Set spending limits by category and period, then monitor actual spending against each limit.</Text>
       <ScrollView contentContainerStyle={{gap:12,paddingBottom:30}}>
         {items.length===0?<EmptyState icon="chart-donut" title="No budgets yet" message="Create a weekly, monthly, or yearly spending limit." actionLabel="Create a budget" onAction={()=>{reset();setOpen(true)}} palette={p} dark={dark} />:
@@ -86,15 +87,15 @@ export default function BudgetsScreen() {
         <Text style={[s.label,{color:p.text}]}>Budget period</Text><View style={s.chips}>{(["weekly","monthly","yearly"] as Period[]).map(v=><Pressable key={v} onPress={()=>setPeriod(v)} style={[s.chip,{backgroundColor:period===v?p.primary:p.surface,borderColor:period===v?p.primary:p.border}]}><Text style={{color:period===v?"#fff":p.text,fontWeight:"700"}}>{v[0].toUpperCase()+v.slice(1)}</Text></Pressable>)}</View>
         <DateField label="Start date" required value={startDate} onChange={setStartDate}/>
         <SelectField label="Account" required value={accountId} options={accountOptions} onChange={setAccountId} placeholder="Select account"/>
-        {error?<Text style={s.error}>{error}</Text>:null}
-        <Pressable disabled={saving} onPress={()=>void save()} style={[s.primary,{backgroundColor:p.primary,opacity:saving?0.6:1}]}><Text style={s.primaryText}>{saving?"Saving…":editing?"Save changes":"Save budget"}</Text></Pressable>
+        {error?<Text style={[s.error, { color: p.expense }]}>{error}</Text>:null}
+        <Pressable disabled={saving} onPress={()=>void save()} style={[s.primary,{backgroundColor:p.primary,opacity:saving?0.6:1}]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving?"Saving…":editing?"Save changes":"Save budget"}</Text></Pressable>
       </ScrollView></SafeAreaView>
     </Modal>
   </SafeAreaView>;
 }
 const s=StyleSheet.create({
  safe:{flex:1},page:{flex:1,paddingHorizontal:20,paddingTop:18},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12},title:{fontSize:29,fontWeight:"800",marginTop:4},add:{paddingHorizontal:17,paddingVertical:11,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
- sub:{fontSize:14,lineHeight:21,marginTop:8,marginBottom:18},card:{borderWidth:1,borderRadius:18,padding:17},row:{flexDirection:"row",alignItems:"center",gap:10},rowActions:{flexDirection:"row",alignItems:"center",gap:14},cardTitle:{fontSize:15,fontWeight:"700"},delete:{color:"#D32F2F",fontSize:12,fontWeight:"700"},
+ sub:{fontSize:14,lineHeight:21,marginTop:8,marginBottom:18},card:{borderWidth:1,borderRadius:18,padding:17},row:{flexDirection:"row",alignItems:"center",gap:10},rowActions:{flexDirection:"row",alignItems:"center",gap:14},cardTitle:{fontSize:15,fontWeight:"700"},delete:{fontSize:12,fontWeight:"700"},
  moneyRow:{flexDirection:"row",alignItems:"baseline",justifyContent:"space-between",marginBottom:8},spent:{fontSize:20,fontWeight:"800"},track:{height:8,borderRadius:8,overflow:"hidden"},fill:{height:8,borderRadius:8},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{padding:15,borderRadius:13,alignItems:"center",marginTop:18},primaryText:{color:"#fff",fontWeight:"700"},
- modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:13,paddingVertical:10},input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{color:"#D32F2F",fontSize:13,marginTop:12}
+ modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},chips:{flexDirection:"row",flexWrap:"wrap",gap:8},chip:{borderWidth:1,borderRadius:20,paddingHorizontal:13,paddingVertical:10},input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{fontSize:13,marginTop:12}
 });

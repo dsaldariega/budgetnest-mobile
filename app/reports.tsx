@@ -1,5 +1,6 @@
+import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback,useState } from "react";
-import { Pressable,ScrollView,StyleSheet,Text,View,useColorScheme } from "react-native";
+import { Pressable,ScrollView,StyleSheet,Text,View } from "react-native";
 import { useFocusEffect,useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,14 +15,14 @@ function range(period:Period){const end=today();const monthStart=`${end.slice(0,
 const money=(n:number,c:string)=>new Intl.NumberFormat("en-PH",{style:"currency",currency:c,maximumFractionDigits:2}).format(n/100);
 const monthName=(v:string)=>new Date(v+"-01T00:00:00").toLocaleDateString("en-PH",{month:"short",year:"2-digit"});
 export default function ReportsScreen(){
- const db=useSQLiteContext(),router=useRouter(),dark=useColorScheme()==="dark",p=dark?colors.dark:colors.light;
+ const db=useSQLiteContext(),router=useRouter(),theme=useAppTheme(),dark=theme.isDark,p=theme.palette;
  const [period,setPeriod]=useState<Period>("month"),[summary,setSummary]=useState<ReportCurrencySummary[]>([]),[categories,setCategories]=useState<ReportCategoryTotal[]>([]),[trend,setTrend]=useState<ReportMonthTotal[]>([]),[error,setError]=useState("");
  const load=useCallback(async()=>{try{const r=range(period);const repo=createReportRepository(db);const [s,c,t]=await Promise.all([repo.summary(r.from,r.to),repo.expensesByCategory(r.from,r.to),repo.monthlyTrend(period==="year"?r.from:range("year").from,r.to)]);setSummary(Array.isArray(s) ? s : []);setCategories(Array.isArray(c) ? c : []);setTrend(Array.isArray(t) ? t : []);setError("");}catch(e){setError(e instanceof Error?e.message:"Unable to load reports.");}},[db,period]);
  useFocusEffect(useCallback(()=>{void load();},[load]));
  const currencyCodes=[...new Set((summary ?? []).map(x=>x.currencyCode))];
  return <SafeAreaView style={[s.safe,{backgroundColor:p.background}]} edges={["top","left","right"]}><View style={s.page}>
   <View style={s.header}><Pressable onPress={()=>router.back()} style={[s.back,{backgroundColor:p.surface,borderColor:p.border}]}><MaterialCommunityIcons name="arrow-left" size={21} color={p.text}/></Pressable><View style={{flex:1}}><Text style={[s.eyebrow,{color:p.primary}]}>FINANCIAL INSIGHTS</Text><Text style={[s.title,{color:p.text}]}>Reports</Text></View><Pressable onPress={()=>void load()}><MaterialCommunityIcons name="refresh" size={22} color={p.primary}/></Pressable></View>
-  <View style={s.periods}>{(["month","quarter","year"] as Period[]).map(v=><Pressable key={v} onPress={()=>setPeriod(v)} style={[s.period,{backgroundColor:period===v?p.primary:p.surface,borderColor:period===v?p.primary:p.border}]}><Text style={{color:period===v?"#fff":p.text,fontWeight:"700",textTransform:"capitalize"}}>{v==="month"?"This month":v==="quarter"?"3 months":"This year"}</Text></Pressable>)}</View>
+  <View style={s.periods}>{(["month","quarter","year"] as Period[]).map(v=><Pressable key={v} onPress={()=>setPeriod(v)} style={[s.period,{backgroundColor:period===v?p.primary:p.surface,borderColor:period===v?p.primary:p.border}]}><Text style={{color:period===v?p.onPrimary:p.text,fontWeight:"700",textTransform:"capitalize"}}>{v==="month"?"This month":v==="quarter"?"3 months":"This year"}</Text></Pressable>)}</View>
   <ScrollView contentContainerStyle={{gap:13,paddingBottom:32}}>
    {error?<Text style={{color:p.expense}}>{error}</Text>:null}
    {summary.length===0?<EmptyState icon="chart-box-outline" title="No financial activity yet" message="Record an expense or income to start seeing reports for this period." actionLabel="Log Expense" onAction={()=>router.push("/(tabs)/transactions")} palette={p} dark={dark} />:summary.map(x=><View key={x.currencyCode} style={[s.card,{backgroundColor:p.surface,borderColor:p.border}]}>

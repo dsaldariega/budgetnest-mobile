@@ -15,19 +15,19 @@ export function EmptyState({
   message: string;
   actionLabel?: string;
   onAction?: () => void;
-  palette: { surface: string; border: string; primary: string; text: string; textMuted: string };
+  palette: { surface: string; border: string; primary: string; primarySoft?: string; onPrimary?: string; text: string; textMuted: string };
   dark?: boolean;
 }) {
   return (
     <View style={[s.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <View style={[s.icon, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}>
+      <View style={[s.icon, { backgroundColor: palette.primarySoft ?? (dark ? "#382326" : "#FCEBEC") }]}>
         <MaterialCommunityIcons name={icon} size={28} color={palette.primary} />
       </View>
       <Text style={[s.title, { color: palette.text }]}>{title}</Text>
       <Text style={[s.message, { color: palette.textMuted }]}>{message}</Text>
       {actionLabel && onAction ? (
         <Pressable onPress={onAction} style={[s.button, { backgroundColor: palette.primary }]}>
-          <Text style={s.buttonText}>{actionLabel}</Text>
+          <Text style={[s.buttonText, { color: palette.onPrimary ?? "#170F10" }]}>{actionLabel}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -39,6 +39,6 @@ const s = StyleSheet.create({
   icon: { width: 54, height: 54, borderRadius: 17, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   title: { fontSize: 15, fontWeight: "800", textAlign: "center" },
   message: { textAlign: "center", fontSize: 12, lineHeight: 19, marginTop: 7 },
-  button: { paddingHorizontal: 17, paddingVertical: 13, borderRadius: 13, alignItems: "center", marginTop: 17 },
+  button: { minHeight: 48, paddingHorizontal: 17, paddingVertical: 13, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 17 },
   buttonText: { color: "#fff", fontSize: 13, fontWeight: "800" },
 });
