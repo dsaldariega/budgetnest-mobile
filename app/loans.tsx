@@ -1,20 +1,20 @@
 import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { createLoanRepository, type LoanListItem, type LoanPaymentListItem } from "@/database/repositories/loan-repository";
 import { toMinorUnits } from "@/domain/money";
-import { compareDates } from "@/domain/dates";
+import { compareDates, todayLocalDate } from "@/domain/dates";
 import { colors } from "@/theme/colors";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
 
 const makeId = (prefix: string) => prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 
 function termMonths(start: string, end: string) {
@@ -146,7 +146,8 @@ export default function LoansScreen() {
       </ScrollView>
     </View>
 
-    <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFormOpen(false)}>
+    <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setFormOpen(false)}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{editing ? "Edit loan" : "Add loan"}</Text><Text style={{ color: p.textMuted, fontSize: 12, marginTop: 3 }}>Set the amount, linked account, and repayment dates.</Text></View><Pressable onPress={() => setFormOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
         <Text style={[s.label, { color: p.text }]}>Loan name or description *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Car loan" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
@@ -158,9 +159,11 @@ export default function LoansScreen() {
         {error ? <Text style={[s.error, { color: p.expense }]}>{error}</Text> : null}
         <Pressable disabled={saving} onPress={() => void saveLoan()} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving ? "Saving…" : editing ? "Save changes" : "Save loan"}</Text></Pressable>
       </ScrollView></SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
 
-    <Modal visible={selected !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
+    <Modal visible={selected !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setSelected(null)}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
         {selected ? <ScrollView contentContainerStyle={s.form}>
           <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{selected.name}</Text><Text style={{ color: p.textMuted, marginTop: 4 }}>{selected.status} · ends {selected.dueDate}</Text></View><Pressable onPress={() => setSelected(null)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
@@ -181,9 +184,11 @@ export default function LoansScreen() {
           </View>)}
         </ScrollView> : null}
       </SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
 
-    <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPaymentOpen(false)}>
+    <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setPaymentOpen(false)}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Record payment</Text><Pressable onPress={() => setPaymentOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
         <Text style={[s.context, { color: p.textMuted }]}>This payment is recorded as an expense in the loan's linked account.</Text>
@@ -193,6 +198,7 @@ export default function LoansScreen() {
         {error ? <Text style={[s.error, { color: p.expense }]}>{error}</Text> : null}
         <Pressable disabled={saving} onPress={() => void savePayment()} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving ? "Saving…" : "Save payment"}</Text></Pressable>
       </ScrollView></SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
   </SafeAreaView>;
 }
@@ -202,7 +208,7 @@ const s = StyleSheet.create({
   title:{fontSize:29,fontWeight:"800",marginTop:4},add:{paddingHorizontal:17,paddingVertical:11,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
   sub:{fontSize:14,lineHeight:21,marginTop:8,marginBottom:18},card:{borderWidth:1,borderRadius:18,padding:17},row:{flexDirection:"row",alignItems:"center",gap:10},
   cardTitle:{fontSize:15,fontWeight:"700"},status:{fontSize:11,fontWeight:"800",textTransform:"uppercase"},moneyRow:{flexDirection:"row",alignItems:"baseline",justifyContent:"space-between",marginTop:9},
-  big:{fontSize:21,fontWeight:"800"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{padding:15,borderRadius:13,alignItems:"center",marginTop:18},
+  big:{fontSize:21,fontWeight:"800"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{ minHeight: 48, padding: 15,borderRadius:13,alignItems:"center",marginTop:18},
   primaryText:{color:"#fff",fontWeight:"700"},secondary:{padding:14,borderWidth:1,borderRadius:13,alignItems:"center",marginTop:10},dangerButton:{padding:14,alignItems:"center",marginTop:8},
   dangerText:{fontWeight:"700"},modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},
   input:{borderWidth:1,borderRadius:12,paddingHorizontal:14,paddingVertical:12,fontSize:14},amount:{fontSize:22,fontWeight:"800"},error:{fontSize:13,marginTop:12},

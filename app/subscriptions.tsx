@@ -1,12 +1,13 @@
 import { useAppTheme } from "@/theme/use-app-theme";
 import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createAccountRepository, type AccountWithBalance } from "@/database/repositories/account-repository";
 import { createSubscriptionRepository, type SubscriptionListItem, type SubscriptionPaymentListItem } from "@/database/repositories/subscription-repository";
 import { toMinorUnits } from "@/domain/money";
+import { todayLocalDate } from "@/domain/dates";
 import { billingCycleLabel, type BillingCycle } from "@/domain/subscriptions";
 import { colors } from "@/theme/colors";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
@@ -14,7 +15,7 @@ import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
 
 const makeId = (prefix: string) => prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayLocalDate;
 const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "currency", currency: c, maximumFractionDigits: 2 }).format(n / 100);
 
 export default function SubscriptionsScreen() {
@@ -142,7 +143,8 @@ export default function SubscriptionsScreen() {
       </ScrollView>
     </View>
 
-    <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setFormOpen(false)}>
+    <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setFormOpen(false)}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><View style={{flex:1}}><Text style={[s.modalTitle,{color:p.text}]}>{editing?"Edit subscription":"Add subscription"}</Text><Text style={{color:p.textMuted,fontSize:12,marginTop:3}}>Track a service or membership, its billing cycle, and payments.</Text></View><Pressable onPress={()=>setFormOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
         <Text style={[s.label,{color:p.text}]}>Subscription name *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Netflix" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
@@ -154,9 +156,11 @@ export default function SubscriptionsScreen() {
         {error?<Text style={[s.error, { color: p.expense }]}>{error}</Text>:null}
         <Pressable disabled={saving} onPress={()=>void save()} style={[s.primary,{backgroundColor:p.primary,opacity:saving?0.6:1}]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving?"Saving…":editing?"Save changes":"Save subscription"}</Text></Pressable>
       </ScrollView></SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
 
-    <Modal visible={selected!==null} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setSelected(null)}>
+    <Modal visible={selected!==null} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setSelected(null)}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}>
         {selected?<ScrollView contentContainerStyle={s.form}>
           <View style={s.header}><View style={{flex:1}}><Text style={[s.modalTitle,{color:p.text}]}>{selected.name}</Text><Text style={{color:p.textMuted,marginTop:4}}>{selected.isActive?"Active":"Paused"} · next {selected.nextBillingDate||"—"}</Text></View><Pressable onPress={()=>setSelected(null)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
@@ -169,9 +173,11 @@ export default function SubscriptionsScreen() {
           {payments.length===0?<Text style={{color:p.textMuted}}>No payments recorded yet.</Text>:(payments ?? []).map(payment=><Pressable key={payment.id} onLongPress={()=>removePayment(payment)} style={[s.payment,{backgroundColor:p.surface,borderColor:p.border}]}><View style={s.row}><View style={{flex:1}}><Text style={[s.cardTitle,{color:p.text}]}>{fmt(payment.amountMinor,selected.currencyCode)}</Text><Text style={{color:p.textMuted,fontSize:11,marginTop:3}}>Billing {payment.billingDate} · Paid {payment.paidAt.slice(0,10)}</Text></View><Text style={{color:p.textMuted,fontSize:11}}>Hold to delete</Text></View>{payment.notes?<Text style={{color:p.textMuted,fontSize:11,marginTop:5}}>{payment.notes}</Text>:null}</Pressable>)}
         </ScrollView>:null}
       </SafeAreaView>
+    </KeyboardAvoidingView>
     </Modal>
 
-    <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>setPaymentOpen(false)}>
+    <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setPaymentOpen(false)}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle,{color:p.text}]}>Record payment</Text><Pressable onPress={()=>setPaymentOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
         <Text style={[s.context,{color:p.textMuted}]}>The payment will create an expense transaction and deduct from the selected account.</Text>
@@ -179,7 +185,8 @@ export default function SubscriptionsScreen() {
         <Text style={[s.label,{color:p.text}]}>Note (optional)</Text><TextInput value={paymentNote} onChangeText={setPaymentNote} placeholder="Optional note" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
         {error?<Text style={[s.error, { color: p.expense }]}>{error}</Text>:null}
         <Pressable disabled={saving} onPress={()=>void recordPayment()} style={[s.primary,{backgroundColor:p.primary,opacity:saving?0.6:1}]}><Text style={[s.primaryText, { color: p.onPrimary }]}>{saving?"Saving…":"Save payment"}</Text></Pressable>
-      </ScrollView></SafeAreaView></Modal>
+      </ScrollView></SafeAreaView></KeyboardAvoidingView>
+    </Modal>
   </SafeAreaView>;
 }
 const s=StyleSheet.create({
@@ -187,7 +194,7 @@ const s=StyleSheet.create({
  title:{fontSize:29,fontWeight:"800",marginTop:4},add:{paddingHorizontal:17,paddingVertical:11,borderRadius:12},addText:{color:"#fff",fontWeight:"700"},
  sub:{fontSize:14,lineHeight:21,marginTop:8,marginBottom:18},card:{borderWidth:1,borderRadius:18,padding:17},row:{flexDirection:"row",alignItems:"center",gap:10},
  cardTitle:{fontSize:15,fontWeight:"700"},status:{fontSize:11,fontWeight:"800",textTransform:"uppercase"},moneyRow:{flexDirection:"row",alignItems:"baseline",justifyContent:"space-between",marginTop:9},
- big:{fontSize:20,fontWeight:"800"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{padding:15,borderRadius:13,alignItems:"center",marginTop:18},
+ big:{fontSize:20,fontWeight:"800"},empty:{borderWidth:1,borderRadius:18,padding:22,alignItems:"center"},primary:{ minHeight: 48, padding: 15,borderRadius:13,alignItems:"center",marginTop:18},
  primaryText:{color:"#fff",fontWeight:"700"},secondary:{padding:14,borderWidth:1,borderRadius:13,alignItems:"center",marginTop:10},dangerButton:{padding:14,alignItems:"center",marginTop:8},
  dangerText:{fontWeight:"700"},modal:{flex:1},form:{padding:22,paddingBottom:40},modalTitle:{fontSize:22,fontWeight:"900"},
  label:{fontSize:13,fontWeight:"700",marginTop:17,marginBottom:8},chips:{flexDirection:"row",alignItems:"stretch",gap:6},chip:{flex:1,minHeight:40,borderWidth:1,borderRadius:20,paddingHorizontal:4,paddingVertical:9,alignItems:"center",justifyContent:"center"},
