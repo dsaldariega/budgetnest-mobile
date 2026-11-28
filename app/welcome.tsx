@@ -13,10 +13,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { colors } from "@/theme/colors";
-import { useThemePreference } from "@/context/theme-context";
 import { useGoogleAuth } from "@/context/google-auth-context";
 import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
+import { useAppTheme } from "@/theme/use-app-theme";
 
 const slides = [
   {
@@ -39,8 +38,7 @@ const slides = [
 export default function WelcomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { mode } = useThemePreference();
-  const palette = mode === "dark" ? colors.dark : colors.light;
+  const { palette } = useAppTheme();
   const { signIn, signingIn, error: googleError } = useGoogleAuth();
   const [activeIndex, setActiveIndex] = useState(0);
   const [connectError, setConnectError] = useState("");
