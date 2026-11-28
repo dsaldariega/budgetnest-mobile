@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/theme/use-app-theme";
+import { spacing, typography, radius } from "@/theme/tokens";
 import { useCallback,useState } from "react";
 import { Pressable,ScrollView,StyleSheet,Text,View } from "react-native";
 import { useFocusEffect,useRouter } from "expo-router";
@@ -38,4 +39,4 @@ export default function ReportsScreen(){
   </ScrollView>
  </View></SafeAreaView>;
 }
-const s=StyleSheet.create({safe:{flex:1},page:{flex:1,paddingHorizontal:20,paddingTop:18},header:{flexDirection:"row",alignItems:"center",gap:11,marginBottom:16},back:{width:40,height:40,borderRadius:13,borderWidth:1,alignItems:"center",justifyContent:"center"},eyebrow:{fontSize:10,fontWeight:"800",letterSpacing:1},title:{fontSize:27,fontWeight:"800",marginTop:2},periods:{flexDirection:"row",gap:7,marginBottom:14},period:{flex:1,alignItems:"center",paddingVertical:10,paddingHorizontal:5,borderRadius:12,borderWidth:1},card:{borderWidth:1,borderRadius:16,padding:15},section:{fontSize:15,fontWeight:"800"},metric:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:10,marginTop:11},currency:{fontSize:13,fontWeight:"800"},track:{height:7,borderRadius:8,overflow:"hidden"},fill:{height:7,borderRadius:8}});
+const s=StyleSheet.create({safe:{flex:1},page:{flex:1,paddingHorizontal:20,paddingTop:18},header:{flexDirection:"row",alignItems:"center",gap:11,marginBottom:16},back:{width:40,height:40,borderRadius: radius.md,borderWidth:1,alignItems:"center",justifyContent:"center"},eyebrow:{fontSize:10,fontWeight:"800",letterSpacing:1},title: {fontSize: typography.screenTitle,fontWeight:"800",marginTop:2},periods:{flexDirection:"row",gap:7,marginBottom:14},period:{flex:1,alignItems:"center",paddingVertical:10,paddingHorizontal:5,borderRadius:12,borderWidth:1},card:{borderWidth:1,borderRadius:16,padding:15},section:{fontSize:15,fontWeight:"800"},metric:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:10,marginTop:11},currency:{fontSize:13,fontWeight:"800"},track:{height:7,borderRadius:8,overflow:"hidden"},fill:{height:7,borderRadius:8}});
