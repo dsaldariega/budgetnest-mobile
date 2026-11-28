@@ -13,6 +13,7 @@ import { colors } from "@/theme/colors";
 import { EmptyState } from "@/components/EmptyState";
 import { SelectField } from "@/components/ui/select-field";
 import { DateField } from "@/components/ui/date-field";
+import { ScreenBackButton } from "@/components/ui/screen-back-button";
 
 type Period = "weekly" | "monthly" | "yearly";
 const makeId = () => "budget-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
@@ -66,7 +67,7 @@ export default function BudgetsScreen() {
 
   return <SafeAreaView style={[s.safe,{backgroundColor:p.background}]} edges={["top","left","right"]}>
     <View style={s.page}>
-      <View style={s.header}><View><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>PLAN YOUR SPENDING</Text><Text style={[s.title,{color:p.text}]}>Budgets</Text></View>{items.length>0?<Pressable onPress={()=>{reset();setOpen(true)}} style={[s.add,{backgroundColor:p.primary}]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable>:null}</View>
+      <View style={s.header}><ScreenBackButton backgroundColor={p.surface} borderColor={p.border} color={p.text}/><View style={{flex:1}}><Text style={{color:p.primary,fontSize:11,fontWeight:"800",letterSpacing:1}}>PLAN YOUR SPENDING</Text><Text style={[s.title,{color:p.text}]}>Budgets</Text></View>{items.length>0?<Pressable onPress={()=>{reset();setOpen(true)}} style={[s.add,{backgroundColor:p.primary}]}><Text style={[s.addText, { color: p.onPrimary }]}>+ Add</Text></Pressable>:null}</View>
       <Text style={[s.sub,{color:p.textMuted}]}>Set spending limits by category and period, then monitor actual spending against each limit.</Text>
       <ScrollView contentContainerStyle={{gap:12,paddingBottom:30}}>
         {items.length===0?<EmptyState icon="chart-donut" title="No budgets yet" message="Create a weekly, monthly, or yearly spending limit." actionLabel="Create a budget" onAction={()=>{reset();setOpen(true)}} palette={p} dark={dark} />:
