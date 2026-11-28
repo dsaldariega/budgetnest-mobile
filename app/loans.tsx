@@ -147,7 +147,8 @@ export default function LoansScreen() {
     </View>
 
     <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setFormOpen(false)}>
+      onRequestClose={() => setFormOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{editing ? "Edit loan" : "Add loan"}</Text><Text style={{ color: p.textMuted, fontSize: 12, marginTop: 3 }}>Set the amount, linked account, and repayment dates.</Text></View><Pressable onPress={() => setFormOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
         <Text style={[s.label, { color: p.text }]}>Loan name or description *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Car loan" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
@@ -163,7 +164,8 @@ export default function LoansScreen() {
     </Modal>
 
     <Modal visible={selected !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setSelected(null)}>
+      onRequestClose={() => setSelected(null)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]} edges={["top", "left", "right"]}>
         {selected ? <ScrollView contentContainerStyle={s.form}>
           <View style={s.header}><View style={{ flex: 1 }}><Text style={[s.modalTitle, { color: p.text }]}>{selected.name}</Text><Text style={{ color: p.textMuted, marginTop: 4 }}>{selected.status} · ends {selected.dueDate}</Text></View><Pressable onPress={() => setSelected(null)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
@@ -188,7 +190,8 @@ export default function LoansScreen() {
     </Modal>
 
     <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setPaymentOpen(false)}>
+      onRequestClose={() => setPaymentOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Record payment</Text><Pressable onPress={() => setPaymentOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
         <Text style={[s.context, { color: p.textMuted }]}>This payment is recorded as an expense in the loan's linked account.</Text>

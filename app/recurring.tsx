@@ -48,7 +48,8 @@ export default function RecurringScreen(){
   </ScrollView>
  </View>
  <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setFormOpen(false)}><SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+      onRequestClose={() => setFormOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}><SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
   <View style={s.header}><Text style={[s.modalTitle,{color:p.text}]}>{editing?"Edit schedule":"New schedule"}</Text><Pressable onPress={()=>setFormOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
   <Text style={[s.label,{color:p.text}]}>Name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Monthly salary" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
   <Text style={[s.label,{color:p.text}]}>Type</Text><View style={s.chips}>{(["income","expense"] as const).map(v=><Pressable key={v} onPress={()=>{setType(v);void loadCategories(v);}} style={[s.chip,{backgroundColor:type===v?p.primary:p.surface,borderColor:type===v?p.primary:p.border}]}><Text style={{color:type===v?"#fff":p.text,fontWeight:"700",textTransform:"capitalize"}}>{v}</Text></Pressable>)}</View>

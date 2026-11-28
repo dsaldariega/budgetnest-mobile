@@ -79,7 +79,8 @@ export default function BudgetsScreen() {
       </ScrollView>
     </View>
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setOpen(false)}>
+      onRequestClose={() => setOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><View style={{flex:1}}><Text style={[s.modalTitle,{color:p.text}]}>{editing?"Edit budget":"Add budget"}</Text><Text style={{color:p.textMuted,fontSize:12,marginTop:3}}>Budgets are setup rules; actual spending comes from recorded expense transactions.</Text></View><Pressable onPress={()=>setOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
         <Text style={[s.label,{color:p.text}]}>Budget name *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Monthly groceries" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>

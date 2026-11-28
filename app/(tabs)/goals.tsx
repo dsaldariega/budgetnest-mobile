@@ -91,7 +91,8 @@ export default function GoalsScreen() {
       </ScrollView>
     </View>
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setOpen(false)}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+      onRequestClose={() => setOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
       <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>{editingGoal ? "Edit savings goal" : "Add savings goal"}</Text><Pressable onPress={() => setOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
       <Text style={[s.label, { color: p.text }]}>Goal name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Emergency fund" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
       <Text style={[s.label, { color: p.text }]}>Target amount</Text><TextInput value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
@@ -101,7 +102,8 @@ export default function GoalsScreen() {
     </ScrollView></SafeAreaView></KeyboardAvoidingView>
     </Modal>
     <Modal visible={!!contributeGoal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() =>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}> setContributeGoal(null)}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
+      onRequestClose={() => setContributeGoal(null)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
       <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Add contribution</Text><Pressable onPress={() => setContributeGoal(null)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
       {contributeGoal ? <Text style={[s.context, { color: p.textMuted }]}>Adding progress to <Text style={{ fontWeight: "800", color: p.text }}>{contributeGoal.name}</Text>. This does not create a spending transaction.</Text> : null}
       <Text style={[s.label, { color: p.text }]}>Amount</Text><TextInput value={contribution} onChangeText={setContribution} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />

@@ -144,7 +144,8 @@ export default function SubscriptionsScreen() {
     </View>
 
     <Modal visible={formOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setFormOpen(false)}>
+      onRequestClose={() => setFormOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><View style={{flex:1}}><Text style={[s.modalTitle,{color:p.text}]}>{editing?"Edit subscription":"Add subscription"}</Text><Text style={{color:p.textMuted,fontSize:12,marginTop:3}}>Track a service or membership, its billing cycle, and payments.</Text></View><Pressable onPress={()=>setFormOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
         <Text style={[s.label,{color:p.text}]}>Subscription name *</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Netflix" placeholderTextColor={p.textMuted} style={[s.input,{color:p.text,backgroundColor:p.surface,borderColor:p.border}]}/>
@@ -160,7 +161,8 @@ export default function SubscriptionsScreen() {
     </Modal>
 
     <Modal visible={selected!==null} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setSelected(null)}>
+      onRequestClose={() => setSelected(null)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]} edges={["top","left","right"]}>
         {selected?<ScrollView contentContainerStyle={s.form}>
           <View style={s.header}><View style={{flex:1}}><Text style={[s.modalTitle,{color:p.text}]}>{selected.name}</Text><Text style={{color:p.textMuted,marginTop:4}}>{selected.isActive?"Active":"Paused"} · next {selected.nextBillingDate||"—"}</Text></View><Pressable onPress={()=>setSelected(null)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
@@ -177,7 +179,8 @@ export default function SubscriptionsScreen() {
     </Modal>
 
     <Modal visible={paymentOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={()=>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>setPaymentOpen(false)}>
+      onRequestClose={() => setPaymentOpen(false)}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <SafeAreaView style={[s.modal,{backgroundColor:p.background}]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
         <View style={s.header}><Text style={[s.modalTitle,{color:p.text}]}>Record payment</Text><Pressable onPress={()=>setPaymentOpen(false)}><Text style={{color:p.textMuted}}>Close</Text></Pressable></View>
         <Text style={[s.context,{color:p.textMuted}]}>The payment will create an expense transaction and deduct from the selected account.</Text>
