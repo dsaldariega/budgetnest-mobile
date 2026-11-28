@@ -53,6 +53,7 @@ export default function TransactionsScreen() {
   const [toDate, setToDate] = useState("");
   const [accountName, setAccountName] = useState("");
   const [categoryName, setCategoryName] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [formKind, setFormKind] = useState<FormKind>("expense");
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -101,6 +102,7 @@ export default function TransactionsScreen() {
     setCategories(rows.map(row => ({ value: row.id, label: row.name })));
     const preferred = kind === "loan" ? "cat-income-loan" : kind === "savings" ? "cat-expense-savings" : "";
     setCategoryId(current => rows.some(row => row.id === current) ? current : rows.some(row => row.id === preferred) ? preferred : rows[0]?.id ?? "");
+    setName(current => current.trim() ? current : (rows.find(row => row.id === preferred)?.name ?? rows[0]?.name ?? ""));
   }, [txRepo]);
 
   const resetForm = () => {
@@ -208,10 +210,20 @@ export default function TransactionsScreen() {
         </View>
         <Text style={[s.sub, { color: p.textMuted }]}>Create and manage transactions, while keeping loans, subscriptions, and savings activity in the same history.</Text>
 
-        <View style={s.filters}>{(["all", "income", "expense", "transfer", "loan", "subscription", "savings"] as HistoryFilter[]).map(kind => <Pressable key={kind} onPress={() => setFilter(kind)} style={[s.filter, { backgroundColor: filter === kind ? p.primary : p.surface, borderColor: filter === kind ? p.primary : p.border }]}><Text style={{ color: filter === kind ? "#fff" : p.text, fontWeight: "700", fontSize: 11 }}>{historyKindLabel(kind)}</Text></Pressable>)}</View>
         <View style={[s.searchBox, { backgroundColor: p.surface, borderColor: p.border }]}><TextInput value={search} onChangeText={setSearch} placeholder="Search activity" placeholderTextColor={p.textMuted} style={[s.searchInput, { color: p.text }]} />{search || fromDate || toDate || accountName || categoryName || filter !== "all" ? <Pressable onPress={() => { setFilter("all"); setSearch(""); setFromDate(""); setToDate(""); setAccountName(""); setCategoryName(""); }}><Text style={{ color: p.primary, fontWeight: "700", fontSize: 12 }}>Clear</Text></Pressable> : null}</View>
-        <View style={s.dateRow}><View style={{ flex: 1 }}><DateField label="From" value={fromDate} onChange={setFromDate} placeholder="Any date" /></View><View style={{ flex: 1 }}><DateField label="To" value={toDate} onChange={setToDate} placeholder="Any date" /></View></View>
-        <View style={s.dateRow}><TextInput value={accountName} onChangeText={setAccountName} placeholder="Account name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /><TextInput value={categoryName} onChangeText={setCategoryName} placeholder="Category name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /></View>
+        <Pressable onPress={() => setShowFilters(value => !value)} style={[s.filtersToggle, { backgroundColor: p.surface, borderColor: p.border }]}>
+          <View style={s.filtersToggleLabel}>
+            <MaterialCommunityIcons name="tune-variant" size={16} color={p.primary} />
+            <Text style={{ color: p.text, fontSize: 12, fontWeight: "800" }}>Filters</Text>
+            {(fromDate || toDate || accountName || categoryName || filter !== "all") ? <View style={[s.filterBadge, { backgroundColor: p.primary }]}><Text style={s.filterBadgeText}>Active</Text></View> : null}
+          </View>
+          <MaterialCommunityIcons name={showFilters ? "chevron-up" : "chevron-down"} size={18} color={p.textMuted} />
+        </Pressable>
+        {showFilters ? <>
+          <View style={s.filters}>{(["all", "income", "expense", "transfer", "loan", "subscription", "savings"] as HistoryFilter[]).map(kind => <Pressable key={kind} onPress={() => setFilter(kind)} style={[s.filter, { backgroundColor: filter === kind ? p.primary : p.surface, borderColor: filter === kind ? p.primary : p.border }]}><Text style={{ color: filter === kind ? "#fff" : p.text, fontWeight: "700", fontSize: 11 }}>{historyKindLabel(kind)}</Text></Pressable>)}</View>
+          <View style={s.dateRow}><View style={{ flex: 1 }}><DateField label="From" value={fromDate} onChange={setFromDate} placeholder="Any date" /></View><View style={{ flex: 1 }}><DateField label="To" value={toDate} onChange={setToDate} placeholder="Any date" /></View></View>
+          <View style={s.dateRow}><TextInput value={accountName} onChangeText={setAccountName} placeholder="Account name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /><TextInput value={categoryName} onChangeText={setCategoryName} placeholder="Category name" placeholderTextColor={p.textMuted} style={[s.filterInput, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} /></View>
+        </> : null>
 
         {error ? <View style={[s.error, { backgroundColor: dark ? "#3A2424" : "#FCE8E8" }]}><Text style={{ color: p.expense, fontWeight: "800", fontSize: 12 }}>{error}</Text></View> : null}
         <ScrollView contentContainerStyle={s.list}>
