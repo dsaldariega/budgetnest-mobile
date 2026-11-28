@@ -118,7 +118,7 @@ export function DateField({
 }
 
 const s = StyleSheet.create({
-  label: { fontSize: 13, fontWeight: "700", marginTop: 17, marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: "700", marginTop: spacing.lg, marginBottom: spacing.sm },
   field: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   modal: { paddingBottom: spacing.sm },
   calendarHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
