@@ -5,5 +5,4 @@ export { ChipGroup, type ChipOption } from "@/components/ui/chip-group";
 export { PageHeader } from "@/components/ui/page-header";
 export { SectionHeader } from "@/components/ui/section-header";
 export { SelectionModal, type SelectionOption } from "@/components/ui/selection-modal";
-export { SummaryCard } from "@/components/ui/summary-card";
 export { TextField } from "@/components/ui/text-field";
