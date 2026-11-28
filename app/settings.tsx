@@ -8,23 +8,20 @@ import { createBackupRepository } from "@/services/backup/backup-repository";
 import { parseBackup } from "@/services/backup/backup-format";
 import { useGoogleAuth } from "@/context/google-auth-context";
 import { createSettingsRepository, DEFAULT_CURRENCY_CODE, SUPPORTED_DEFAULT_CURRENCIES, type DefaultCurrencyCode } from "@/database/repositories/settings-repository";
-import { colors } from "@/theme/colors";
-import { useThemePreference } from "@/context/theme-context";
 import type { ThemePreference } from "@/database/repositories/settings-repository";
 import { TransactionDataTools } from "@/components/settings/transaction-data-tools";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenBackButton } from "@/components/ui/screen-back-button";
 import { BudgetNestBrand } from "@/components/ui/budgetnest-brand";
 import { SelectField } from "@/components/ui/select-field";
+import { useAppTheme } from "@/theme/use-app-theme";
 
 const formatCount = (value: number) => new Intl.NumberFormat("en-PH").format(value);
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const { preference, mode, setPreference } = useThemePreference();
-  const dark = mode === "dark";
-  const palette = dark ? colors.dark : colors.light;
+  const { preference, mode, isDark: dark, setPreference, palette } = useAppTheme();
   const { user, loading: authLoading, signingIn, signIn, signOut } = useGoogleAuth();
 
   const [busy, setBusy] = useState(false);
