@@ -18,15 +18,16 @@ const fmt = (n: number, c: string) => new Intl.NumberFormat("en-PH", { style: "c
 export default function GoalsScreen() {
   const db = useSQLiteContext(); const dark = useColorScheme() === "dark"; const p = dark ? colors.dark : colors.light;
   const [items, setItems] = useState<SavingsGoalListItem[]>([]); const [accounts, setAccounts] = useState<AccountWithBalance[]>([]);
-  const [open, setOpen] = useState(false); const [contributeGoal, setContributeGoal] = useState<SavingsGoalListItem | null>(null);
+  const [open, setOpen] = useState(false); const [editingGoal, setEditingGoal] = useState<SavingsGoalListItem | null>(null); const [contributeGoal, setContributeGoal] = useState<SavingsGoalListItem | null>(null);
   const [name, setName] = useState(""); const [target, setTarget] = useState(""); const [targetDate, setTargetDate] = useState(""); const [accountId, setAccountId] = useState("");
   const [contribution, setContribution] = useState(""); const [contributionNote, setContributionNote] = useState(""); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
   const load = useCallback(async () => {
-    try { const [goals, acc] = await Promise.all([createGoalRepository(db).list(), createAccountRepository(db).list()]); setItems(goals); setAccounts(acc); setAccountId(v => acc.some(a => a.id === v) ? v : acc[0]?.id ?? ""); }
+    try { const [goals, acc] = await Promise.all([createGoalRepository(db).list(), createAccountRepository(db).list()]); const safeGoals = Array.isArray(goals) ? goals : []; const safeAccounts = Array.isArray(acc) ? acc : []; setItems(safeGoals); setAccounts(safeAccounts); setAccountId(v => safeAccounts.some(a => a.id === v) ? v : safeAccounts[0]?.id ?? ""); }
     catch (e) { setError(e instanceof Error ? e.message : "Unable to load goals."); }
   }, [db]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
-  const reset = () => { setName(""); setTarget(""); setTargetDate(""); setError(""); };
+  const reset = () => { setName(""); setTarget(""); setTargetDate(""); setError(""); setEditingGoal(null); };
+  const openEdit = (item: SavingsGoalListItem) => { setError(""); setEditingGoal(item); setName(item.name); setTarget((item.targetAmountMinor / 100).toFixed(2)); setTargetDate(item.targetDate ?? ""); setAccountId(item.accountId); setOpen(true); };
   const save = async () => {
     setError("");
     if (!/^\d+(\.\d{1,2})?$/.test(target.trim()) || Number(target) <= 0) { setError("Enter a positive target amount."); return; }
@@ -35,7 +36,12 @@ export default function GoalsScreen() {
       if (!accountId) throw new Error("Choose an account.");
       if (targetDate) compareDates(targetDate, targetDate);
       setSaving(true);
-      await createGoalRepository(db).create({ id: makeId("goal"), name, targetAmountMinor: toMinorUnits(Number(target)), targetDate: targetDate || null, accountId });
+      const repository = createGoalRepository(db);
+      if (editingGoal) {
+        await repository.update(editingGoal.id, { name, targetAmountMinor: toMinorUnits(Number(target)), targetDate: targetDate || null, accountId });
+      } else {
+        await repository.create({ id: makeId("goal"), name, targetAmountMinor: toMinorUnits(Number(target)), targetDate: targetDate || null, accountId });
+      }
       setOpen(false); reset(); await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to save goal."); } finally { setSaving(false); }
   };
@@ -73,10 +79,10 @@ export default function GoalsScreen() {
     <View style={s.page}>
       <View style={s.header}><View><Text style={{ color: p.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>SAVE WITH PURPOSE</Text><Text style={[s.title, { color: p.text }]}>Goals</Text></View><Pressable onPress={() => { reset(); setOpen(true); }} style={[s.add, { backgroundColor: p.primary }]}><Text style={s.addText}>+ Add</Text></Pressable></View>
       <Text style={[s.sub, { color: p.textMuted }]}>Build progress toward something that matters to you.</Text>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }}>
+      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? <View style={[s.empty, { backgroundColor: p.surface, borderColor: p.border }]}><Text style={[s.cardTitle, { color: p.text }]}>No savings goals yet</Text><Text style={{ color: p.textMuted, marginTop: 6 }}>Create a goal, then record contributions as you save.</Text><Pressable onPress={() => setOpen(true)} style={[s.primary, { backgroundColor: p.primary }]}><Text style={s.primaryText}>Create a goal</Text></Pressable></View> :
         items.map(item => <View key={item.id} style={[s.card, { backgroundColor: p.surface, borderColor: p.border }]}>
-          <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{item.name}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{item.accountName} · {item.currencyCode}{item.targetDate ? " · target " + item.targetDate : ""}</Text></View><View style={{ alignItems: "flex-end", gap: 8 }}><Pressable onPress={() => archive(item)}><Text style={s.archive}>Archive</Text></Pressable><Pressable onPress={() => void remove(item)}><Text style={[s.archive, { color: p.expense }]}>Delete</Text></Pressable></View></View>
+          <View style={s.row}><View style={{ flex: 1 }}><Text style={[s.cardTitle, { color: p.text }]}>{item.name}</Text><Text style={{ color: p.textMuted, fontSize: 11, marginTop: 3 }}>{item.accountName} · {item.currencyCode}{item.targetDate ? " · target " + item.targetDate : ""}</Text></View><View style={{ alignItems: "flex-end", gap: 8 }}><Pressable onPress={() => openEdit(item)}><Text style={s.archive}>Edit</Text></Pressable><Pressable onPress={() => archive(item)}><Text style={[s.archive, { color: p.textMuted }]}>Archive</Text></Pressable><Pressable onPress={() => void remove(item)}><Text style={[s.archive, { color: p.expense }]}>Delete</Text></Pressable></View></View>
           <View style={s.moneyRow}><Text style={[s.current, { color: p.text }]}>{fmt(item.currentAmountMinor, item.currencyCode)}</Text><Text style={{ color: p.textMuted, fontSize: 12 }}>of {fmt(item.targetAmountMinor, item.currencyCode)}</Text></View>
           <View style={[s.track, { backgroundColor: dark ? "#332B2B" : "#EEEFF2" }]}><View style={[s.fill, { width: Math.min(100, Math.round(item.progress * 100)) + "%", backgroundColor: p.income }]} /></View>
           <View style={s.moneyRow}><Text style={{ color: p.textMuted, fontSize: 12 }}>{fmt(item.remainingMinor, item.currencyCode)} remaining</Text><Pressable onPress={() => { setError(""); setContributeGoal(item); }}><Text style={[s.contribute, { color: p.primary }]}>+ Add contribution</Text></Pressable></View>
@@ -84,12 +90,12 @@ export default function GoalsScreen() {
       </ScrollView>
     </View>
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
-      <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Add savings goal</Text><Pressable onPress={() => setOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
+      <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>{editingGoal ? "Edit savings goal" : "Add savings goal"}</Text><Pressable onPress={() => setOpen(false)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
       <Text style={[s.label, { color: p.text }]}>Goal name</Text><TextInput value={name} onChangeText={setName} placeholder="e.g. Emergency fund" placeholderTextColor={p.textMuted} style={[s.input, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
       <Text style={[s.label, { color: p.text }]}>Target amount</Text><TextInput value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={p.textMuted} style={[s.input, s.amount, { color: p.text, backgroundColor: p.surface, borderColor: p.border }]} />
-      <SelectField label="Account" required value={accountId} options={accounts.filter(a=>!a.isArchived).map(a=>({value:a.id,label:a.name,description:a.currencyCode}))} onChange={setAccountId} placeholder="Select account" />
+      <SelectField label="Account" required value={accountId} options={(accounts ?? []).filter(a=>!a.isArchived).map(a=>({value:a.id,label:a.name,description:a.currencyCode}))} onChange={setAccountId} placeholder="Select account" />
       <DateField label="Target date (optional)" value={targetDate} onChange={setTargetDate} placeholder="No target date" />
-      {error ? <Text style={s.error}>{error}</Text> : null}<Pressable disabled={saving} onPress={save} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={s.primaryText}>{saving ? "Saving…" : "Save goal"}</Text></Pressable>
+      {error ? <Text style={s.error}>{error}</Text> : null}<Pressable disabled={saving} onPress={save} style={[s.primary, { backgroundColor: p.primary, opacity: saving ? 0.6 : 1 }]}><Text style={s.primaryText}>{saving ? "Saving…" : editingGoal ? "Save changes" : "Save goal"}</Text></Pressable>
     </ScrollView></SafeAreaView></Modal>
     <Modal visible={!!contributeGoal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setContributeGoal(null)}><SafeAreaView style={[s.modal, { backgroundColor: p.background }]}><ScrollView contentContainerStyle={s.form} keyboardShouldPersistTaps="handled">
       <View style={s.header}><Text style={[s.modalTitle, { color: p.text }]}>Add contribution</Text><Pressable onPress={() => setContributeGoal(null)}><Text style={{ color: p.textMuted }}>Close</Text></Pressable></View>
